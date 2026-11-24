@@ -23,6 +23,7 @@ from mezzala.squad_gaps import SquadGaps, squad_gaps
 DEFAULT_FORMATION = Formation.FOUR_THREE_THREE
 DEFAULT_LIMIT = 10
 RISER_CA_BELOW_SQUAD_LEVEL = 20
+RISER_TARGET_MAX_AGE = 23
 
 INSTRUCTIONS = """\
 mezzala reads the manager's Football Manager 27 save and answers transfer questions about it.
@@ -118,6 +119,17 @@ def target_player(snapshot: Snapshot, name: str) -> Player:
         raise ToolError(str(error)) from error
 
 
+def riser_defaults(
+    scope: RiserScope, snapshot: Snapshot, min_ca: int | None, max_age: int | None
+) -> tuple[float, int | None]:
+    match scope:
+        case RiserScope.ELSEWHERE:
+            floor = squad_level(snapshot) - RISER_CA_BELOW_SQUAD_LEVEL if min_ca is None else min_ca
+            return floor, RISER_TARGET_MAX_AGE if max_age is None else max_age
+        case RiserScope.OWN | RiserScope.FORMER:
+            return (0 if min_ca is None else min_ca), max_age
+
+
 def create_server(career: Career) -> MCPServer:
     server = MCPServer("mezzala", instructions=INSTRUCTIONS)
 
@@ -163,7 +175,7 @@ def create_server(career: Career) -> MCPServer:
         since: date | None = None,
         min_ca_gain: float = 3,
         min_ca: int | None = None,
-        max_age: int | None = 23,
+        max_age: int | None = None,
         max_fee: float | None = None,
         position: PositionGroup | None = None,
         within_reach: bool = True,
@@ -174,12 +186,12 @@ def create_server(career: Career) -> MCPServer:
         scope: elsewhere (transfer targets), own (your players) or former (players who have left you, to spot
         sales made too early). since is an in-game date; it defaults to the oldest snapshot. With one snapshot,
         gains are projected rather than observed. max_fee is in pounds and defaults to the remaining transfer budget;
-        free agents always qualify. min_ca defaults to 20 below the
-        level of the current first eleven."""
+        free agents always qualify. For elsewhere, min_ca defaults to 20 below the level of the current
+        first eleven and max_age to 23; for own and former there is no floor or age limit unless given."""
         current = read_current(career)
-        floor = min_ca if min_ca is not None else squad_level(current.snapshot) - RISER_CA_BELOW_SQUAD_LEVEL
+        floor, age_limit = riser_defaults(scope, current.snapshot, min_ca, max_age)
         fee_cap = optional_stored(max_fee) if max_fee is not None else current.snapshot.budget.transfer_remaining
-        filters = RiserFilters(scope, min_ca_gain, floor, within_reach, max_age, fee_cap, position)
+        filters = RiserFilters(scope, min_ca_gain, floor, within_reach, age_limit, fee_cap, position)
         result = find_risers(current.snapshot, career.baseline(current, since), filters, limit)
         return RisersReport(save_context(current), result)
 

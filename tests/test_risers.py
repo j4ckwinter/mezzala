@@ -59,3 +59,23 @@ def test_a_reused_id_is_not_counted_as_growth(mezzala):
     newcomer = replace(retired, name="Newcomer", age=16, birth_date=date(2010, 1, 1), current_ability=110)
     app.play_to(snapshot([*eleven(), newcomer], game_date=LATER))
     assert risers(app)["risers"] == []
+
+
+def test_own_scope_includes_academy_kids_below_first_team_level(mezzala):
+    academy = mine("Academy Kid", age=16, ca=50, pa=150)
+    report = risers(mezzala(snapshot([*eleven(ca=110), academy])), scope="own")
+    assert "Academy Kid" in [entry["player"]["name"] for entry in report["risers"]]
+
+
+def test_former_scope_includes_players_over_23(mezzala):
+    sold = mine("Late Bloomer", age=26, ca=100, pa=140)
+    app = mezzala(snapshot([*eleven(), sold]))
+    app.call("snapshot")
+    moved = replace(sold, club_uid=OTHER_CLUB, club_name="Club 2", current_ability=112)
+    app.play_to(snapshot([*eleven(), moved], game_date=LATER))
+    assert [entry["player"]["name"] for entry in risers(app, scope="former")["risers"]] == ["Late Bloomer"]
+
+
+def test_transfer_targets_still_default_to_23_and_under(mezzala):
+    older = player("Older Riser", age=25, ca=100, pa=150)
+    assert risers(mezzala(snapshot([*eleven(), older])))["risers"] == []
