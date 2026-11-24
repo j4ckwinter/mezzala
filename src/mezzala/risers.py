@@ -70,7 +70,7 @@ def passes(player: Player, snapshot: Snapshot, filters: RiserFilters) -> bool:
         return False
     if filters.group is not None and not covers(player, filters.group):
         return False
-    if filters.scope is RiserScope.ELSEWHERE and filters.max_fee is not None and not player.is_free_agent:
+    if filters.scope is RiserScope.ELSEWHERE and filters.max_fee is not None and not player.costs_no_fee:
         return player.value is not None and player.value <= filters.max_fee
     return True
 

@@ -48,6 +48,10 @@ class Player:
     def is_free_agent(self) -> bool:
         return self.club_uid is None
 
+    @property
+    def costs_no_fee(self) -> bool:
+        return self.is_free_agent or self.value == 0
+
 
 @dataclass(frozen=True)
 class Budget:

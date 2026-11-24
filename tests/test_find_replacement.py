@@ -83,3 +83,10 @@ def test_a_player_valued_at_zero_fits_any_budget(mezzala):
     app = mezzala(snapshot([target, amateur], transfer_budget=0))
     report = app.result("find_replacement", player="Captain")
     assert [(c["player"]["name"], c["player"]["value"]) for c in report["candidates"]] == [("Amateur", "£0")]
+
+
+def test_a_player_valued_at_zero_still_fits_an_overspent_budget(mezzala):
+    target = mine("Captain", positions=("dc",), ca=120)
+    amateur = player("Amateur", positions=("dc",), ca=118, value=0)
+    app = mezzala(snapshot([target, amateur], transfer_budget=-500_000))
+    assert names(app, player="Captain") == ["Amateur"]

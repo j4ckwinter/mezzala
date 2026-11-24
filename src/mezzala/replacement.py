@@ -55,7 +55,7 @@ def affordable(candidate: Player, snapshot: Snapshot, limits: Limits) -> bool:
         return False
     if limits.max_wage is not None and candidate.wage is not None and candidate.wage > limits.max_wage:
         return False
-    if candidate.is_free_agent or limits.max_fee is None:
+    if candidate.costs_no_fee or limits.max_fee is None:
         return True
     return candidate.value is not None and candidate.value <= limits.max_fee
 
