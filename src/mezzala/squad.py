@@ -1,0 +1,78 @@
+from collections.abc import Mapping
+from datetime import date
+from statistics import median
+
+from mezzala.players import Player, Snapshot
+from mezzala.positions import PositionGroup, covers, group_rating, primary_group
+
+
+def plays_for_club(player: Player, club_uid: int) -> bool:
+    return player.club_uid == club_uid
+
+
+def belongs_to_club(player: Player, club_uid: int) -> bool:
+    if player.on_loan:
+        return player.loan_parent_club_uid == club_uid
+    return player.club_uid == club_uid
+
+
+def is_outside_club(player: Player, club_uid: int) -> bool:
+    return not plays_for_club(player, club_uid) and not belongs_to_club(player, club_uid)
+
+
+def available_squad(snapshot: Snapshot) -> list[Player]:
+    return [player for player in snapshot.players if plays_for_club(player, snapshot.club_uid)]
+
+
+def owned_players(snapshot: Snapshot) -> list[Player]:
+    return [player for player in snapshot.players if belongs_to_club(player, snapshot.club_uid)]
+
+
+def depth_chart(squad: list[Player], group: PositionGroup) -> list[Player]:
+    cover = [player for player in squad if covers(player, group)]
+    return sorted(cover, key=lambda player: (player.current_ability, group_rating(player, group)), reverse=True)
+
+
+def months_until(start: date, end: date) -> int:
+    return (end.year - start.year) * 12 + end.month - start.month
+
+
+def leaving_date(player: Player, club_uid: int) -> date | None:
+    if player.on_loan and not belongs_to_club(player, club_uid):
+        return player.loan_end
+    return player.contract_end
+
+
+def leaves_within(player: Player, club_uid: int, today: date, months: int) -> date | None:
+    leaving = leaving_date(player, club_uid)
+    if leaving is not None and months_until(today, leaving) <= months:
+        return leaving
+    return None
+
+
+def assign_starters(squad: list[Player], places: Mapping[PositionGroup, int]) -> dict[PositionGroup, list[Player]]:
+    assigned: dict[PositionGroup, list[Player]] = {group: [] for group in places}
+    used: set[int] = set()
+    by_ability = sorted(squad, key=lambda player: player.current_ability, reverse=True)
+    for player in by_ability:
+        group = primary_group(player)
+        if group in assigned and len(assigned[group]) < places[group]:
+            assigned[group].append(player)
+            used.add(player.uid)
+    for group, needed in places.items():
+        for player in depth_chart(squad, group):
+            if len(assigned[group]) >= needed:
+                break
+            if player.uid not in used:
+                assigned[group].append(player)
+                used.add(player.uid)
+        assigned[group].sort(key=lambda player: player.current_ability, reverse=True)
+    return assigned
+
+
+FIRST_ELEVEN = 11
+
+
+def squad_level(snapshot: Snapshot) -> float:
+    best = sorted((player.current_ability for player in available_squad(snapshot)), reverse=True)[:FIRST_ELEVEN]
+    return median(best) if best else 0.0

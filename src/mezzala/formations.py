@@ -1,0 +1,32 @@
+from enum import StrEnum
+
+from mezzala.positions import PositionGroup as G
+
+
+class Formation(StrEnum):
+    FOUR_THREE_THREE = "4-3-3"
+    FOUR_TWO_THREE_ONE = "4-2-3-1"
+    FOUR_FOUR_TWO = "4-4-2"
+    THREE_FIVE_TWO = "3-5-2"
+
+
+STARTERS: dict[Formation, dict[G, int]] = {
+    Formation.FOUR_THREE_THREE: {
+        G.GOALKEEPER: 1, G.CENTRE_BACK: 2, G.LEFT_BACK: 1, G.RIGHT_BACK: 1,
+        G.DEFENSIVE_MIDFIELD: 1, G.CENTRAL_MIDFIELD: 2, G.LEFT_WING: 1, G.RIGHT_WING: 1, G.STRIKER: 1,
+    },
+    Formation.FOUR_TWO_THREE_ONE: {
+        G.GOALKEEPER: 1, G.CENTRE_BACK: 2, G.LEFT_BACK: 1, G.RIGHT_BACK: 1, G.DEFENSIVE_MIDFIELD: 1,
+        G.CENTRAL_MIDFIELD: 1, G.ATTACKING_MIDFIELD: 1, G.LEFT_WING: 1, G.RIGHT_WING: 1, G.STRIKER: 1,
+    },
+    Formation.FOUR_FOUR_TWO: {
+        G.GOALKEEPER: 1, G.CENTRE_BACK: 2, G.LEFT_BACK: 1, G.RIGHT_BACK: 1,
+        G.CENTRAL_MIDFIELD: 2, G.LEFT_WING: 1, G.RIGHT_WING: 1, G.STRIKER: 2,
+    },
+    Formation.THREE_FIVE_TWO: {
+        G.GOALKEEPER: 1, G.CENTRE_BACK: 3, G.LEFT_BACK: 1, G.RIGHT_BACK: 1,
+        G.DEFENSIVE_MIDFIELD: 1, G.CENTRAL_MIDFIELD: 2, G.STRIKER: 2,
+    },
+}  # fmt: skip
+
+PLAYERS_PER_STARTING_PLACE = 2
