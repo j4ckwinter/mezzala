@@ -22,6 +22,7 @@ from mezzala.risers import RiserFilters, Risers, RiserScope, find_risers
 from mezzala.sell_high import SellHigh, sell_high
 from mezzala.squad import owned_players, squad_level
 from mezzala.squad_gaps import SquadGaps, squad_gaps
+from mezzala.squad_list import SquadList, squad_list
 
 DEFAULT_FORMATION = Formation.FOUR_THREE_THREE
 DEFAULT_LIMIT = 10
@@ -53,6 +54,12 @@ class SnapshotReport:
     context: SaveContext
     players: int
     snapshot_dates: list[str]
+
+
+@dataclass(frozen=True)
+class SquadReport:
+    context: SaveContext
+    result: SquadList
 
 
 @dataclass(frozen=True)
@@ -151,6 +158,13 @@ def create_server(career: Career) -> MCPServer:
         current = read_current(career)
         dates = [*career.earlier_dates(current), current.snapshot.game_date]
         return SnapshotReport(save_context(current), len(current.snapshot.players), [d.isoformat() for d in dates])
+
+    @server.tool(name="squad")
+    def squad_tool() -> SquadReport:
+        """Everyone available to the club, loan players included, best first, with natural and accomplished
+        positions; plus the club's own players who are out on loan."""
+        current = read_current(career)
+        return SquadReport(save_context(current), squad_list(current.snapshot))
 
     @server.tool(name="squad_gaps")
     def squad_gaps_tool(formation: FormationChoice = DEFAULT_FORMATION) -> SquadGapsReport:

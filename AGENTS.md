@@ -33,7 +33,7 @@ Run all four checks before committing.
 | Money units and formatting | `src/mezzala/money.py` |
 | How a player is shown in answers | `src/mezzala/summary.py` |
 | Finding a player by name | `src/mezzala/lookup.py` |
-| Each tool's rules | `src/mezzala/squad_gaps.py`, `replacement.py`, `risers.py`, `sell_high.py`, `contract_watch.py`, `regen_intake.py` |
+| Each tool's rules | `src/mezzala/squad_list.py`, `squad_gaps.py`, `replacement.py`, `risers.py`, `sell_high.py`, `contract_watch.py`, `regen_intake.py` |
 | Tool names, parameters, defaults and errors | `src/mezzala/server.py` |
 
 ## Conventions
