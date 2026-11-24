@@ -11,10 +11,14 @@ class UnreadableSave(RuntimeError):
     pass
 
 
-def known_value(player: fmsave.Player) -> int | None:
-    if player.transfer_value_state is fmsave.TransferValueState.OK:
-        return player.transfer_value
-    return None
+def known_value(state: fmsave.TransferValueState, value: int | None) -> int | None:
+    match state:
+        case fmsave.TransferValueState.OK:
+            return value
+        case fmsave.TransferValueState.ZERO:
+            return 0
+        case fmsave.TransferValueState.UNSET | fmsave.TransferValueState.PLACEHOLDER:
+            return None
 
 
 def to_player(player: fmsave.Player) -> Player | None:
@@ -32,7 +36,7 @@ def to_player(player: fmsave.Player) -> Player | None:
         position_ratings=dataclasses.asdict(player.positions),
         current_ability=player.ability.current,
         potential_ability=player.ability.potential,
-        value=known_value(player),
+        value=known_value(player.transfer_value_state, player.transfer_value),
         wage=contract.wage if contract else None,
         contract_end=contract.end if contract else None,
         on_loan=bool(player.on_loan),
