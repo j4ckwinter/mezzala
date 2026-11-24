@@ -105,3 +105,8 @@ def test_reloading_an_older_save_counts_only_snapshots_up_to_its_date(mezzala):
     report = app.call("snapshot").data
     assert report["snapshot_dates"] == ["2026-06-29", "2026-09-01"]
     assert report["context"]["snapshots"] == 2
+
+
+def test_an_overspent_budget_reads_as_a_negative_amount(mezzala):
+    context = mezzala(snapshot(eleven(), transfer_budget=-2_500_000)).call("snapshot").data["context"]
+    assert context["transfer_budget"] == "-£2.5m"

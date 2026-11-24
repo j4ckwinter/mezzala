@@ -8,12 +8,13 @@ def pounds(stored: int) -> float:
 def format_money(stored: int | None) -> str:
     if stored is None:
         return "unknown"
-    amount = pounds(stored)
+    sign = "-" if stored < 0 else ""
+    amount = abs(pounds(stored))
     if amount >= 1_000_000:
-        return f"£{amount / 1_000_000:.1f}m"
+        return f"{sign}£{amount / 1_000_000:.1f}m"
     if amount >= 1_000:
-        return f"£{amount / 1_000:.0f}k"
-    return f"£{amount:.0f}"
+        return f"{sign}£{amount / 1_000:.0f}k"
+    return f"{sign}£{amount:.0f}"
 
 
 def format_weekly_wage(stored: int | None) -> str:
