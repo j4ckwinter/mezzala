@@ -87,10 +87,10 @@ class RegenIntakeReport:
     result: RegenIntake
 
 
-def save_context(career: Career, current: Current) -> SaveContext:
+def save_context(current: Current) -> SaveContext:
     snapshot = current.snapshot
     return SaveContext(
-        save=career.save_path.name,
+        save=current.save_path.name,
         game_date=snapshot.game_date.isoformat(),
         club=snapshot.club_name,
         transfer_budget=format_money(snapshot.budget.transfer_remaining),
@@ -108,7 +108,7 @@ def read_current(career: Career) -> Current:
     try:
         return career.current()
     except (fmsave.FmsaveError, UnreadableSave, OSError) as error:
-        raise ToolError(f"Could not read {career.save_path.name}: {error}") from error
+        raise ToolError(f"Could not read the save: {error}") from error
 
 
 def target_player(snapshot: Snapshot, name: str) -> Player:
@@ -125,16 +125,14 @@ def create_server(career: Career) -> MCPServer:
     def snapshot() -> SnapshotReport:
         """Read the save now, store a snapshot if it changed, and list the in-game dates with snapshots."""
         current = read_current(career)
-        dates = [*career.earlier_dates(current.snapshot), current.snapshot.game_date]
-        return SnapshotReport(
-            save_context(career, current), len(current.snapshot.players), [d.isoformat() for d in dates]
-        )
+        dates = [*career.earlier_dates(current), current.snapshot.game_date]
+        return SnapshotReport(save_context(current), len(current.snapshot.players), [d.isoformat() for d in dates])
 
     @server.tool(name="squad_gaps")
     def squad_gaps_tool(formation: Formation = DEFAULT_FORMATION) -> SquadGapsReport:
         """Where the squad is thin, ageing, leaving, weak or has no young successor, by position for a formation."""
         current = read_current(career)
-        return SquadGapsReport(save_context(career, current), squad_gaps(current.snapshot, formation))
+        return SquadGapsReport(save_context(current), squad_gaps(current.snapshot, formation))
 
     @server.tool()
     def find_replacement(
@@ -157,7 +155,7 @@ def create_server(career: Career) -> MCPServer:
         fee_cap = optional_stored(max_fee) if max_fee is not None else snapshot.budget.transfer_remaining
         limits = Limits(fee_cap, max_age, optional_stored(max_wage), within_reach)
         result = find_replacements(snapshot, target, limits, limit, position)
-        return ReplacementReport(save_context(career, current), result)
+        return ReplacementReport(save_context(current), result)
 
     @server.tool()
     def risers(
@@ -182,8 +180,8 @@ def create_server(career: Career) -> MCPServer:
         floor = min_ca if min_ca is not None else squad_level(current.snapshot) - RISER_CA_BELOW_SQUAD_LEVEL
         fee_cap = optional_stored(max_fee) if max_fee is not None else current.snapshot.budget.transfer_remaining
         filters = RiserFilters(scope, min_ca_gain, floor, within_reach, max_age, fee_cap, position)
-        result = find_risers(current.snapshot, career.baseline(current.snapshot, since), filters, limit)
-        return RisersReport(save_context(career, current), result)
+        result = find_risers(current.snapshot, career.baseline(current, since), filters, limit)
+        return RisersReport(save_context(current), result)
 
     @server.tool(name="sell_high")
     def sell_high_tool(limit: int = DEFAULT_LIMIT) -> SellHighReport:
@@ -191,8 +189,8 @@ def create_server(career: Career) -> MCPServer:
         contract running down, or (with history) value falling or ability stalled while value rose."""
         current = read_current(career)
         owned = {player.uid for player in owned_players(current.snapshot)}
-        result = sell_high(current.snapshot, career.past_players(current.snapshot, owned), limit)
-        return SellHighReport(save_context(career, current), result)
+        result = sell_high(current.snapshot, career.past_players(current, owned), limit)
+        return SellHighReport(save_context(current), result)
 
     @server.tool(name="contract_watch")
     def contract_watch_tool(
@@ -206,13 +204,13 @@ def create_server(career: Career) -> MCPServer:
         who would beat your current starter somewhere in the formation."""
         current = read_current(career)
         result = contract_watch(current.snapshot, formation, within_months, max_age, within_reach, limit)
-        return ContractWatchReport(save_context(career, current), result)
+        return ContractWatchReport(save_context(current), result)
 
     @server.tool(name="regen_intake")
     def regen_intake_tool(since: date | None = None, min_pa: int = 120, limit: int = 20) -> RegenIntakeReport:
         """Newly generated youth players (regens) that appeared since an earlier snapshot, best potential first."""
         current = read_current(career)
-        baseline = career.baseline(current.snapshot, since)
-        return RegenIntakeReport(save_context(career, current), regen_intake(current.snapshot, baseline, min_pa, limit))
+        baseline = career.baseline(current, since)
+        return RegenIntakeReport(save_context(current), regen_intake(current.snapshot, baseline, min_pa, limit))
 
     return server

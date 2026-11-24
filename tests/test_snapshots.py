@@ -1,4 +1,5 @@
 from datetime import date
+from pathlib import Path
 
 import fmsave
 from factory import eleven, snapshot
@@ -52,15 +53,11 @@ def test_an_unreadable_first_save_is_reported(mezzala):
     assert app.call("snapshot").is_error
 
 
-def test_snapshots_survive_a_restart(mezzala, tmp_path):
-    from mezzala.career import Career
-    from mezzala.store import SnapshotStore
-
+def test_snapshots_survive_a_restart(mezzala):
     app = mezzala(snapshot(eleven()))
     app.call("snapshot")
     app.play_to(snapshot(eleven(), game_date=date(2026, 9, 1)))
-    restarted = type(app)(app.save, Career(app.save.path, SnapshotStore(tmp_path / "snapshots.db"), app.save.read,
-                                           app.save.stamp))  # fmt: skip
+    restarted = app.another_server()
     assert restarted.call("snapshot").data["snapshot_dates"] == ["2026-06-29", "2026-09-01"]
     assert app.save.reads == 2
 
@@ -73,15 +70,28 @@ def test_tools_called_together_after_a_save_read_it_once(mezzala):
     assert app.save.reads == 1
 
 
-def test_a_second_server_sees_a_same_day_resave_by_the_first(mezzala, tmp_path):
-    from mezzala.career import Career
-    from mezzala.store import SnapshotStore
-
+def test_a_second_server_sees_a_same_day_resave_by_the_first(mezzala):
     first = mezzala(snapshot(eleven(ca=100)))
-    second = type(first)(first.save, Career(first.save.path, SnapshotStore(tmp_path / "snapshots.db"),
-                                            first.save.read, first.save.stamp))  # fmt: skip
+    second = first.another_server()
     first.call("squad_gaps")
     second.call("squad_gaps")
     first.play_to(snapshot(eleven(ca=130)))
     eleven_level = second.result("squad_gaps")["starting_eleven_median_ability"]
     assert eleven_level == 130
+
+
+def test_saves_with_the_same_name_in_different_folders_keep_separate_histories(mezzala):
+    app = mezzala(snapshot(eleven()))
+    app.call("snapshot")
+    app.save.path = Path("elsewhere/career.fm")
+    app.play_to(snapshot(eleven(), game_date=date(2030, 1, 1)))
+    assert app.call("snapshot").data["snapshot_dates"] == ["2030-01-01"]
+
+
+def test_the_server_follows_a_save_written_after_it_started(mezzala):
+    app = mezzala(snapshot(eleven()))
+    app.call("snapshot")
+    app.save.path = Path("new career.fm")
+    app.play_to(snapshot(eleven(), game_date=date(2026, 7, 2)))
+    context = app.call("snapshot").data["context"]
+    assert (context["save"], context["game_date"]) == ("new career.fm", "2026-07-02")

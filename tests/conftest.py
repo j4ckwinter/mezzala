@@ -55,6 +55,11 @@ class ToolResult:
 class Mezzala:
     save: FakeSave
     career: Career
+    database: Path
+
+    def another_server(self) -> "Mezzala":
+        store = SnapshotStore(self.database)
+        return Mezzala(self.save, Career(lambda: self.save.path, store, self.save.read, self.save.stamp), self.database)
 
     def call(self, tool: str, **arguments: Any) -> ToolResult:
         async def run() -> ToolResult:
@@ -89,7 +94,7 @@ def mezzala(tmp_path: Path) -> Callable[[Snapshot], Mezzala]:
     def start(first: Snapshot) -> Mezzala:
         save = FakeSave()
         save.write(first)
-        store = SnapshotStore(tmp_path / "snapshots.db")
-        return Mezzala(save, Career(save.path, store, save.read, save.stamp))
+        database = tmp_path / "snapshots.db"
+        return Mezzala(save, Career(lambda: save.path, SnapshotStore(database), save.read, save.stamp), database)
 
     return start
