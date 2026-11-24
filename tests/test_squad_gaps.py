@@ -4,7 +4,8 @@ from factory import eleven, mine, snapshot
 
 
 def gaps_by_group(app, **arguments):
-    return {gap["group"]: gap["issues"] for gap in app.result("squad_gaps", **arguments)["gaps"]}
+    positions = app.result("squad_gaps", **arguments)["positions"]
+    return {position["group"]: position["issues"] for position in positions if position["issues"]}
 
 
 def test_a_full_young_squad_with_cover_has_no_gaps(mezzala):
@@ -62,3 +63,37 @@ def test_a_diamond_needs_an_attacking_midfielder_and_two_strikers(mezzala):
     gaps = gaps_by_group(mezzala(snapshot(squad)), formation="4-4-2 diamond")
     assert "thin: 0 of 2 players who can play here" in gaps["attacking midfield"]
     assert "thin: 2 of 4 players who can play here" in gaps["striker"]
+
+
+def test_the_eleven_is_returned_with_each_player_once_and_how_well_he_fits(mezzala):
+    squad = eleven(age=22, pa=130)
+    squad.append(mine("Makeshift", positions=("dc", "dm"), ca=160))
+    squad[5] = mine("Natural DM", positions=("dm",), ca=90)
+    result = mezzala(snapshot(squad)).result("squad_gaps")
+    names = [starter["name"] for starter in result["eleven"]]
+    assert len(names) == 11 and len(set(names)) == 11
+    by_name = {starter["name"]: (starter["position"], starter["fit"]) for starter in result["eleven"]}
+    assert by_name["Makeshift"] == ("centre back", "natural")
+    assert by_name["Natural DM"] == ("defensive midfield", "natural")
+
+
+def test_an_empty_place_in_the_eleven_is_shown_as_nobody(mezzala):
+    squad = [p for p in eleven() if p.position_ratings["gk"] != 20]
+    starters = mezzala(snapshot(squad)).result("squad_gaps")["eleven"]
+    assert {"position": "goalkeeper", "name": None, "age": None, "current_ability": None, "fit": None} in starters
+
+
+def test_covered_positions_still_list_their_depth_with_fit(mezzala):
+    squad = eleven(age=22, pa=130) + eleven(age=21, pa=130)
+    squad.append(
+        mine("Accomplished Keeper", positions=(), ca=60, position_ratings={**squad[0].position_ratings, "gk": 15})
+    )
+    positions = {p["group"]: p for p in mezzala(snapshot(squad)).result("squad_gaps")["positions"]}
+    keeper = positions["goalkeeper"]
+    assert keeper["issues"] == []
+    assert [(d["name"], d["fit"], d["starts_here"]) for d in keeper["depth"]][-1] == (
+        "Accomplished Keeper",
+        "accomplished",
+        False,
+    )
+    assert sum(d["starts_here"] for d in keeper["depth"]) == 1

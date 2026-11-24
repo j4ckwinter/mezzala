@@ -29,15 +29,31 @@ GROUP_POSITION_CODES: dict[PositionGroup, tuple[str, ...]] = {
     PositionGroup.STRIKER: ("stc",),
 }
 
-COMPETENT_POSITION_RATING = 15
+NATURAL_POSITION_RATING = 18
+ACCOMPLISHED_POSITION_RATING = 15
+
+
+class Fit(StrEnum):
+    NATURAL = "natural"
+    ACCOMPLISHED = "accomplished"
+    OUT_OF_POSITION = "out of position"
 
 
 def group_rating(player: Player, group: PositionGroup) -> int:
     return max(player.position_ratings.get(code, 0) for code in GROUP_POSITION_CODES[group])
 
 
+def fit(player: Player, group: PositionGroup) -> Fit:
+    rating = group_rating(player, group)
+    if rating >= NATURAL_POSITION_RATING:
+        return Fit.NATURAL
+    if rating >= ACCOMPLISHED_POSITION_RATING:
+        return Fit.ACCOMPLISHED
+    return Fit.OUT_OF_POSITION
+
+
 def covers(player: Player, group: PositionGroup) -> bool:
-    return group_rating(player, group) >= COMPETENT_POSITION_RATING
+    return group_rating(player, group) >= ACCOMPLISHED_POSITION_RATING
 
 
 def primary_group(player: Player) -> PositionGroup:

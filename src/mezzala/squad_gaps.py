@@ -1,10 +1,9 @@
 from dataclasses import dataclass
-from statistics import median
 
 from mezzala.formations import PLAYERS_PER_STARTING_PLACE, STARTERS, Formation
-from mezzala.lineup import assign_starters
+from mezzala.lineup import Lineup, pick_lineup
 from mezzala.players import Player, Snapshot
-from mezzala.positions import PositionGroup
+from mezzala.positions import PositionGroup, fit
 from mezzala.squad import available_squad, depth_chart, leaves_within
 
 AGEING_OUTFIELD_AGE = 30
@@ -16,15 +15,26 @@ WEAK_STARTER_MARGIN = 8
 
 
 @dataclass(frozen=True)
+class StarterEntry:
+    position: str
+    name: str | None
+    age: int | None
+    current_ability: int | None
+    fit: str | None
+
+
+@dataclass(frozen=True)
 class DepthEntry:
     name: str
     age: int
     current_ability: int
     potential_ability: int
+    fit: str
+    starts_here: bool
 
 
 @dataclass(frozen=True)
-class PositionGap:
+class PositionReport:
     group: str
     starters_needed: int
     depth_target: int
@@ -36,16 +46,33 @@ class PositionGap:
 class SquadGaps:
     formation: str
     starting_eleven_median_ability: float
-    gaps: list[PositionGap]
-    covered: list[str]
+    eleven: list[StarterEntry]
+    positions: list[PositionReport]
 
 
 def ageing_age(group: PositionGroup) -> int:
     return AGEING_GOALKEEPER_AGE if group is PositionGroup.GOALKEEPER else AGEING_OUTFIELD_AGE
 
 
-def depth_entry(player: Player) -> DepthEntry:
-    return DepthEntry(player.name, player.age, player.current_ability, player.potential_ability)
+def starter_entries(lineup: Lineup) -> list[StarterEntry]:
+    entries: list[StarterEntry] = []
+    for place in lineup.places:
+        player = place.player
+        if player is None:
+            entries.append(StarterEntry(place.group.value, None, None, None, None))
+        else:
+            entries.append(
+                StarterEntry(place.group.value, player.name, player.age, player.current_ability,
+                             fit(player, place.group).value)
+            )  # fmt: skip
+    return entries
+
+
+def depth_entry(player: Player, group: PositionGroup, starters: list[Player]) -> DepthEntry:
+    return DepthEntry(
+        player.name, player.age, player.current_ability, player.potential_ability, fit(player, group).value,
+        player in starters,
+    )  # fmt: skip
 
 
 def group_issues(
@@ -69,9 +96,12 @@ def group_issues(
         if leaving is not None:
             how = "loan ends" if starter.on_loan else "contract ends"
             issues.append(f"leaving: {starter.name}'s {how} {leaving.isoformat()}")
-    weakest = starters[-1]
+    weakest = min(starters, key=lambda player: player.current_ability)
     if weakest.current_ability < eleven_median - WEAK_STARTER_MARGIN:
-        issues.append(f"weak: {weakest.name} (CA {weakest.current_ability}) is well below the XI median")
+        issues.append(
+            f"weak: {weakest.name} (CA {weakest.current_ability}) starts here, "
+            f"well below the XI median of {eleven_median:g}"
+        )
     successors = [
         player
         for player in chart
@@ -86,21 +116,14 @@ def group_issues(
 
 def squad_gaps(snapshot: Snapshot, formation: Formation) -> SquadGaps:
     squad = available_squad(snapshot)
-    starters = STARTERS[formation]
-    assigned = assign_starters(squad, starters)
-    eleven = [player for group_starters in assigned.values() for player in group_starters]
-    eleven_median = median(player.current_ability for player in eleven) if eleven else 0.0
-    gaps: list[PositionGap] = []
-    covered: list[str] = []
-    for group, needed in starters.items():
+    lineup = pick_lineup(squad, formation)
+    eleven_median = lineup.median_ability()
+    positions: list[PositionReport] = []
+    for group, needed in STARTERS[formation].items():
         chart = depth_chart(squad, group)
-        issues = group_issues(snapshot, group, chart, assigned[group], needed, eleven_median)
-        if not issues:
-            covered.append(group.value)
-            continue
-        entry = PositionGap(
-            group.value, needed, needed * PLAYERS_PER_STARTING_PLACE, [depth_entry(p) for p in chart], issues
-        )
-        gaps.append(entry)
-    gaps.sort(key=lambda gap: len(gap.issues), reverse=True)
-    return SquadGaps(formation.value, eleven_median, gaps, covered)
+        starters = lineup.at(group)
+        issues = group_issues(snapshot, group, chart, starters, needed, eleven_median)
+        depth = [depth_entry(player, group, starters) for player in chart]
+        positions.append(PositionReport(group.value, needed, needed * PLAYERS_PER_STARTING_PLACE, depth, issues))
+    positions.sort(key=lambda position: len(position.issues), reverse=True)
+    return SquadGaps(formation.value, eleven_median, starter_entries(lineup), positions)

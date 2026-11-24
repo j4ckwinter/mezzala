@@ -2,8 +2,7 @@ from dataclasses import dataclass
 
 from mezzala.money import format_money, format_weekly_wage
 from mezzala.players import Player
-
-NATURAL_POSITION_RATING = 18
+from mezzala.positions import NATURAL_POSITION_RATING
 
 
 @dataclass(frozen=True)
