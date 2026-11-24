@@ -55,3 +55,10 @@ def test_formation_changes_how_many_starters_a_position_needs(mezzala):
     gaps = gaps_by_group(mezzala(snapshot(squad)), formation="4-4-2")
     assert "thin: 2 of 4 players who can play here" in gaps["striker"]
     assert "striker" not in gaps_by_group(mezzala(snapshot(squad)), formation="4-3-3")
+
+
+def test_a_diamond_needs_an_attacking_midfielder_and_two_strikers(mezzala):
+    squad = eleven(age=22, pa=130) + eleven(age=21, pa=130)
+    gaps = gaps_by_group(mezzala(snapshot(squad)), formation="4-4-2 diamond")
+    assert "thin: 0 of 2 players who can play here" in gaps["attacking midfield"]
+    assert "thin: 2 of 4 players who can play here" in gaps["striker"]

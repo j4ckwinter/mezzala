@@ -1,9 +1,12 @@
 from dataclasses import dataclass
 from datetime import date
+from enum import StrEnum
+from typing import Annotated
 
 import fmsave
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
+from pydantic import Field
 
 from mezzala.career import Career, Current
 from mezzala.contract_watch import ContractWatch, contract_watch
@@ -130,6 +133,15 @@ def riser_defaults(
             return (0 if min_ca is None else min_ca), max_age
 
 
+def one_of(choices: type[StrEnum]) -> str:
+    return "One of: " + ", ".join(f'"{choice.value}"' for choice in choices)
+
+
+FormationChoice = Annotated[Formation, Field(description=one_of(Formation))]
+PositionChoice = Annotated[PositionGroup | None, Field(description=one_of(PositionGroup))]
+ScopeChoice = Annotated[RiserScope, Field(description=one_of(RiserScope))]
+
+
 def create_server(career: Career) -> MCPServer:
     server = MCPServer("mezzala", instructions=INSTRUCTIONS)
 
@@ -141,7 +153,7 @@ def create_server(career: Career) -> MCPServer:
         return SnapshotReport(save_context(current), len(current.snapshot.players), [d.isoformat() for d in dates])
 
     @server.tool(name="squad_gaps")
-    def squad_gaps_tool(formation: Formation = DEFAULT_FORMATION) -> SquadGapsReport:
+    def squad_gaps_tool(formation: FormationChoice = DEFAULT_FORMATION) -> SquadGapsReport:
         """Where the squad is thin, ageing, leaving, weak or has no young successor, by position for a formation."""
         current = read_current(career)
         return SquadGapsReport(save_context(current), squad_gaps(current.snapshot, formation))
@@ -152,7 +164,7 @@ def create_server(career: Career) -> MCPServer:
         max_fee: float | None = None,
         max_age: int | None = None,
         max_wage: float | None = None,
-        position: PositionGroup | None = None,
+        position: PositionChoice = None,
         within_reach: bool = True,
         limit: int = DEFAULT_LIMIT,
     ) -> ReplacementReport:
@@ -171,13 +183,13 @@ def create_server(career: Career) -> MCPServer:
 
     @server.tool()
     def risers(
-        scope: RiserScope = RiserScope.ELSEWHERE,
+        scope: ScopeChoice = RiserScope.ELSEWHERE,
         since: date | None = None,
         min_ca_gain: float = 3,
         min_ca: int | None = None,
         max_age: int | None = None,
         max_fee: float | None = None,
-        position: PositionGroup | None = None,
+        position: PositionChoice = None,
         within_reach: bool = True,
         limit: int = DEFAULT_LIMIT,
     ) -> RisersReport:
@@ -208,7 +220,7 @@ def create_server(career: Career) -> MCPServer:
     def contract_watch_tool(
         within_months: int = 12,
         max_age: int | None = None,
-        formation: Formation = DEFAULT_FORMATION,
+        formation: FormationChoice = DEFAULT_FORMATION,
         within_reach: bool = True,
         limit: int = DEFAULT_LIMIT,
     ) -> ContractWatchReport:

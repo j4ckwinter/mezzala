@@ -8,6 +8,8 @@ class Formation(StrEnum):
     FOUR_TWO_THREE_ONE = "4-2-3-1"
     FOUR_FOUR_TWO = "4-4-2"
     THREE_FIVE_TWO = "3-5-2"
+    FOUR_FOUR_TWO_DIAMOND = "4-4-2 diamond"
+    THREE_FOUR_THREE = "3-4-3"
 
 
 STARTERS: dict[Formation, dict[G, int]] = {
@@ -26,6 +28,14 @@ STARTERS: dict[Formation, dict[G, int]] = {
     Formation.THREE_FIVE_TWO: {
         G.GOALKEEPER: 1, G.CENTRE_BACK: 3, G.LEFT_BACK: 1, G.RIGHT_BACK: 1,
         G.DEFENSIVE_MIDFIELD: 1, G.CENTRAL_MIDFIELD: 2, G.STRIKER: 2,
+    },
+    Formation.FOUR_FOUR_TWO_DIAMOND: {
+        G.GOALKEEPER: 1, G.CENTRE_BACK: 2, G.LEFT_BACK: 1, G.RIGHT_BACK: 1,
+        G.DEFENSIVE_MIDFIELD: 1, G.CENTRAL_MIDFIELD: 2, G.ATTACKING_MIDFIELD: 1, G.STRIKER: 2,
+    },
+    Formation.THREE_FOUR_THREE: {
+        G.GOALKEEPER: 1, G.CENTRE_BACK: 3, G.LEFT_BACK: 1, G.RIGHT_BACK: 1,
+        G.CENTRAL_MIDFIELD: 2, G.LEFT_WING: 1, G.RIGHT_WING: 1, G.STRIKER: 1,
     },
 }  # fmt: skip
 
