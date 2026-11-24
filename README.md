@@ -49,6 +49,16 @@ claude mcp add --scope user mezzala -- "$PWD/.venv/bin/mezzala"
 
 it reads your most recently saved fm27 career by default. to pin one, add `--save "/path/to/career.fm"` after the command. snapshots live in `~/.mezzala/snapshots.db`.
 
+for the claude desktop app, add this to `~/Library/Application Support/Claude/claude_desktop_config.json` (or settings → developer → edit config), then quit and reopen claude:
+
+```json
+"mcpServers": {
+  "mezzala": { "command": "/full/path/to/mezzala/.venv/bin/mezzala", "args": [] }
+}
+```
+
+both can run at once. they share the same snapshots.
+
 open a new claude code session, load your save in fm, and ask away. save in fm whenever you want mezzala to see what's changed.
 
 ## what it can't do
