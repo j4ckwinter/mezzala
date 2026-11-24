@@ -1,5 +1,6 @@
 import asyncio
 import json
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -24,6 +25,7 @@ class FakeSave:
     version: int = 0
     reads: int = 0
     failing: Exception | None = None
+    read_seconds: float = 0.0
     path: Path = field(default_factory=lambda: Path("career.fm"))
 
     def write(self, snapshot: Snapshot) -> None:
@@ -32,6 +34,7 @@ class FakeSave:
 
     def read(self, _: Path) -> Snapshot:
         self.reads += 1
+        time.sleep(self.read_seconds)
         if self.failing is not None:
             raise self.failing
         assert self.snapshot is not None
@@ -60,6 +63,14 @@ class Mezzala:
                 text = "".join(getattr(block, "text", "") for block in result.content)
                 data = result.structured_content or (json.loads(text) if not result.is_error else {})
                 return ToolResult(result.is_error, data, text)
+
+        return asyncio.run(run())
+
+    def call_together(self, *tools: str) -> list[ToolResult]:
+        async def run() -> list[ToolResult]:
+            async with Client(create_server(self.career)) as client:
+                results = await asyncio.gather(*(client.call_tool(tool, {}) for tool in tools))
+                return [ToolResult(r.is_error, r.structured_content or {}, "") for r in results]
 
         return asyncio.run(run())
 

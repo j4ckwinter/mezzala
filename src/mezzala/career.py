@@ -1,3 +1,4 @@
+import threading
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date
@@ -36,6 +37,7 @@ class Career:
         self._read = read
         self._stamp = stamp
         self._loaded: dict[date, Snapshot] = {}
+        self._lock = threading.Lock()
 
     def _load(self, game_date: date) -> Snapshot:
         if game_date not in self._loaded:
@@ -49,6 +51,10 @@ class Career:
         return snapshot
 
     def current(self) -> Current:
+        with self._lock:
+            return self._current()
+
+    def _current(self) -> Current:
         notes: list[str] = []
         stamp = self._stamp(self.save_path)
         latest = self._store.latest_date(self.name)
@@ -65,15 +71,21 @@ class Career:
         return Current(snapshot, len(self._store.dates(self.name)), notes)
 
     def earlier_dates(self, current: Snapshot) -> list[date]:
+        with self._lock:
+            return self._earlier_dates(current)
+
+    def _earlier_dates(self, current: Snapshot) -> list[date]:
         return [day for day in self._store.dates(self.name) if day < current.game_date]
 
     def baseline(self, current: Snapshot, since: date | None) -> Snapshot | None:
-        dates = self.earlier_dates(current)
-        if since is not None:
-            dates = [day for day in dates if day <= since] or dates[:1]
-        if not dates:
-            return None
-        return self._load(dates[-1] if since is not None else dates[0])
+        with self._lock:
+            dates = self._earlier_dates(current)
+            if since is not None:
+                dates = [day for day in dates if day <= since] or dates[:1]
+            if not dates:
+                return None
+            return self._load(dates[-1] if since is not None else dates[0])
 
     def history(self, current: Snapshot) -> list[Snapshot]:
-        return [self._load(day) for day in self.earlier_dates(current)]
+        with self._lock:
+            return [self._load(day) for day in self._earlier_dates(current)]

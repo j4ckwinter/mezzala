@@ -63,3 +63,11 @@ def test_snapshots_survive_a_restart(mezzala, tmp_path):
                                            app.save.stamp))  # fmt: skip
     assert restarted.call("snapshot").data["snapshot_dates"] == ["2026-06-29", "2026-09-01"]
     assert app.save.reads == 2
+
+
+def test_tools_called_together_after_a_save_read_it_once(mezzala):
+    app = mezzala(snapshot(eleven()))
+    app.save.read_seconds = 0.2
+    results = app.call_together("snapshot", "squad_gaps", "sell_high", "contract_watch")
+    assert [result.is_error for result in results] == [False] * 4
+    assert app.save.reads == 1
