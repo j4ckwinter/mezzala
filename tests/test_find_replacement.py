@@ -68,3 +68,10 @@ def test_an_ambiguous_name_lists_the_matches(mezzala):
 def test_an_unknown_name_is_an_error(mezzala):
     outcome = mezzala(snapshot(eleven())).call("find_replacement", player="Nobody")
     assert outcome.is_error and "No player called 'Nobody'" in outcome.text
+
+
+def test_a_target_at_another_club_is_not_his_own_replacement(mezzala):
+    elsewhere = player("Their Defender", positions=("dc",), ca=120)
+    alike = player("Lookalike", positions=("dc",), ca=120)
+    app = mezzala(snapshot([*eleven(), elsewhere, alike]))
+    assert names(app, player="Their Defender") == ["Lookalike"]

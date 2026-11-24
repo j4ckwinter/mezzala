@@ -89,7 +89,9 @@ def find_replacements(
     position = group or primary_group(target)
     ranked: list[Candidate] = []
     for candidate in snapshot.players:
-        if not is_outside_club(candidate, snapshot.club_uid) or not covers(candidate, position):
+        if candidate.uid == target.uid or not is_outside_club(candidate, snapshot.club_uid):
+            continue
+        if not covers(candidate, position):
             continue
         if not can_step_in(target, candidate) or not affordable(candidate, snapshot, limits):
             continue
