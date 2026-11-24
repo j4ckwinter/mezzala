@@ -25,7 +25,8 @@ Run all four checks before committing.
 | How snapshots are stored | `src/mezzala/store.py` |
 | Position groups and when a player can play one | `src/mezzala/positions.py` |
 | Formations and how many starters each needs | `src/mezzala/formations.py` |
-| Who belongs to the club, who plays for it, starters, leaving dates, squad level | `src/mezzala/squad.py` |
+| Who belongs to the club, who plays for it, depth, leaving dates, squad level | `src/mezzala/squad.py` |
+| Choosing a starting eleven for a formation | `src/mezzala/lineup.py` |
 | Which players a club can realistically sign | `src/mezzala/reach.py` |
 | Attribute profiles and how alike two players are | `src/mezzala/profile.py` |
 | Projected and observed growth | `src/mezzala/growth.py` |

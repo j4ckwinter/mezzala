@@ -1,9 +1,8 @@
-from collections.abc import Mapping
 from datetime import date
 from statistics import median
 
 from mezzala.players import Player, Snapshot
-from mezzala.positions import PositionGroup, covers, group_rating, primary_group
+from mezzala.positions import PositionGroup, covers, group_rating
 
 
 def plays_for_club(player: Player, club_uid: int) -> bool:
@@ -48,26 +47,6 @@ def leaves_within(player: Player, club_uid: int, today: date, months: int) -> da
     if leaving is not None and months_until(today, leaving) <= months:
         return leaving
     return None
-
-
-def assign_starters(squad: list[Player], places: Mapping[PositionGroup, int]) -> dict[PositionGroup, list[Player]]:
-    assigned: dict[PositionGroup, list[Player]] = {group: [] for group in places}
-    used: set[int] = set()
-    by_ability = sorted(squad, key=lambda player: player.current_ability, reverse=True)
-    for player in by_ability:
-        group = primary_group(player)
-        if group in assigned and len(assigned[group]) < places[group]:
-            assigned[group].append(player)
-            used.add(player.uid)
-    for group, needed in places.items():
-        for player in depth_chart(squad, group):
-            if len(assigned[group]) >= needed:
-                break
-            if player.uid not in used:
-                assigned[group].append(player)
-                used.add(player.uid)
-        assigned[group].sort(key=lambda player: player.current_ability, reverse=True)
-    return assigned
 
 
 FIRST_ELEVEN = 11

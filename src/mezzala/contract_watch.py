@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 
 from mezzala.formations import STARTERS, Formation
+from mezzala.lineup import assign_starters
 from mezzala.players import Player, Snapshot
 from mezzala.positions import PositionGroup, covers
 from mezzala.reach import within_reach
-from mezzala.squad import assign_starters, available_squad, is_outside_club, leaves_within, owned_players
+from mezzala.squad import available_squad, is_outside_club, leaves_within, owned_players
 from mezzala.summary import PlayerSummary, summarize
 
 KEY_PLAYER_MARGIN = 5
