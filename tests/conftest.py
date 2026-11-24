@@ -26,7 +26,8 @@ class FakeSave:
     reads: int = 0
     failing: Exception | None = None
     read_seconds: float = 0.0
-    missing: bool = False
+    missing: set[Path] = field(default_factory=set[Path])
+    no_saves: bool = False
     path: Path = field(default_factory=lambda: Path("career.fm"))
 
     def write(self, snapshot: Snapshot) -> None:
@@ -41,9 +42,14 @@ class FakeSave:
         assert self.snapshot is not None
         return self.snapshot
 
-    def stamp(self, _: Path) -> FileStamp:
-        if self.missing:
-            raise FileNotFoundError("career.fm is being rewritten")
+    def locate(self) -> Path:
+        if self.no_saves:
+            raise FileNotFoundError("No .fm saves found")
+        return self.path
+
+    def stamp(self, path: Path) -> FileStamp:
+        if path in self.missing:
+            raise FileNotFoundError(f"{path.name} is being rewritten")
         return FileStamp(self.version, 1)
 
 
@@ -62,7 +68,7 @@ class Mezzala:
 
     def another_server(self) -> "Mezzala":
         store = SnapshotStore(self.database)
-        return Mezzala(self.save, Career(lambda: self.save.path, store, self.save.read, self.save.stamp), self.database)
+        return Mezzala(self.save, Career(self.save.locate, store, self.save.read, self.save.stamp), self.database)
 
     def call(self, tool: str, **arguments: Any) -> ToolResult:
         async def run() -> ToolResult:
@@ -98,6 +104,6 @@ def mezzala(tmp_path: Path) -> Callable[[Snapshot], Mezzala]:
         save = FakeSave()
         save.write(first)
         database = tmp_path / "snapshots.db"
-        return Mezzala(save, Career(lambda: save.path, SnapshotStore(database), save.read, save.stamp), database)
+        return Mezzala(save, Career(save.locate, SnapshotStore(database), save.read, save.stamp), database)
 
     return start

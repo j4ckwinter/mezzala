@@ -115,6 +115,24 @@ def test_an_overspent_budget_reads_as_a_negative_amount(mezzala):
 def test_a_save_briefly_missing_while_fm_rewrites_it_falls_back_to_the_last_snapshot(mezzala):
     app = mezzala(snapshot(eleven()))
     app.call("snapshot")
-    app.save.missing = True
+    app.save.missing.add(app.save.path)
     notes = app.call("snapshot").data["context"]["notes"]
     assert "using the snapshot from 2026-06-29" in notes[0]
+
+
+def test_a_vanished_save_is_not_swapped_for_another_save_in_the_folder(mezzala):
+    app = mezzala(snapshot(eleven()))
+    app.call("snapshot")
+    app.save.missing.add(app.save.path)
+    app.save.path = Path("old career.fm")
+    context = app.call("snapshot").data["context"]
+    assert context["save"] == "career.fm"
+    assert "using the snapshot from 2026-06-29" in context["notes"][0]
+
+
+def test_a_vanished_only_save_falls_back_to_the_last_snapshot(mezzala):
+    app = mezzala(snapshot(eleven()))
+    app.call("snapshot")
+    app.save.missing.add(app.save.path)
+    app.save.no_saves = True
+    assert "using the snapshot from 2026-06-29" in app.call("snapshot").data["context"]["notes"][0]

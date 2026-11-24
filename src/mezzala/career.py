@@ -48,6 +48,7 @@ class Career:
         self._read = read
         self._stamp = stamp
         self._loaded: dict[int, Snapshot] = {}
+        self._last_path: Path | None = None
         self._lock = threading.Lock()
 
     def _remember(self, stored: int, snapshot: Snapshot) -> Snapshot:
@@ -71,8 +72,27 @@ class Career:
         with self._lock:
             return self._current()
 
+    def _is_missing(self, path: Path) -> bool:
+        try:
+            self._stamp(path)
+        except OSError:
+            return True
+        return False
+
+    def _choose_save(self) -> Path:
+        last = self._last_path
+        try:
+            located = self._locate()
+        except OSError:
+            if last is None:
+                raise
+            return last
+        if last is not None and located != last and self._is_missing(last):
+            return last
+        return located
+
     def _current(self) -> Current:
-        path = self._locate()
+        path = self._choose_save()
         career = str(path.resolve())
         notes: list[str] = []
         latest = self._store.latest_date(career)
@@ -87,6 +107,7 @@ class Career:
                 raise
             snapshot = self._load(career, latest)
             notes.append(f"Could not read the save ({error}); using the snapshot from {latest.isoformat()}.")
+        self._last_path = path
         earlier = [day for day in self._store.dates(career) if day < snapshot.game_date]
         return Current(path, career, snapshot, len(earlier) + 1, notes)
 
