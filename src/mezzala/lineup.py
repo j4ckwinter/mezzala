@@ -4,27 +4,38 @@ from statistics import median
 
 from mezzala.formations import STARTERS, Formation
 from mezzala.players import Player
-from mezzala.positions import PositionGroup, primary_group
-from mezzala.squad import depth_chart
+from mezzala.positions import Fit, PositionGroup, fit
+
+ACCOMPLISHED_PENALTY = 5
+
+
+def ability_in(player: Player, group: PositionGroup) -> float | None:
+    match fit(player, group):
+        case Fit.NATURAL:
+            return player.current_ability
+        case Fit.ACCOMPLISHED:
+            return player.current_ability - ACCOMPLISHED_PENALTY
+        case Fit.OUT_OF_POSITION:
+            return None
 
 
 def assign_starters(squad: list[Player], places: Mapping[PositionGroup, int]) -> dict[PositionGroup, list[Player]]:
+    options = [
+        (ability, player.current_ability, player.uid, group, player)
+        for player in squad
+        for group in places
+        if (ability := ability_in(player, group)) is not None
+    ]
+    options.sort(key=lambda option: option[:3], reverse=True)
     assigned: dict[PositionGroup, list[Player]] = {group: [] for group in places}
     used: set[int] = set()
-    by_ability = sorted(squad, key=lambda player: player.current_ability, reverse=True)
-    for player in by_ability:
-        group = primary_group(player)
-        if group in assigned and len(assigned[group]) < places[group]:
-            assigned[group].append(player)
-            used.add(player.uid)
-    for group, needed in places.items():
-        for player in depth_chart(squad, group):
-            if len(assigned[group]) >= needed:
-                break
-            if player.uid not in used:
-                assigned[group].append(player)
-                used.add(player.uid)
-        assigned[group].sort(key=lambda player: player.current_ability, reverse=True)
+    for _, _, uid, group, player in options:
+        if uid in used or len(assigned[group]) >= places[group]:
+            continue
+        assigned[group].append(player)
+        used.add(uid)
+    for starters in assigned.values():
+        starters.sort(key=lambda player: player.current_ability, reverse=True)
     return assigned
 
 
