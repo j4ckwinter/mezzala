@@ -87,7 +87,8 @@ class Career:
                     raise
                 snapshot = self._load(career, latest)
                 notes.append(f"Could not read the save ({error}); using the snapshot from {latest.isoformat()}.")
-        return Current(path, career, snapshot, len(self._store.dates(career)), notes)
+        earlier = [day for day in self._store.dates(career) if day < snapshot.game_date]
+        return Current(path, career, snapshot, len(earlier) + 1, notes)
 
     def earlier_dates(self, current: Current) -> list[date]:
         with self._lock:

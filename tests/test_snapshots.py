@@ -95,3 +95,13 @@ def test_the_server_follows_a_save_written_after_it_started(mezzala):
     app.play_to(snapshot(eleven(), game_date=date(2026, 7, 2)))
     context = app.call("snapshot").data["context"]
     assert (context["save"], context["game_date"]) == ("new career.fm", "2026-07-02")
+
+
+def test_reloading_an_older_save_counts_only_snapshots_up_to_its_date(mezzala):
+    app = mezzala(snapshot(eleven()))
+    app.call("snapshot")
+    app.play_to(snapshot(eleven(), game_date=date(2026, 12, 1)))
+    app.play_to(snapshot(eleven(), game_date=date(2026, 9, 1)))
+    report = app.call("snapshot").data
+    assert report["snapshot_dates"] == ["2026-06-29", "2026-09-01"]
+    assert report["context"]["snapshots"] == 2
