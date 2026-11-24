@@ -39,7 +39,6 @@ class Player:
     reputation: int
     professionalism: int
     ambition: int
-    last_season_minutes: int
 
     @property
     def headroom(self) -> int:

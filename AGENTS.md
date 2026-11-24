@@ -40,6 +40,7 @@ Run all four checks before committing.
 - Money is kept in the unit the save stores it in. `money.py` is the only place that converts it to pounds, in both directions.
 - CA and PA are FM's hidden current and potential ability, from 1 to 200. Attributes run from 1 to 20.
 - `uid` identifies a person within one save. FM can give a deleted person's `uid` to someone new, so matching across snapshots also checks the birth date (`is_same_person`).
+- Stored snapshots encode each player as a positional list (`store.py`). Snapshots are history that cannot be rebuilt from the save, so a change to that encoding must keep existing rows readable.
 - The analysis modules take snapshots and return results. Only `reader.py`, `store.py`, `saves.py`, `career.py` and `server.py` touch fmsave, files, SQLite or MCP.
 - Tests go through the MCP client (`tests/conftest.py`) with a fake save, so they pin behaviour, not internals.
 

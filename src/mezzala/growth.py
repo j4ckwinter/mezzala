@@ -13,8 +13,6 @@ HEADROOM_SHARE_PER_SEASON_BY_AGE: tuple[tuple[int, float], ...] = (
 )
 LOWEST_ATTITUDE_FACTOR = 0.6
 HIGHEST_ATTITUDE_FACTOR = 1.4
-REGULAR_MINUTES = 1500
-REGULAR_MINUTES_FACTOR = 1.15
 DAYS_PER_SEASON = 365
 
 
@@ -44,12 +42,8 @@ def attitude_factor(player: Player) -> float:
     return LOWEST_ATTITUDE_FACTOR + spread * (attitude - 1) / 19
 
 
-def minutes_factor(player: Player) -> float:
-    return REGULAR_MINUTES_FACTOR if player.last_season_minutes >= REGULAR_MINUTES else 1.0
-
-
 def projected_growth(player: Player) -> Growth:
-    gain = player.headroom * headroom_share(player.age) * attitude_factor(player) * minutes_factor(player)
+    gain = player.headroom * headroom_share(player.age) * attitude_factor(player)
     return Growth(GrowthBasis.PROJECTED, round(min(gain, player.headroom), 1), None, DAYS_PER_SEASON)
 
 

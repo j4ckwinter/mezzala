@@ -1,6 +1,5 @@
 import dataclasses
 import warnings
-from collections import defaultdict
 from pathlib import Path
 
 import fmsave
@@ -18,7 +17,7 @@ def known_value(player: fmsave.Player) -> int | None:
     return None
 
 
-def to_player(player: fmsave.Player, minutes: int) -> Player | None:
+def to_player(player: fmsave.Player) -> Player | None:
     contract = player.contract
     personality = player.personality
     if player.name is None or player.age is None or player.ability.potential is None or personality is None:
@@ -43,15 +42,7 @@ def to_player(player: fmsave.Player, minutes: int) -> Player | None:
         reputation=player.reputation.current,
         professionalism=personality.professionalism,
         ambition=personality.ambition,
-        last_season_minutes=minutes,
     )
-
-
-def last_season_minutes(save: fmsave.Save) -> dict[int, int]:
-    minutes: dict[int, int] = defaultdict(int)
-    for season in save.player_season_history():
-        minutes[season.player_uid] += season.minutes
-    return minutes
 
 
 def budget(save: fmsave.Save, club_uid: int) -> Budget:
@@ -70,8 +61,7 @@ def read_snapshot(path: Path) -> Snapshot:
             if not clubs:
                 raise UnreadableSave(f"{path.name} has no managed club; mezzala needs a manager in a job.")
             club = clubs[0]
-            minutes = last_season_minutes(save)
-            converted = (to_player(player, minutes.get(player.uid, 0)) for player in save.players())
+            converted = (to_player(player) for player in save.players())
             players = tuple(player for player in converted if player is not None)
             game_date = save.info.game_date
             if game_date is None:

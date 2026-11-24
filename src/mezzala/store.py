@@ -46,13 +46,13 @@ def encode_player(player: Player) -> list[Any]:
         player.potential_ability, player.value, player.wage, optional_text(player.contract_end), player.on_loan,
         player.loan_parent_club_uid, optional_text(player.loan_end),
         [player.attributes[name] for name in ATTRIBUTE_NAMES], player.reputation, player.professionalism,
-        player.ambition, player.last_season_minutes,
+        player.ambition,
     ]  # fmt: skip
 
 
 def decode_player(row: list[Any]) -> Player:
     (uid, name, age, birth_date, club_uid, club_name, ratings, current, potential, value, wage, contract_end,
-     on_loan, loan_parent, loan_end, attributes, reputation, professionalism, ambition, minutes) = row  # fmt: skip
+     on_loan, loan_parent, loan_end, attributes, reputation, professionalism, ambition) = row  # fmt: skip
     return Player(
         uid=uid,
         name=name,
@@ -73,7 +73,6 @@ def decode_player(row: list[Any]) -> Player:
         reputation=reputation,
         professionalism=professionalism,
         ambition=ambition,
-        last_season_minutes=minutes,
     )
 
 

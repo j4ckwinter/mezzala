@@ -46,7 +46,6 @@ def player(
         "reputation": 5_000,
         "professionalism": 10,
         "ambition": 10,
-        "last_season_minutes": 0,
     }
     return Player(**(fields | overrides))
 

@@ -45,7 +45,7 @@ class Risers:
 
 PROJECTED_EXPLANATION = (
     "Only one snapshot so far, so gains are projected for the next season from age, the gap between "
-    "potential and current ability, professionalism, determination, ambition and last season's minutes. "
+    "potential and current ability, professionalism, determination and ambition. "
     "Observed gains start once the save has a second snapshot."
 )
 OBSERVED_EXPLANATION = "Gains are measured between the two snapshots."
