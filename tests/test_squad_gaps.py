@@ -97,3 +97,9 @@ def test_covered_positions_still_list_their_depth_with_fit(mezzala):
         False,
     )
     assert sum(d["starts_here"] for d in keeper["depth"]) == 1
+
+
+def test_a_starting_place_nobody_can_fill_is_reported(mezzala):
+    squad = [p for p in eleven() if p.position_ratings["gk"] != 20]
+    issues = gaps_by_group(mezzala(snapshot(squad)))["goalkeeper"]
+    assert "empty: 1 of 1 starting places with nobody to fill them" in issues

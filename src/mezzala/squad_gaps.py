@@ -65,6 +65,7 @@ def group_issues(
     if len(chart) < target:
         issues.append(f"thin: {len(chart)} of {target} players who can play here")
     if len(starters) < needed:
+        issues.append(f"empty: {needed - len(starters)} of {needed} starting places with nobody to fill them")
         return issues
     for starter in starters:
         if starter.age + LOOKAHEAD_SEASONS >= ageing_age(group):
