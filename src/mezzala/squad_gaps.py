@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from mezzala.formations import PLAYERS_PER_STARTING_PLACE, STARTERS, Formation
-from mezzala.lineup import Lineup, pick_lineup
+from mezzala.lineup import StarterEntry, pick_lineup, starter_entries
 from mezzala.players import Player, Snapshot
 from mezzala.positions import PositionGroup, fit
 from mezzala.squad import available_squad, depth_chart, leaves_within
@@ -12,15 +12,6 @@ SUCCESSOR_MAX_AGE = 23
 LOOKAHEAD_SEASONS = 2
 LEAVING_WITHIN_MONTHS = 12
 WEAK_STARTER_MARGIN = 8
-
-
-@dataclass(frozen=True)
-class StarterEntry:
-    position: str
-    name: str | None
-    age: int | None
-    current_ability: int | None
-    fit: str | None
 
 
 @dataclass(frozen=True)
@@ -52,20 +43,6 @@ class SquadGaps:
 
 def ageing_age(group: PositionGroup) -> int:
     return AGEING_GOALKEEPER_AGE if group is PositionGroup.GOALKEEPER else AGEING_OUTFIELD_AGE
-
-
-def starter_entries(lineup: Lineup) -> list[StarterEntry]:
-    entries: list[StarterEntry] = []
-    for place in lineup.places:
-        player = place.player
-        if player is None:
-            entries.append(StarterEntry(place.group.value, None, None, None, None))
-        else:
-            entries.append(
-                StarterEntry(place.group.value, player.name, player.age, player.current_ability,
-                             fit(player, place.group).value)
-            )  # fmt: skip
-    return entries
 
 
 def depth_entry(player: Player, group: PositionGroup, starters: list[Player]) -> DepthEntry:

@@ -9,6 +9,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field
 
 from mezzala.career import Career, Current
+from mezzala.compare_formations import FormationComparison, compare_formations
 from mezzala.contract_watch import ContractWatch, contract_watch
 from mezzala.formations import Formation
 from mezzala.lookup import AmbiguousPlayer, PlayerNotFound, find_player
@@ -60,6 +61,12 @@ class SnapshotReport:
 class SquadReport:
     context: SaveContext
     result: SquadList
+
+
+@dataclass(frozen=True)
+class FormationReport:
+    context: SaveContext
+    result: FormationComparison
 
 
 @dataclass(frozen=True)
@@ -145,6 +152,7 @@ def one_of(choices: type[StrEnum]) -> str:
 
 
 FormationChoice = Annotated[Formation, Field(description=one_of(Formation))]
+FormationChoices = Annotated[list[Formation] | None, Field(description=f"Defaults to all. {one_of(Formation)}")]
 PositionChoice = Annotated[PositionGroup | None, Field(description=one_of(PositionGroup))]
 ScopeChoice = Annotated[RiserScope, Field(description=one_of(RiserScope))]
 
@@ -165,6 +173,14 @@ def create_server(career: Career) -> MCPServer:
         positions; plus the club's own players who are out on loan."""
         current = read_current(career)
         return SquadReport(save_context(current), squad_list(current.snapshot))
+
+    @server.tool(name="compare_formations")
+    def compare_formations_tool(formations: FormationChoices = None) -> FormationReport:
+        """Rank formations by how well the squad fits them: for each, the best eleven (each player once, with
+        natural or accomplished fit), its score, out-of-position starters, empty places and weakest place."""
+        current = read_current(career)
+        chosen = formations or list(Formation)
+        return FormationReport(save_context(current), compare_formations(current.snapshot, chosen))
 
     @server.tool(name="squad_gaps")
     def squad_gaps_tool(formation: FormationChoice = DEFAULT_FORMATION) -> SquadGapsReport:

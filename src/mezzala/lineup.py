@@ -71,3 +71,26 @@ def pick_lineup(squad: list[Player], formation: Formation) -> Lineup:
         starters += [None] * (needed - len(starters))
         chosen.extend(Place(group, player) for player in starters)
     return Lineup(formation, tuple(chosen))
+
+
+@dataclass(frozen=True)
+class StarterEntry:
+    position: str
+    name: str | None
+    age: int | None
+    current_ability: int | None
+    fit: str | None
+
+
+def starter_entries(lineup: Lineup) -> list[StarterEntry]:
+    entries: list[StarterEntry] = []
+    for place in lineup.places:
+        player = place.player
+        if player is None:
+            entries.append(StarterEntry(place.group.value, None, None, None, None))
+        else:
+            entries.append(
+                StarterEntry(place.group.value, player.name, player.age, player.current_ability,
+                             fit(player, place.group).value)
+            )  # fmt: skip
+    return entries
