@@ -7,7 +7,9 @@ so i made an mcp server that reads my save and does the scouting for me. i ask c
 
 | tool | answers |
 | --- | --- |
-| `squad_gaps` | where you're thin, ageing, losing players, weak, or have no young successor coming through |
+| `squad` | everyone available, loanees included, with natural and accomplished positions |
+| `compare_formations` | which formation your squad fits best, with the eleven for each |
+| `squad_gaps` | your eleven for a formation, plus where you're thin, ageing, losing players, weak, or have no young successor coming through |
 | `find_replacement` | who plays like a player you're losing, fits your budget, and would actually sign |
 | `risers` | who's improving fastest: transfer targets, your own players, or ones you sold too early |
 | `sell_high` | which of your players to cash in on before their value drops |
@@ -64,7 +66,8 @@ open a new claude code session, load your save in fm, and ask away. save in fm w
 ## what it can't do
 
 - fees are fm's transfer values. asking prices aren't in the save.
-- it doesn't know your tactic. tell claude your formation (4-3-3, 4-2-3-1, 4-4-2 or 3-5-2) and it'll pass it along. the default is 4-3-3.
+- it doesn't know your tactic. tell claude your formation (4-3-3, 4-2-3-1, 4-4-2, 4-4-2 diamond, 3-5-2 or 3-4-3) and it'll pass it along. the default is 4-3-3.
+- `compare_formations` ranks shapes by how well your players fit them, not by how the match engine rates them. it treats wingers and wide midfielders as the same position, and full backs and wing backs too, so 4-1-4-1 and 5-3-2 would tie with 4-3-3 and 3-5-2.
 - it sees everything, including hidden ca and pa. no fog of war.
 - fmsave has only verified fm27 build `27.0.0+2486695`. my save is on 27.1.1 and reads fine, but treat the numbers as fmsave's best effort.
 

@@ -31,12 +31,14 @@ RISER_CA_BELOW_SQUAD_LEVEL = 20
 RISER_TARGET_MAX_AGE = 23
 
 INSTRUCTIONS = """\
-mezzala reads the manager's Football Manager 27 save and answers transfer questions about it.
+mezzala reads the manager's Football Manager 27 save and answers squad, formation and transfer questions about it.
 Every answer starts with the save's in-game date and club. Each call checks the save file and stores a new
 snapshot when it has changed, so growth compares real snapshots once there are two or more.
 Money is in pounds. Fees are FM's transfer values, because asking prices are not stored in the save.
 Current and potential ability (CA, PA) are FM's hidden 1-200 numbers.
-Ask the manager which formation they play if it matters; tools default to 4-3-3."""
+squad lists the players. compare_formations ranks formations by how well the squad fits them and shows each
+eleven. Positions are natural (FM rating 18+) or accomplished (15-17). Ask the manager which formation they
+play if it matters; tools that take one default to 4-3-3."""
 
 
 @dataclass(frozen=True)
