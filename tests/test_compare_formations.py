@@ -66,3 +66,19 @@ def test_formations_within_the_margin_of_the_best_are_marked_tied(mezzala):
 def test_a_formation_asked_for_twice_is_ranked_once(mezzala):
     formations = ranking(mezzala(snapshot(back_four_squad())), formations=["4-3-3", "4-3-3"])
     assert [f["formation"] for f in formations] == ["4-3-3"]
+
+
+def playmaker_squad(ability: int):
+    return [*back_four_squad(), mine("Playmaker", positions=("amc",), ca=ability)]
+
+
+def test_a_formation_shown_half_a_point_behind_the_best_is_tied(mezzala):
+    by_formation = {f["formation"]: f for f in ranking(mezzala(snapshot(playmaker_squad(115))))}
+    assert (by_formation["4-3-3"]["score"], by_formation["4-2-3-1"]["score"]) == (120.0, 119.5)
+    assert by_formation["4-2-3-1"]["tied_with_best"]
+
+
+def test_a_formation_more_than_half_a_point_behind_the_best_is_not_tied(mezzala):
+    by_formation = {f["formation"]: f for f in ranking(mezzala(snapshot(playmaker_squad(113))))}
+    assert by_formation["4-2-3-1"]["score"] == 119.4
+    assert not by_formation["4-2-3-1"]["tied_with_best"]

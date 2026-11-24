@@ -80,7 +80,7 @@ def compare_formations(snapshot: Snapshot, formations: list[Formation]) -> Forma
     fits = sorted((formation_fit(pick_lineup(squad, f)) for f in formations), key=lambda f: f.score, reverse=True)
     best = fits[0].score if fits else 0.0
     ranked = [
-        replace(fit, rank=rank, tied_with_best=best - fit.score <= SCORE_TIE_MARGIN)
+        replace(fit, rank=rank, tied_with_best=round(best - fit.score, 1) <= SCORE_TIE_MARGIN)
         for rank, fit in enumerate(fits, start=1)
     ]
     return FormationComparison(EXPLANATION, ranked)
