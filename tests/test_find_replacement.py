@@ -16,6 +16,13 @@ def test_a_player_who_plays_like_the_target_ranks_first(mezzala):
     assert names(app, player="Old Regista") == ["Young Regista", "Enforcer"]
 
 
+def test_reasons_name_the_candidates_strongest_attributes_in_words(mezzala):
+    target = mine("Old Regista", positions=("dm",), ca=110, attributes=PASSER)
+    alike = player("Set Piece Man", positions=("dm",), ca=110, attributes=PASSER | {"free_kick_taking": 19})
+    reasons = mezzala(snapshot([target, alike])).result("find_replacement", player="Old Regista")["candidates"][0]
+    assert "strongest in free kick taking, passing, vision, technique" in reasons["reasons"][0]
+
+
 def test_players_at_the_club_or_too_weak_are_left_out(mezzala):
     target = mine("Captain", positions=("dc",), ca=120)
     teammate = mine("Teammate", positions=("dc",), ca=125)

@@ -36,6 +36,10 @@ def profile_similarity(target: Player, candidate: Player) -> float:
     return (correlation(target_values, candidate_values) + 1) / 2
 
 
+def attribute_label(name: str) -> str:
+    return name.replace("_", " ")
+
+
 def strongest_attributes(player: Player, count: int) -> tuple[str, ...]:
-    names = visible_profile(player)
-    return tuple(sorted(names, key=lambda name: player.attributes[name], reverse=True)[:count])
+    names = sorted(visible_profile(player), key=lambda name: player.attributes[name], reverse=True)
+    return tuple(attribute_label(name) for name in names[:count])
