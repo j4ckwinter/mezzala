@@ -110,3 +110,11 @@ def test_reloading_an_older_save_counts_only_snapshots_up_to_its_date(mezzala):
 def test_an_overspent_budget_reads_as_a_negative_amount(mezzala):
     context = mezzala(snapshot(eleven(), transfer_budget=-2_500_000)).call("snapshot").data["context"]
     assert context["transfer_budget"] == "-£2.5m"
+
+
+def test_a_save_briefly_missing_while_fm_rewrites_it_falls_back_to_the_last_snapshot(mezzala):
+    app = mezzala(snapshot(eleven()))
+    app.call("snapshot")
+    app.save.missing = True
+    notes = app.call("snapshot").data["context"]["notes"]
+    assert "using the snapshot from 2026-06-29" in notes[0]

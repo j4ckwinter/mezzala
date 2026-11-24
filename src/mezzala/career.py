@@ -75,18 +75,18 @@ class Career:
         path = self._locate()
         career = str(path.resolve())
         notes: list[str] = []
-        stamp = self._stamp(path)
         latest = self._store.latest_date(career)
-        if latest is not None and self._store.latest_stamp(career) == stamp:
-            snapshot = self._load(career, latest)
-        else:
-            try:
-                snapshot = self._refresh(path, career, stamp)
-            except (fmsave.FmsaveError, UnreadableSave) as error:
-                if latest is None:
-                    raise
+        try:
+            stamp = self._stamp(path)
+            if latest is not None and self._store.latest_stamp(career) == stamp:
                 snapshot = self._load(career, latest)
-                notes.append(f"Could not read the save ({error}); using the snapshot from {latest.isoformat()}.")
+            else:
+                snapshot = self._refresh(path, career, stamp)
+        except (fmsave.FmsaveError, UnreadableSave, OSError) as error:
+            if latest is None:
+                raise
+            snapshot = self._load(career, latest)
+            notes.append(f"Could not read the save ({error}); using the snapshot from {latest.isoformat()}.")
         earlier = [day for day in self._store.dates(career) if day < snapshot.game_date]
         return Current(path, career, snapshot, len(earlier) + 1, notes)
 

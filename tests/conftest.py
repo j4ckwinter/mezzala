@@ -26,6 +26,7 @@ class FakeSave:
     reads: int = 0
     failing: Exception | None = None
     read_seconds: float = 0.0
+    missing: bool = False
     path: Path = field(default_factory=lambda: Path("career.fm"))
 
     def write(self, snapshot: Snapshot) -> None:
@@ -41,6 +42,8 @@ class FakeSave:
         return self.snapshot
 
     def stamp(self, _: Path) -> FileStamp:
+        if self.missing:
+            raise FileNotFoundError("career.fm is being rewritten")
         return FileStamp(self.version, 1)
 
 
