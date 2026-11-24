@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import date
 from pathlib import Path
 
@@ -136,3 +137,14 @@ def test_a_vanished_only_save_falls_back_to_the_last_snapshot(mezzala):
     app.save.missing.add(app.save.path)
     app.save.no_saves = True
     assert "using the snapshot from 2026-06-29" in app.call("snapshot").data["context"]["notes"][0]
+
+
+def test_a_wage_bill_over_budget_reads_as_negative_headroom(mezzala):
+    over = snapshot(eleven())
+    over = replace(over, budget=replace(over.budget, wage_payroll_weekly=65_000))
+    assert mezzala(over).call("snapshot").data["context"]["wage_headroom"] == "-£5,000 p/w"
+
+
+def test_a_budget_just_under_a_million_reads_as_a_million(mezzala):
+    context = mezzala(snapshot(eleven(), transfer_budget=999_999)).call("snapshot").data["context"]
+    assert context["transfer_budget"] == "£1.0m"
