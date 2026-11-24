@@ -2,6 +2,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from statistics import median
 
+from mezzala.assignment import BLOCKED, min_cost_assignment
 from mezzala.formations import STARTERS, Formation
 from mezzala.players import Player
 from mezzala.positions import Fit, PositionGroup, fit
@@ -19,21 +20,22 @@ def ability_in(player: Player, group: PositionGroup) -> float | None:
             return None
 
 
+FILLED_PLACE_BONUS = 1_000
+
+
+def place_cost(player: Player, group: PositionGroup) -> float:
+    ability = ability_in(player, group)
+    return BLOCKED if ability is None else -(FILLED_PLACE_BONUS + ability)
+
+
 def assign_starters(squad: list[Player], places: Mapping[PositionGroup, int]) -> dict[PositionGroup, list[Player]]:
-    options = [
-        (ability, player.current_ability, player.uid, group, player)
-        for player in squad
-        for group in places
-        if (ability := ability_in(player, group)) is not None
-    ]
-    options.sort(key=lambda option: option[:3], reverse=True)
+    slots = [group for group, needed in places.items() for _ in range(needed)]
+    empty_options = [0.0] * len(slots)
+    cost = [[place_cost(player, group) for player in squad] + empty_options for group in slots]
     assigned: dict[PositionGroup, list[Player]] = {group: [] for group in places}
-    used: set[int] = set()
-    for _, _, uid, group, player in options:
-        if uid in used or len(assigned[group]) >= places[group]:
-            continue
-        assigned[group].append(player)
-        used.add(uid)
+    for group, row, column in zip(slots, cost, min_cost_assignment(cost), strict=True):
+        if row[column] != BLOCKED and column < len(squad):
+            assigned[group].append(squad[column])
     for starters in assigned.values():
         starters.sort(key=lambda player: player.current_ability, reverse=True)
     return assigned

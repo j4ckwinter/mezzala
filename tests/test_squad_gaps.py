@@ -73,8 +73,8 @@ def test_the_eleven_is_returned_with_each_player_once_and_how_well_he_fits(mezza
     names = [starter["name"] for starter in result["eleven"]]
     assert len(names) == 11 and len(set(names)) == 11
     by_name = {starter["name"]: (starter["position"], starter["fit"]) for starter in result["eleven"]}
-    assert by_name["Makeshift"] == ("centre back", "natural")
-    assert by_name["Natural DM"] == ("defensive midfield", "natural")
+    assert by_name["Makeshift"] == ("defensive midfield", "natural")
+    assert "Natural DM" not in by_name
 
 
 def test_an_empty_place_in_the_eleven_is_shown_as_nobody(mezzala):
