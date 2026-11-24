@@ -36,18 +36,19 @@ class Career:
         self._store = store
         self._read = read
         self._stamp = stamp
-        self._loaded: dict[date, Snapshot] = {}
+        self._loaded: dict[int, Snapshot] = {}
         self._lock = threading.Lock()
 
     def _load(self, game_date: date) -> Snapshot:
-        if game_date not in self._loaded:
-            self._loaded[game_date] = self._store.load(self.name, game_date)
-        return self._loaded[game_date]
+        stored = self._store.snapshot_id(self.name, game_date)
+        if stored not in self._loaded:
+            self._loaded[stored] = self._store.load(self.name, game_date)
+        return self._loaded[stored]
 
     def _refresh(self, stamp: FileStamp) -> Snapshot:
         snapshot = self._read(self.save_path)
         self._store.put(self.name, snapshot, stamp)
-        self._loaded[snapshot.game_date] = snapshot
+        self._loaded[self._store.snapshot_id(self.name, snapshot.game_date)] = snapshot
         return snapshot
 
     def current(self) -> Current:

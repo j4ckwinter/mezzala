@@ -71,3 +71,17 @@ def test_tools_called_together_after_a_save_read_it_once(mezzala):
     results = app.call_together("snapshot", "squad_gaps", "sell_high", "contract_watch")
     assert [result.is_error for result in results] == [False] * 4
     assert app.save.reads == 1
+
+
+def test_a_second_server_sees_a_same_day_resave_by_the_first(mezzala, tmp_path):
+    from mezzala.career import Career
+    from mezzala.store import SnapshotStore
+
+    first = mezzala(snapshot(eleven(ca=100)))
+    second = type(first)(first.save, Career(first.save.path, SnapshotStore(tmp_path / "snapshots.db"),
+                                            first.save.read, first.save.stamp))  # fmt: skip
+    first.call("squad_gaps")
+    second.call("squad_gaps")
+    first.play_to(snapshot(eleven(ca=130)))
+    eleven_level = second.result("squad_gaps")["starting_eleven_median_ability"]
+    assert eleven_level == 130

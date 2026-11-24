@@ -124,6 +124,14 @@ class SnapshotStore:
                 ),
             )  # fmt: skip
 
+    def snapshot_id(self, career: str, game_date: date) -> int:
+        row = self._db.execute(
+            "SELECT id FROM snapshots WHERE career = ? AND game_date = ?", (career, game_date.isoformat())
+        ).fetchone()
+        if row is None:
+            raise KeyError(f"No snapshot of {career} on {game_date.isoformat()}")
+        return row[0]
+
     def dates(self, career: str) -> list[date]:
         rows = self._db.execute("SELECT game_date FROM snapshots WHERE career = ? ORDER BY game_date", (career,))
         return [date.fromisoformat(row[0]) for row in rows]
