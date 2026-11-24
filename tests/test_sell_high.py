@@ -1,5 +1,5 @@
 from dataclasses import replace
-from datetime import date
+from datetime import date, timedelta
 
 from factory import eleven, mine, player, snapshot
 
@@ -46,3 +46,14 @@ def test_history_shows_ability_stalled_while_value_rose(mezzala):
     later = replace(star, current_ability=121, value=1_500_000)
     app.play_to(snapshot([*eleven(age=24, pa=140), later], game_date=date(2027, 2, 1)))
     assert signals(app)["Stalled"] == ["CA moved +1 since 2026-06-29 while value rose from £1.0m"]
+
+
+def test_a_long_career_still_remembers_the_oldest_high_value(mezzala):
+    star = mine("Long Faded", age=27, ca=130, pa=140, value=5_000_000)
+    squad = eleven(age=24, pa=140)
+    app = mezzala(snapshot([*squad, star]))
+    app.call("snapshot")
+    for month in range(1, 16):
+        later = replace(star, value=2_000_000)
+        app.play_to(snapshot([*squad, later], game_date=date(2026, 6, 29) + timedelta(days=30 * month)))
+    assert signals(app)["Long Faded"] == ["value already down from a high of £5.0m"]

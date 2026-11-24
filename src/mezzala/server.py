@@ -17,7 +17,7 @@ from mezzala.regen_intake import RegenIntake, regen_intake
 from mezzala.replacement import Limits, Replacements, find_replacements
 from mezzala.risers import RiserFilters, Risers, RiserScope, find_risers
 from mezzala.sell_high import SellHigh, sell_high
-from mezzala.squad import squad_level
+from mezzala.squad import owned_players, squad_level
 from mezzala.squad_gaps import SquadGaps, squad_gaps
 
 DEFAULT_FORMATION = Formation.FOUR_THREE_THREE
@@ -190,7 +190,8 @@ def create_server(career: Career) -> MCPServer:
         """Your players worth selling now: past peak age, at their ceiling, valued above similar players,
         contract running down, or (with history) value falling or ability stalled while value rose."""
         current = read_current(career)
-        result = sell_high(current.snapshot, career.history(current.snapshot), limit)
+        owned = {player.uid for player in owned_players(current.snapshot)}
+        result = sell_high(current.snapshot, career.past_players(current.snapshot, owned), limit)
         return SellHighReport(save_context(career, current), result)
 
     @server.tool(name="contract_watch")

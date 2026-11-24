@@ -76,5 +76,11 @@ class Snapshot:
         return {player.uid: player for player in self.players}
 
 
+@dataclass(frozen=True)
+class PastPlayers:
+    game_date: date
+    by_uid: Mapping[int, Player]
+
+
 def is_same_person(earlier: Player, later: Player) -> bool:
     return earlier.uid == later.uid and earlier.birth_date == later.birth_date

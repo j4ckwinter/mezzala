@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from statistics import median
 
 from mezzala.money import format_money
-from mezzala.players import Player, Snapshot, is_same_person
+from mezzala.players import PastPlayers, Player, Snapshot, is_same_person
 from mezzala.positions import is_goalkeeper
 from mezzala.squad import leaves_within, owned_players
 
@@ -77,7 +77,7 @@ def present_signals(player: Player, snapshot: Snapshot, peer_median: float | Non
     return signals
 
 
-def history_signals(player: Player, history: list[tuple[Snapshot, Player]], current: Snapshot) -> list[str]:
+def history_signals(player: Player, history: list[tuple[PastPlayers, Player]], current: Snapshot) -> list[str]:
     signals: list[str] = []
     values = [earlier.value for _, earlier in history if earlier.value]
     if player.value and values and player.value <= VALUE_FALL_RATIO * max(values):
@@ -98,24 +98,23 @@ def history_signals(player: Player, history: list[tuple[Snapshot, Player]], curr
     return signals
 
 
-def earlier_selves(player: Player, earlier: list[tuple[Snapshot, dict[int, Player]]]) -> list[tuple[Snapshot, Player]]:
-    found: list[tuple[Snapshot, Player]] = []
-    for snapshot, by_uid in earlier:
-        before = by_uid.get(player.uid)
+def earlier_selves(player: Player, earlier: list[PastPlayers]) -> list[tuple[PastPlayers, Player]]:
+    found: list[tuple[PastPlayers, Player]] = []
+    for past in earlier:
+        before = past.by_uid.get(player.uid)
         if before is not None and is_same_person(before, player):
-            found.append((snapshot, before))
+            found.append((past, before))
     return found
 
 
-def sell_high(current: Snapshot, earlier: list[Snapshot], limit: int) -> SellHigh:
+def sell_high(current: Snapshot, earlier: list[PastPlayers], limit: int) -> SellHigh:
     medians = peer_median_values(current)
-    indexed = [(snapshot, snapshot.by_uid()) for snapshot in earlier]
     candidates: list[SaleCandidate] = []
     for player in owned_players(current):
         if not player.value:
             continue
         signals = present_signals(player, current, medians.get((player.current_ability, player.age)))
-        signals += history_signals(player, earlier_selves(player, indexed), current)
+        signals += history_signals(player, earlier_selves(player, earlier), current)
         if signals:
             candidates.append(
                 SaleCandidate(player.name, player.age, player.current_ability, player.potential_ability,
