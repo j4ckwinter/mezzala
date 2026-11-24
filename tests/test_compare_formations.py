@@ -54,3 +54,15 @@ def test_an_accomplished_starter_is_counted_and_lowers_the_score(mezzala):
     by_formation = {f["formation"]: f for f in ranking(mezzala(snapshot(squad)))}
     assert by_formation["4-3-3"]["accomplished_starters"] == 1
     assert by_formation["4-3-3"]["score"] == round((120 * 10 + 115) / 11, 1)
+
+
+def test_formations_within_the_margin_of_the_best_are_marked_tied(mezzala):
+    squad = [*back_four_squad(), mine("Playmaker", positions=("amc",), ca=120)]
+    by_formation = {f["formation"]: f for f in ranking(mezzala(snapshot(squad)))}
+    assert by_formation["4-3-3"]["tied_with_best"] and by_formation["4-2-3-1"]["tied_with_best"]
+    assert not by_formation["3-5-2"]["tied_with_best"]
+
+
+def test_a_formation_asked_for_twice_is_ranked_once(mezzala):
+    formations = ranking(mezzala(snapshot(back_four_squad())), formations=["4-3-3", "4-3-3"])
+    assert [f["formation"] for f in formations] == ["4-3-3"]

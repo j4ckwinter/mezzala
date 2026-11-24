@@ -2,7 +2,7 @@ import asyncio
 
 from mcp import Client
 
-from mezzala.server import create_server
+from mezzala.server import INSTRUCTIONS, create_server
 
 
 def schemas() -> dict[str, dict]:
@@ -23,3 +23,8 @@ def test_position_and_scope_parameters_list_their_choices():
     risers = schemas()["risers"]["properties"]
     assert risers["scope"]["description"] == 'One of: "elsewhere", "own", "former"'
     assert '"centre back"' in risers["position"]["description"]
+
+
+def test_the_instructions_state_the_position_thresholds_and_default_formation():
+    assert "natural (FM rating 18+) or accomplished\n(15-17)" in INSTRUCTIONS
+    assert "default to 4-3-3" in INSTRUCTIONS

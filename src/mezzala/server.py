@@ -15,7 +15,7 @@ from mezzala.formations import Formation
 from mezzala.lookup import AmbiguousPlayer, PlayerNotFound, find_player
 from mezzala.money import format_money, format_weekly_wage, stored_from_pounds
 from mezzala.players import Player, Snapshot
-from mezzala.positions import PositionGroup
+from mezzala.positions import ACCOMPLISHED_POSITION_RATING, NATURAL_POSITION_RATING, PositionGroup
 from mezzala.reader import UnreadableSave
 from mezzala.regen_intake import RegenIntake, regen_intake
 from mezzala.replacement import Limits, Replacements, find_replacements
@@ -30,15 +30,16 @@ DEFAULT_LIMIT = 10
 RISER_CA_BELOW_SQUAD_LEVEL = 20
 RISER_TARGET_MAX_AGE = 23
 
-INSTRUCTIONS = """\
+INSTRUCTIONS = f"""\
 mezzala reads the manager's Football Manager 27 save and answers squad, formation and transfer questions about it.
 Every answer starts with the save's in-game date and club. Each call checks the save file and stores a new
 snapshot when it has changed, so growth compares real snapshots once there are two or more.
 Money is in pounds. Fees are FM's transfer values, because asking prices are not stored in the save.
 Current and potential ability (CA, PA) are FM's hidden 1-200 numbers.
 squad lists the players. compare_formations ranks formations by how well the squad fits them and shows each
-eleven. Positions are natural (FM rating 18+) or accomplished (15-17). Ask the manager which formation they
-play if it matters; tools that take one default to 4-3-3."""
+eleven. Positions are natural (FM rating {NATURAL_POSITION_RATING}+) or accomplished
+({ACCOMPLISHED_POSITION_RATING}-{NATURAL_POSITION_RATING - 1}). Ask the manager which formation they
+play if it matters; tools that take one default to {DEFAULT_FORMATION.value}."""
 
 
 @dataclass(frozen=True)
@@ -179,9 +180,10 @@ def create_server(career: Career) -> MCPServer:
     @server.tool(name="compare_formations")
     def compare_formations_tool(formations: FormationChoices = None) -> FormationReport:
         """Rank formations by how well the squad fits them: for each, the best eleven (each player once, with
-        natural or accomplished fit), its score, out-of-position starters, empty places and weakest place."""
+        natural or accomplished fit), its score, accomplished (non-natural) starters, empty places, weakest place,
+        and whether it is effectively tied with the best."""
         current = read_current(career)
-        chosen = formations or list(Formation)
+        chosen = list(dict.fromkeys(formations)) if formations else list(Formation)
         return FormationReport(save_context(current), compare_formations(current.snapshot, chosen))
 
     @server.tool(name="squad_gaps")

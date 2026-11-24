@@ -1,15 +1,26 @@
 from dataclasses import dataclass, replace
 
 from mezzala.formations import Formation
-from mezzala.lineup import Lineup, Place, StarterEntry, ability_in, pick_lineup, starter_entries
+from mezzala.lineup import (
+    ACCOMPLISHED_PENALTY,
+    Lineup,
+    Place,
+    StarterEntry,
+    ability_in,
+    pick_lineup,
+    starter_entries,
+)
 from mezzala.players import Snapshot
 from mezzala.positions import Fit, fit
 from mezzala.squad import available_squad
 
+SCORE_TIE_MARGIN = 0.5
+
 EXPLANATION = (
     "Each formation gets the best eleven the squad can field, using each player once. The score is the "
-    "average ability of that eleven in their places: accomplished (non-natural) positions count 5 CA lower "
-    "and an empty place counts as 0. It measures squad fit, not how the match engine rates the shape."
+    "average ability of that eleven in their places: accomplished (non-natural) positions count "
+    f"{ACCOMPLISHED_PENALTY} CA lower and an empty place counts as 0. Formations within {SCORE_TIE_MARGIN} of "
+    "the best score are effectively tied. It measures squad fit, not how the match engine rates the shape."
 )
 
 
@@ -18,6 +29,7 @@ class FormationFit:
     formation: str
     rank: int
     score: float
+    tied_with_best: bool
     median_ability: float
     accomplished_starters: int
     empty_places: int
@@ -54,6 +66,7 @@ def formation_fit(lineup: Lineup) -> FormationFit:
         formation=lineup.formation.value,
         rank=0,
         score=score(lineup),
+        tied_with_best=False,
         median_ability=lineup.median_ability(),
         accomplished_starters=len(accomplished),
         empty_places=sum(1 for place in lineup.places if place.player is None),
@@ -65,5 +78,9 @@ def formation_fit(lineup: Lineup) -> FormationFit:
 def compare_formations(snapshot: Snapshot, formations: list[Formation]) -> FormationComparison:
     squad = available_squad(snapshot)
     fits = sorted((formation_fit(pick_lineup(squad, f)) for f in formations), key=lambda f: f.score, reverse=True)
-    ranked = [replace(fit, rank=rank) for rank, fit in enumerate(fits, start=1)]
+    best = fits[0].score if fits else 0.0
+    ranked = [
+        replace(fit, rank=rank, tied_with_best=best - fit.score <= SCORE_TIE_MARGIN)
+        for rank, fit in enumerate(fits, start=1)
+    ]
     return FormationComparison(EXPLANATION, ranked)
