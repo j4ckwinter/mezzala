@@ -135,3 +135,19 @@ def test_fog_of_war_judges_injury_risk_only_on_injuries_the_game_shows(mezzala):
     assert fogged.result("fitness")["injury_risks_in_the_eleven"] == []
     assert fogged.result("training_plan", player="Prone Kid")["why_this_intensity"] == []
     assert mezzala(snapshot(squad)).result("fitness")["injury_risks_in_the_eleven"] != []
+
+
+def test_fog_of_war_compares_ratings_within_his_league_not_his_hidden_ability(mezzala):
+    from mezzala.core.players import SeasonStats
+
+    def played(rating):
+        return SeasonStats(900, 10, 0, rating, 0, 0, 0.0, 0.0, 0, 0, 0, 0, 0, 0, None, 0)
+
+    league_mates = [player(f"Mate {n}", ca=60 + 8 * n, season=played(6.6)) for n in range(10)]
+    elsewhere = [player(f"Abroad {n}", ca=100, league_id=99, season=played(7.2)) for n in range(10)]
+    star = mine("Star", ca=100, season=played(7.4))
+    save = snapshot([*eleven(), star, *league_mates, *elsewhere])
+    fogged = mezzala(save, view=View.SPOILER_FREE).result("performance")
+    assert fogged["players"][0]["rating_above_similar_players"] == 0.8
+    assert "fog of war hides ability" in fogged["explanation"]
+    assert mezzala(save).result("performance")["players"][0]["rating_above_similar_players"] == 0.2

@@ -8,7 +8,7 @@ from mezzala.core.positions import PositionGroup, covers
 from mezzala.core.reach import within_reach
 from mezzala.core.squad import belongs_to_club, is_outside_club, plays_for_club
 from mezzala.core.summary import PlayerSummary, summarize
-from mezzala.core.view import View
+from mezzala.core.view import View, shows_hidden_information
 
 MINUTES_PER_MATCH = 90
 RATING_PEER_ABILITY_BAND = 10
@@ -60,25 +60,37 @@ class Performance:
 
 EXPLANATION = (
     "Season stats as the save holds them, all competitions added up. A league's stats reset when its new season "
-    "starts, so leagues between seasons have none. 'Rating above similar players' is his average rating minus "
-    f"the median of players within {RATING_PEER_ABILITY_BAND} ability of him who played as many minutes."
+    "starts, so leagues between seasons have none. 'Rating above similar players' is his average rating minus the "
+    "median of the similar players who also reached the minimum minutes: "
 )
+SIMILAR_BY_ABILITY = f"those within {RATING_PEER_ABILITY_BAND} ability of him."
+SIMILAR_BY_LEAGUE = "those in his league, since fog of war hides ability."
+
+
+def explanation(view: View) -> str:
+    return EXPLANATION + (SIMILAR_BY_ABILITY if shows_hidden_information(view) else SIMILAR_BY_LEAGUE)
 
 
 def per_90(count: float, minutes: int) -> float:
     return round(count * MINUTES_PER_MATCH / minutes, DECIMALS) if minutes else 0.0
 
 
+def similar(view: View, player: Player, other: Player) -> bool:
+    if shows_hidden_information(view):
+        return abs(other.current_ability - player.current_ability) <= RATING_PEER_ABILITY_BAND
+    return player.league_id is not None and other.league_id == player.league_id
+
+
 class RatingPeers:
-    def __init__(self, players: list[tuple[Player, SeasonStats]]) -> None:
-        self._rated = [(player.current_ability, season.average_rating) for player, season in players
+    def __init__(self, players: list[tuple[Player, SeasonStats]], view: View) -> None:
+        self._view = view
+        self._rated = [(player, season.average_rating) for player, season in players
                        if season.average_rating is not None]  # fmt: skip
 
     def above(self, player: Player, season: SeasonStats) -> float | None:
         if season.average_rating is None:
             return None
-        peers = [rating for ability, rating in self._rated
-                 if abs(ability - player.current_ability) <= RATING_PEER_ABILITY_BAND]  # fmt: skip
+        peers = [rating for other, rating in self._rated if similar(self._view, player, other)]
         if len(peers) < MIN_RATING_PEERS:
             return None
         return round(season.average_rating - median(peers), DECIMALS)
@@ -154,9 +166,9 @@ def wanted(player: Player, snapshot: Snapshot, search: PerformanceSearch) -> boo
 def performance(snapshot: Snapshot, search: PerformanceSearch, view: View) -> Performance:
     played = [(player, player.season) for player in snapshot.players
               if player.season is not None and player.season.minutes >= search.min_minutes]  # fmt: skip
-    peers = RatingPeers(played)
+    peers = RatingPeers(played, view)
     entries = [performer(player, season, peers, view) for player, season in played if wanted(player, snapshot, search)]
     value = sort_value(search.sort_by)
     scored = [(found, entry) for entry in entries if (found := value(entry)) is not None]
     ranked = [entry for _, entry in sorted(scored, key=lambda item: item[0], reverse=True)]
-    return Performance(EXPLANATION, search.sort_by.value, len(ranked), ranked[: search.limit])
+    return Performance(explanation(view), search.sort_by.value, len(ranked), ranked[: search.limit])
