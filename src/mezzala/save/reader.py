@@ -53,18 +53,41 @@ def youth_contract(contract: fmsave.Contract | None) -> bool | None:
             return None
 
 
-def first_team_leagues(fixtures: Iterable[fmsave.Fixture]) -> dict[int, int]:
+LEAGUE_NATION_SHARE = 0.9
+
+
+def first_team_fixtures(fixtures: Iterable[fmsave.Fixture]) -> Counter[tuple[int, int]]:
     played: Counter[tuple[int, int]] = Counter()
     for fixture in fixtures:
+        if fixture.competition_id is None or fixture.season_start_year is None:
+            continue
         for club_uid, slot in (
             (fixture.home_club_uid, fixture.home_team_slot),
             (fixture.away_club_uid, fixture.away_team_slot),
         ):
-            if club_uid is not None and slot == 0 and fixture.competition_id is not None:
+            if club_uid is not None and slot == 0:
                 played[(club_uid, fixture.competition_id)] += 1
+    return played
+
+
+def domestic_competitions(played: Counter[tuple[int, int]], club_nations: dict[int, int | None]) -> set[int]:
+    nations: dict[int, Counter[int | None]] = {}
+    for club_uid, competition_id in played:
+        nations.setdefault(competition_id, Counter())[club_nations.get(club_uid)] += 1
+    return {
+        competition_id
+        for competition_id, found in nations.items()
+        if found.most_common(1)[0][0] is not None and found.most_common(1)[0][1] >= LEAGUE_NATION_SHARE * found.total()
+    }
+
+
+def first_team_leagues(fixtures: Iterable[fmsave.Fixture], club_nations: dict[int, int | None]) -> dict[int, int]:
+    played = first_team_fixtures(fixtures)
+    domestic = domestic_competitions(played, club_nations)
     leagues: dict[int, int] = {}
     for (club_uid, competition_id), _ in played.most_common():
-        leagues.setdefault(club_uid, competition_id)
+        if competition_id in domestic:
+            leagues.setdefault(club_uid, competition_id)
     return leagues
 
 
@@ -129,7 +152,7 @@ def read_snapshot(path: Path) -> Snapshot:
             if not clubs:
                 raise UnreadableSave(f"{path.name} has no managed club; mezzala needs a manager in a job.")
             club = clubs[0]
-            leagues = first_team_leagues(save.fixtures())
+            leagues = first_team_leagues(save.fixtures(), {c.uid: c.nation_id for c in save.clubs()})
             converted = (to_player(player, leagues) for player in save.players())
             players = tuple(player for player in converted if player is not None)
             game_date = save.info.game_date
