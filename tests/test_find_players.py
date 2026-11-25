@@ -39,7 +39,7 @@ def test_a_fee_cap_keeps_free_and_zero_valued_players(mezzala):
 def test_value_for_money_puts_the_undervalued_first(mezzala):
     squad = [*peers(25, ca=120, age=24, value=1_000_000), player("Bargain", ca=120, age=24, value=200_000)]
     found = mezzala(snapshot(squad)).result("find_players", sort_by="value for money")["players"][0]
-    assert (found["player"]["name"], found["value_vs_similar_players"]) == ("Bargain", "0.2x")
+    assert (found["player"]["name"], found["value_vs_similar_players"]) == ("Bargain", "0.20x")
 
 
 def test_above_league_level_finds_players_too_good_for_their_division(mezzala):
@@ -166,5 +166,24 @@ def test_our_loan_players_are_judged_on_what_we_pay_them(mezzala):
     loanee = mine("Our Loanee", ca=110, age=27, wage=12_500, on_loan=True, loan_parent_club_uid=9, loan_wage=2_000)
     squad = [*peers(25, ca=110, age=27, wage=2_000), loanee]
     found = mezzala(snapshot(squad)).result("find_players", scope="own")["players"][0]
-    assert found["wage_vs_similar_players"] == "1.0x"
+    assert found["wage_vs_similar_players"] == "1.00x"
     assert (found["player"]["wage"], found["player"]["wage_while_on_loan"]) == ("£12,500 p/w", "£2,000 p/w")
+
+
+def test_wonderkids_are_valued_against_other_wonderkids(mezzala):
+    squad = [
+        *peers(25, age=17, ca=90, pa=170, value=20_000_000),
+        *peers(25, age=17, ca=90, pa=110, value=300_000),
+        player("Cheap Wonderkid", age=17, ca=90, pa=170, value=8_000_000),
+        player("Ordinary Kid", age=17, ca=90, pa=110, value=300_000),
+    ]
+    found = mezzala(snapshot(squad)).result("find_players", sort_by="value for money", limit=60)["players"]
+    ratios = {f["player"]["name"]: f["value_vs_similar_players"] for f in found}
+    assert (ratios["Cheap Wonderkid"], ratios["Ordinary Kid"]) == ("0.40x", "1.00x")
+    assert found[0]["player"]["name"] == "Cheap Wonderkid"
+
+
+def test_a_nominal_value_is_not_treated_as_a_bargain(mezzala):
+    squad = [*peers(25, ca=125, age=26, value=2_000_000), player("Token Value", ca=125, age=26, value=10_000)]
+    found = mezzala(snapshot(squad)).result("find_players", sort_by="value for money", limit=30)["players"]
+    assert {f["player"]["name"]: f["value_vs_similar_players"] for f in found}["Token Value"] == "unknown"

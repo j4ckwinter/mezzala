@@ -203,7 +203,7 @@ def sort_key(sort_by: SortBy, search: PlayerSearch, measures: Measures) -> Calla
 
 
 def describe_ratio(ratio: float | None) -> str:
-    return "unknown" if ratio is None else f"{ratio:.1f}x"
+    return "unknown" if ratio is None else f"{ratio:.2f}x"
 
 
 def team_label(player: Player) -> str:
