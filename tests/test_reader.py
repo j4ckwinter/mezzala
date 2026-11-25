@@ -8,8 +8,8 @@ from mezzala.core.players import ReleaseClause, ReleaseScope
 from mezzala.save.reader import (
     first_team_leagues,
     known_value,
+    loan_wage,
     release_clauses,
-    wage_paid_by_current_club,
     youth_contract,
 )
 
@@ -90,9 +90,9 @@ def loanee(on_loan: bool):
     return cast(FmPlayer, SimpleNamespace(on_loan=on_loan, club_uid=1597, contract=contract))
 
 
-def test_a_loan_players_wage_is_what_his_current_club_pays():
-    assert wage_paid_by_current_club(loanee(on_loan=True)) == 2_500
+def test_a_loan_player_records_what_his_current_club_pays():
+    assert loan_wage(loanee(on_loan=True)) == 2_500
 
 
-def test_a_permanent_players_wage_is_his_contract_wage():
-    assert wage_paid_by_current_club(loanee(on_loan=False)) == 12_500
+def test_a_permanent_player_has_no_loan_wage():
+    assert loan_wage(loanee(on_loan=False)) is None

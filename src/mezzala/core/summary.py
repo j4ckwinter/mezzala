@@ -15,6 +15,7 @@ class PlayerSummary:
     potential_ability: int
     value: str
     wage: str
+    wage_while_on_loan: str
     contract_end: str
 
 
@@ -41,5 +42,6 @@ def summarize(player: Player) -> PlayerSummary:
         potential_ability=player.potential_ability,
         value=format_money(player.value),
         wage=format_weekly_wage(player.wage),
+        wage_while_on_loan=format_weekly_wage(player.loan_wage) if player.on_loan else "not on loan",
         contract_end=player.contract_end.isoformat() if player.contract_end else "none",
     )

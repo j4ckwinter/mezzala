@@ -35,7 +35,9 @@ class PeerMedians:
         return self._medians[key]
 
     def ratio(self, player: Player) -> float | None:
-        amount = self._measure(player)
+        return self.ratio_of(self._measure(player), player)
+
+    def ratio_of(self, amount: int | None, player: Player) -> float | None:
         peer = self.of(player)
         if not amount or peer is None:
             return None

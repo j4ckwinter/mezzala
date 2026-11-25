@@ -91,15 +91,14 @@ def first_team_leagues(fixtures: Iterable[fmsave.Fixture], club_nations: dict[in
     return leagues
 
 
-def wage_paid_by_current_club(player: fmsave.Player) -> int | None:
+def loan_wage(player: fmsave.Player) -> int | None:
     contract = player.contract
-    if contract is None:
+    if contract is None or not player.on_loan:
         return None
-    if player.on_loan:
-        for entry in contract.chain:
-            if entry.club_uid == player.club_uid:
-                return entry.wage
-    return contract.wage
+    for entry in contract.chain:
+        if entry.club_uid == player.club_uid:
+            return entry.wage
+    return None
 
 
 def to_player(player: fmsave.Player, leagues: dict[int, int]) -> Player | None:
@@ -118,7 +117,7 @@ def to_player(player: fmsave.Player, leagues: dict[int, int]) -> Player | None:
         current_ability=player.ability.current,
         potential_ability=player.ability.potential,
         value=known_value(player.transfer_value_state, player.transfer_value),
-        wage=wage_paid_by_current_club(player),
+        wage=contract.wage if contract else None,
         contract_end=contract.end if contract else None,
         on_loan=bool(player.on_loan),
         loan_parent_club_uid=player.loan_parent_club_uid,
@@ -133,6 +132,7 @@ def to_player(player: fmsave.Player, leagues: dict[int, int]) -> Player | None:
         league_id=leagues.get(player.club_uid) if player.club_uid is not None else None,
         youth_contract=youth_contract(contract),
         release_clauses=release_clauses(contract),
+        loan_wage=loan_wage(player),
     )
 
 

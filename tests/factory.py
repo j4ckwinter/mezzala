@@ -54,6 +54,7 @@ def player(
         "league_id": None if club is None else MY_LEAGUE,
         "youth_contract": None if club is None else False,
         "release_clauses": (),
+        "loan_wage": None,
     }
     return Player(**(fields | overrides))
 

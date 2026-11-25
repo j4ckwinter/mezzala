@@ -58,12 +58,13 @@ def encode_player(player: Player) -> list[Any]:
         [player.attributes[name] for name in ATTRIBUTE_NAMES], player.reputation, player.professionalism,
         player.ambition, player.first_team, player.club_reputation, player.club_nation_id, player.league_id,
         player.youth_contract, [[clause.scope.value, clause.fee] for clause in player.release_clauses],
+        player.loan_wage,
     ]  # fmt: skip
 
 
 ORIGINAL_FIELDS = 19
-FACTS_ADDED_LATER: list[Any] = [None, None, None, None, None, []]
-CURRENT_FORMAT = 2
+FACTS_ADDED_LATER: list[Any] = [None, None, None, None, None, [], None]
+CURRENT_FORMAT = 3
 COLUMNS_ADDED_LATER = {"club_nation_id": "INTEGER", "format": "INTEGER NOT NULL DEFAULT 1"}
 
 
@@ -79,7 +80,7 @@ def decode_player(row: list[Any]) -> Player:
     row = [*row, *FACTS_ADDED_LATER[len(row) - ORIGINAL_FIELDS :]]
     (uid, name, age, birth_date, club_uid, club_name, ratings, current, potential, value, wage, contract_end,
      on_loan, loan_parent, loan_end, attributes, reputation, professionalism, ambition, first_team,
-     club_reputation, club_nation_id, league_id, youth_contract, clauses) = row  # fmt: skip
+     club_reputation, club_nation_id, league_id, youth_contract, clauses, loan_wage) = row  # fmt: skip
     return Player(
         uid=uid,
         name=name,
@@ -106,6 +107,7 @@ def decode_player(row: list[Any]) -> Player:
         league_id=league_id,
         youth_contract=youth_contract,
         release_clauses=tuple(ReleaseClause(ReleaseScope(scope), fee) for scope, fee in clauses),
+        loan_wage=loan_wage,
     )
 
 

@@ -151,3 +151,20 @@ def test_a_player_elsewhere_whose_loan_ends_is_not_a_contract_ending(mezzala):
     app = mezzala(snapshot(squad))
     assert names(app, contract_ending_within_months=12) == ["Contract Ending"]
     assert names(app, scope="own", contract_ending_within_months=12) == ["Our Loanee"]
+
+
+def test_a_wage_cap_judges_players_elsewhere_by_their_contract_not_their_loan_deal(mezzala):
+    squad = [
+        player("Loaned Star", wage=20_000, on_loan=True, loan_parent_club_uid=9, loan_wage=0),
+        player("Affordable", wage=3_000),
+        player("Unknown Wage", wage=None),
+    ]
+    assert names(mezzala(snapshot(squad)), max_wage=5_000) == ["Affordable"]
+
+
+def test_our_loan_players_are_judged_on_what_we_pay_them(mezzala):
+    loanee = mine("Our Loanee", ca=110, age=27, wage=12_500, on_loan=True, loan_parent_club_uid=9, loan_wage=2_000)
+    squad = [*peers(25, ca=110, age=27, wage=2_000), loanee]
+    found = mezzala(snapshot(squad)).result("find_players", scope="own")["players"][0]
+    assert found["wage_vs_similar_players"] == "1.0x"
+    assert (found["player"]["wage"], found["player"]["wage_while_on_loan"]) == ("£12,500 p/w", "£2,000 p/w")

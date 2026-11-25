@@ -93,6 +93,9 @@ class Measures:
     wages: PeerMedians
     leagues: dict[int, float]
 
+    def wage_ratio(self, player: Player) -> float | None:
+        return self.wages.ratio_of(wage_for(player, self.snapshot), player)
+
     def release_clause(self, player: Player) -> int | None:
         return release_clause_for(player, self.snapshot.club_nation_id)
 
@@ -132,13 +135,19 @@ def ending(player: Player, snapshot: Snapshot, months: int) -> date | None:
     return leaves_within(player, snapshot.club_uid, snapshot.game_date, months)
 
 
+def wage_for(player: Player, snapshot: Snapshot) -> int | None:
+    if is_outside_club(player, snapshot.club_uid):
+        return player.wage
+    return player.wage_paid_by_current_club
+
+
 def matches_market(player: Player, search: PlayerSearch, measures: Measures) -> bool:
     snapshot = measures.snapshot
     if search.free_agents_only and not player.is_free_agent:
         return False
     if search.max_fee is not None and not player.costs_no_fee and not at_most(player.value, search.max_fee):
         return False
-    if search.max_wage is not None and player.wage is not None and player.wage > search.max_wage:
+    if not at_most(wage_for(player, snapshot), search.max_wage):
         return False
     if search.contract_ending_within_months is not None and (
         player.is_free_agent or ending(player, snapshot, search.contract_ending_within_months) is None
@@ -188,7 +197,7 @@ def sort_key(sort_by: SortBy, search: PlayerSearch, measures: Measures) -> Calla
             case SortBy.YOUNGEST:
                 return missing_last(player.age, False)
             case SortBy.MOST_OVERPAID:
-                return missing_last(measures.wages.ratio(player), True)
+                return missing_last(measures.wage_ratio(player), True)
 
     return key
 
@@ -211,7 +220,7 @@ def found(player: Player, search: PlayerSearch, measures: Measures) -> FoundPlay
         player=summarize(player),
         team=team_label(player),
         value_vs_similar_players=describe_ratio(measures.values.ratio(player)),
-        wage_vs_similar_players=describe_ratio(measures.wages.ratio(player)),
+        wage_vs_similar_players=describe_ratio(measures.wage_ratio(player)),
         above_league_level=None if excess is None else round(excess, 1),
         position=group.value,
         position_attribute_score=position_score(player, group),

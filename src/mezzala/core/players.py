@@ -58,10 +58,17 @@ class Player:
     league_id: int | None
     youth_contract: bool | None
     release_clauses: tuple[ReleaseClause, ...]
+    loan_wage: int | None
 
     @property
     def headroom(self) -> int:
         return max(self.potential_ability - self.current_ability, 0)
+
+    @property
+    def wage_paid_by_current_club(self) -> int | None:
+        if self.on_loan and self.loan_wage is not None:
+            return self.loan_wage
+        return self.wage
 
     @property
     def is_free_agent(self) -> bool:
