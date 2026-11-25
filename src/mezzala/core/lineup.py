@@ -85,7 +85,7 @@ def pick_lineup(squad: list[Player], formation: Formation) -> Lineup:
 class Bar:
     player: Player
     level: int
-    out_of_position: bool
+    accomplished_only: bool
 
 
 def level_in(player: Player, group: PositionGroup) -> int:
@@ -107,7 +107,7 @@ def weakest_starters(squad: list[Player], formation: Formation) -> dict[Position
 
 
 def describe_bar(bar: Bar, view: View) -> str:
-    where = ", out of position" if bar.out_of_position else ""
+    where = ", out of position" if bar.accomplished_only else ""
     return f"{bar.player.name} ({rating(view, bar.player.current_ability)}{where})"
 
 
