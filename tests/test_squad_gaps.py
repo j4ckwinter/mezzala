@@ -120,3 +120,13 @@ def test_a_starter_who_is_not_a_natural_in_his_place_is_flagged(mezzala):
     right = next(p for p in mezzala(snapshot(squad)).result("squad_gaps")["positions"] if p["group"] == "right wing")
     assert "out of position" in right["issue_kinds"]
     assert "out of position: Ramos is not a natural here and plays 5 below his level" in right["issues"]
+
+
+def test_an_out_of_position_starter_close_to_the_median_is_not_also_called_weak(mezzala):
+    squad = [replace(p, current_ability=120) for p in eleven() if p.position_ratings["dc"] != 20]
+    squad.append(mine("Natural", positions=("dc",), ca=120))
+    stretched = mine("Stretched", positions=("dl",), ca=116)
+    squad.append(replace(stretched, position_ratings={**stretched.position_ratings, "dc": 15}))
+    squad.append(mine("Left Back", positions=("dl",), ca=121))
+    centre = next(p for p in mezzala(snapshot(squad)).result("squad_gaps")["positions"] if p["group"] == "centre back")
+    assert "out of position" in centre["issue_kinds"] and "weak" not in centre["issue_kinds"]

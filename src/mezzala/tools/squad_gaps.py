@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from mezzala.core.formations import PLAYERS_PER_STARTING_PLACE, STARTERS, Formation
-from mezzala.core.lineup import ACCOMPLISHED_PENALTY, StarterEntry, level_in, pick_lineup, starter_entries
+from mezzala.core.lineup import ACCOMPLISHED_PENALTY, StarterEntry, pick_lineup, starter_entries
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import Fit, PositionGroup, fit
 from mezzala.core.squad import available_squad, depth_chart, leaves_within
@@ -101,8 +101,8 @@ def group_issues(
                     f"{starter.name} is not a natural here and plays {ACCOMPLISHED_PENALTY} below his level",
                 )
             )
-    weakest = min(starters, key=lambda player: level_in(player, group))
-    if level_in(weakest, group) < eleven_median - WEAK_STARTER_MARGIN:
+    weakest = min(starters, key=lambda player: player.current_ability)
+    if weakest.current_ability < eleven_median - WEAK_STARTER_MARGIN:
         detail = f"{weakest.name} ({ability_text(view, weakest.current_ability)}) starts here, well below the XI median"
         issues.append((IssueKind.WEAK, f"{detail} of {rating_text(view, eleven_median)}"))
     successors = [
