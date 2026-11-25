@@ -30,16 +30,17 @@ class NotWatched(LookupError):
     pass
 
 
-def find_watched_entry(entries: list[WatchedPlayer], query: str) -> WatchedPlayer:
+def find_watched_entry(entries: list[WatchedPlayer], query: str, club: str | None) -> WatchedPlayer:
     wanted = folded(query.strip())
-    exact = [entry for entry in entries if folded(entry.name) == wanted]
-    partial = [entry for entry in entries if wanted in folded(entry.name)]
+    at_club = [e for e in entries if club is None or folded(club.strip()) in folded(e.club_name or "free agent")]
+    exact = [entry for entry in at_club if folded(entry.name) == wanted]
+    partial = [entry for entry in at_club if wanted in folded(entry.name)]
     for found in (exact, partial):
         if len(found) == 1:
             return found[0]
         if len(found) > 1:
             names = ", ".join(f"{entry.name} ({entry.club_name or 'free agent'})" for entry in found)
-            raise NotWatched(f"'{query}' matches several watched players: {names}. Use a fuller name.")
+            raise NotWatched(f"'{query}' matches several watched players: {names}. Say which club he was at.")
     raise NotWatched(f"No player called '{query}' is on the watchlist.")
 
 

@@ -32,7 +32,8 @@ class WatchlistStore:
         with self._lock, self._db:
             self._db.execute(
                 "INSERT INTO watchlist (career, uid, birth_date, name, added_on, value, current_ability, club_name, "
-                "note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (career, uid) DO UPDATE SET note = excluded.note",
+                "note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (career, uid) DO UPDATE SET "
+                "note = CASE WHEN excluded.note = '' THEN note ELSE excluded.note END",
                 (
                     career, watched.uid, watched.birth_date.isoformat() if watched.birth_date else None,
                     watched.name, watched.added_on.isoformat(), watched.value, watched.current_ability,

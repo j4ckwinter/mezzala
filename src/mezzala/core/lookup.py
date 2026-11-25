@@ -53,4 +53,6 @@ def find_player(snapshot: Snapshot, query: str, club: str | None = None) -> Play
         if len(shortlist) > 1:
             names = tuple(describe(player) for player in shortlist[:MAX_LISTED_MATCHES])
             raise AmbiguousPlayer(query, names)
+    if club is not None:
+        raise PlayerNotFound(f"No player called '{query}' at a club matching '{club}' in this save.")
     raise PlayerNotFound(f"No player called '{query}' in this save.")

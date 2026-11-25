@@ -106,3 +106,30 @@ def test_a_player_who_was_already_a_free_agent_is_not_newly_free(mezzala):
     app = mezzala(snapshot([*eleven(), player("Free", club=None, value=None)]))
     watched = entries(app.result("watch_player", player="Free"))["Free"]
     assert "now a free agent" not in watched["cheaper_because"]
+
+
+def test_namesakes_on_the_watchlist_are_unwatched_by_club(mezzala):
+    squad = [
+        *eleven(),
+        player("João Silva", club=2, club_name="Porto B"),
+        player("João Silva", club=3, club_name="Braga"),
+    ]
+    app = mezzala(snapshot(squad))
+    app.result("watch_player", player="João Silva", club="braga")
+    app.result("watch_player", player="João Silva", club="porto")
+    assert app.call("unwatch_player", player="João Silva").is_error
+    remaining = app.result("unwatch_player", player="João Silva", club="braga")["players"]
+    assert [w["now"]["club"] for w in remaining] == ["Porto B"]
+
+
+def test_watching_again_without_a_note_keeps_the_note(mezzala):
+    app = mezzala(snapshot([*eleven(), player("Target", club=OTHER_CLUB)]))
+    app.result("watch_player", player="Target", note="buy in January")
+    assert entries(app.result("watch_player", player="Target"))["Target"]["note"] == "buy in January"
+
+
+def test_a_club_that_matches_nobody_is_named_in_the_error(mezzala):
+    outcome = mezzala(snapshot([*eleven(), player("Target", club=OTHER_CLUB)])).call(
+        "watch_player", player="Target", club="Real Madrid"
+    )
+    assert outcome.is_error and "at a club matching 'Real Madrid'" in outcome.text

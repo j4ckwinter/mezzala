@@ -94,3 +94,12 @@ def test_clubs_are_ranked_by_how_many_promising_regens_they_produce(mezzala):
               *[player(f"Factory {n}", age=15, pa=150, club=2, club_name="Factory FC") for n in range(3)]]  # fmt: skip
     app.play_to(snapshot([*squad, *regens], game_date=date(2027, 3, 20)))
     assert [c["club"] for c in app.result("regen_intake", min_pa=140)["by_club"]] == ["Factory FC", "Lucky FC"]
+
+
+def test_a_player_who_turned_eighteen_just_before_a_month_end_baseline_is_not_a_regen(mezzala):
+    squad = eleven()
+    app = mezzala(snapshot(squad, game_date=date(2026, 6, 30)))
+    app.call("snapshot")
+    adult = player("Just Eighteen", age=18, pa=170, birth_date=date(2008, 6, 29))
+    app.play_to(snapshot([*squad, adult], game_date=date(2027, 3, 20)))
+    assert app.result("regen_intake")["total_new"] == 0

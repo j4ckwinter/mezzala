@@ -52,7 +52,11 @@ def clubs_producing(regens: list[Player], min_potential: int) -> list[ClubRegens
 def was_youth_at(player: Player, day: date) -> bool:
     if player.birth_date is None:
         return player.age <= REGEN_MAX_AGE
-    youngest_adult_birthday = date(day.year - REGEN_MAX_AGE - 1, day.month, min(day.day, 28))
+    adult_year = day.year - REGEN_MAX_AGE - 1
+    try:
+        youngest_adult_birthday = day.replace(year=adult_year)
+    except ValueError:
+        youngest_adult_birthday = date(adult_year, 2, 28)
     return player.birth_date > youngest_adult_birthday
 
 

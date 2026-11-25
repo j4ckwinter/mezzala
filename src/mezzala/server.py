@@ -390,18 +390,19 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
     def watch_player_tool(player: str, club: str | None = None, note: str = "") -> WatchlistReport:
         """Add a player to mezzala's watchlist (FM's own shortlist is not readable from the save). His value, CA and
         club are recorded so later calls can show how he has changed and whether he has become cheaper. club
-        narrows the search when players share a name. Watching a player again only updates the note."""
+        narrows the search when players share a name. Watching a player again keeps his baseline and only
+        updates the note (an empty note keeps the old one)."""
         current = read_current(career)
         target = target_player(current.snapshot, player, club)
         watched.add(current.career, watched_record(target, current.snapshot, note))
         return WatchlistReport(save_context(current), watchlist(current.snapshot, watched.entries(current.career)))
 
     @server.tool(name="unwatch_player")
-    def unwatch_player_tool(player: str) -> WatchlistReport:
-        """Remove a player from mezzala's watchlist."""
+    def unwatch_player_tool(player: str, club: str | None = None) -> WatchlistReport:
+        """Remove a player from mezzala's watchlist. club narrows the match when watched players share a name."""
         current = read_current(career)
         try:
-            entry = find_watched_entry(watched.entries(current.career), player)
+            entry = find_watched_entry(watched.entries(current.career), player, club)
         except NotWatched as error:
             raise ToolError(str(error)) from error
         watched.remove(current.career, entry.uid)
@@ -504,6 +505,7 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
     @server.tool()
     def find_replacement(
         player: str,
+        club: str | None = None,
         max_fee: float | None = None,
         max_age: int | None = None,
         max_wage: float | None = None,
@@ -518,7 +520,7 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         players whose reputation is close enough to the club's that a move is realistic."""
         current = read_current(career)
         snapshot = current.snapshot
-        target = target_player(snapshot, player)
+        target = target_player(snapshot, player, club)
         fee_cap = optional_stored(max_fee) if max_fee is not None else snapshot.budget.transfer_remaining
         limits = Limits(fee_cap, max_age, optional_stored(max_wage), within_reach)
         result = find_replacements(snapshot, target, limits, limit, position)
