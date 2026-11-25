@@ -9,6 +9,7 @@ SCOUTING_JOBS = frozenset({"scout", "chief scout", "recruitment analyst", "direc
 MEDICAL_JOBS = frozenset(
     {"physio", "head physio", "doctor", "chief doctor", "sports scientist", "head of sports science"}
 )
+BOARD_JOBS = frozenset({"chairperson", "director", "managing director", "owner", "president"})
 COACHING_AREAS = (
     "attacking", "defending", "fitness", "goalkeeping", "possession", "tactical", "technical", "set_pieces",
     "working_with_youngsters",
@@ -73,5 +74,5 @@ def staff_review(snapshot: Snapshot) -> StaffReview:
         ratings_for(snapshot.staff, SCOUTING_JOBS, SCOUTING_AREAS),
         ratings_for(snapshot.staff, MEDICAL_JOBS, MEDICAL_AREAS),
         [rating.area for rating in coaching if rating.best is None or rating.best < WEAK_BELOW],
-        [StaffEntry(member.name, member.job, member.age) for member in snapshot.staff],
+        [StaffEntry(member.name, member.job, member.age) for member in snapshot.staff if member.job not in BOARD_JOBS],
     )

@@ -40,3 +40,7 @@ def test_every_staff_member_is_listed_with_their_job(mezzala):
         {"name": "Attack Coach", "job": "coach", "age": 44},
         {"name": "Chief Scout", "job": "chief scout", "age": 39},
     ]
+
+
+def test_the_board_is_not_listed_as_backroom_staff(mezzala):
+    assert [member["name"] for member in review(mezzala, COACH, CHAIRMAN)["staff"]] == ["Attack Coach"]
