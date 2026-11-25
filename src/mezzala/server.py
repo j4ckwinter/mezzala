@@ -15,6 +15,8 @@ from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import ACCOMPLISHED_POSITION_RATING, NATURAL_POSITION_RATING, PositionGroup
 from mezzala.core.reach import REPUTATION_REACH
 from mezzala.core.rejections import without_rejected
+from mezzala.core.roles import UnknownRole
+from mezzala.core.shapes import BadSlot, parse_slot
 from mezzala.core.squad import belongs_to_club, owned_players, plays_for_club, squad_level
 from mezzala.core.view import View, shows_hidden_information
 from mezzala.save.career import Career, Current
@@ -48,6 +50,7 @@ from mezzala.tools.squad_list import SquadList, squad_list
 from mezzala.tools.squad_profile import SquadProfile, squad_profile
 from mezzala.tools.squad_progress import SquadProgress, squad_progress
 from mezzala.tools.staff_review import StaffReview, staff_review
+from mezzala.tools.tactic_fit import TacticFit, tactic_fit
 from mezzala.tools.training_plan import TrainingPlan, training_plan
 from mezzala.tools.wage_review import WageReview, wage_review
 from mezzala.tools.watchlist import NotWatched, Watchlist, find_watched_entry, watched_record, watchlist
@@ -84,6 +87,7 @@ player_profile shows one player in full, or two side by side. training_plan sugg
 position, attribute focus, intensity, traits and mentors. dressing_room ranks captains and flags troublemakers.
 fitness lists injuries, bans, injury risks, condition and sharpness. staff_review rates the backroom staff.
 performance ranks season stats: who plays above or below their ability, finishing against xG, output per 90.
+tactic_fit fits the squad to a custom shape given slot by slot with roles, for tactics the six formations miss.
 squad_profile, positional_fit and next_opponent support tactics and match preparation; the save stores formations
 but not roles or instructions, so suggest tactics from the attributes they report.
 Positions are natural (FM rating {NATURAL_POSITION_RATING}+) or accomplished
@@ -326,6 +330,12 @@ class PerformanceReport:
 class RejectedReport:
     context: SaveContext
     result: RejectedList
+
+
+@dataclass(frozen=True)
+class TacticFitReport:
+    context: SaveContext
+    result: TacticFit
 
 
 @dataclass(frozen=True)
@@ -892,5 +902,27 @@ def create_server(
         """The players marked as rejected, who recruitment answers leave out."""
         current = read_current(career)
         return RejectedReport(save_context(current), rejected_list(rejections.entries(current.career)))
+
+    @server.tool(name="tactic_fit")
+    def tactic_fit_tool(
+        slots: Annotated[
+            list[str],
+            Field(
+                description="One entry per slot, FM position code then role, such as 'GK: sweeper keeper', "
+                "'DCL: overlapping centre-back', 'WBL: wing-back', 'AML: inside forward', 'STC: advanced forward'."
+            ),
+        ],
+    ) -> TacticFitReport:
+        """Fit the squad to a tactic described slot by slot with roles, for shapes the six built-in formations do
+        not cover. Each slot gets the player whose attributes suit its role best (using each player once), with
+        his role score out of 20 and the next best options; the weakest slots are the ones to strengthen. Roles
+        on one side favour a foot: inside forwards, inverted wingers and inverted wing-backs the opposite one,
+        wingers, wing-backs and full-backs the same one."""
+        current = read_current(career)
+        try:
+            parsed = [parse_slot(slot) for slot in slots]
+        except (BadSlot, UnknownRole) as error:
+            raise ToolError(str(error)) from error
+        return TacticFitReport(save_context(current), tactic_fit(current.snapshot, parsed))
 
     return server

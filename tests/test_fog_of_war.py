@@ -17,6 +17,7 @@ ARGUMENTS = {
     "find_replacement": {"player": "Prospect"},
     "player_profile": {"player": "Prospect", "compare_with": "Rival Target"},
     "training_plan": {"player": "Prospect"},
+    "tactic_fit": {"slots": ["GK: goalkeeper", "MC: mezzala", "STC: poacher"]},
     "watch_player": {"player": "Rival Target"},
     "unwatch_player": {"player": "Rival Target"},
     "reject_player": {"player": "Free Man"},
