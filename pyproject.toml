@@ -1,6 +1,6 @@
 [project]
 name = "mezzala"
-version = "0.3.0"
+version = "0.3.1"
 description = "A Football Manager 27 MCP server that answers transfer questions from your own save."
 readme = "README.md"
 requires-python = ">=3.12"
