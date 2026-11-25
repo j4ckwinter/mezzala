@@ -41,6 +41,7 @@ from mezzala.tools.squad_gaps import SquadGaps, squad_gaps
 from mezzala.tools.squad_list import SquadList, squad_list
 from mezzala.tools.squad_profile import SquadProfile, squad_profile
 from mezzala.tools.squad_progress import SquadProgress, squad_progress
+from mezzala.tools.staff_review import StaffReview, staff_review
 from mezzala.tools.training_plan import TrainingPlan, training_plan
 from mezzala.tools.wage_review import WageReview, wage_review
 from mezzala.tools.watchlist import NotWatched, Watchlist, find_watched_entry, watched_record, watchlist
@@ -66,7 +67,7 @@ watchlist) work from history and say so when there is only one snapshot. next_jo
 relegated_clubs cover managerial vacancies, the best-value leagues and clubs that dropped a league.
 player_profile shows one player in full, or two side by side. training_plan suggests one of the club's players'
 position, attribute focus, intensity, traits and mentors. dressing_room ranks captains and flags troublemakers.
-fitness lists injuries, bans, injury risks, condition and sharpness.
+fitness lists injuries, bans, injury risks, condition and sharpness. staff_review rates the backroom staff.
 squad_profile, positional_fit and next_opponent support tactics and match preparation; the save stores formations
 but not roles or instructions, so suggest tactics from the attributes they report.
 Positions are natural (FM rating {NATURAL_POSITION_RATING}+) or accomplished
@@ -260,6 +261,12 @@ class DressingRoomReport:
 class FitnessToolReport:
     context: SaveContext
     result: FitnessReport
+
+
+@dataclass(frozen=True)
+class StaffReviewReport:
+    context: SaveContext
+    result: StaffReview
 
 
 @dataclass(frozen=True)
@@ -709,5 +716,12 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
         current = read_current(career)
         formation, context = with_formation(current, formation)
         return FitnessToolReport(context, fitness(current.snapshot, formation))
+
+    @server.tool(name="staff_review")
+    def staff_review_tool() -> StaffReviewReport:
+        """The backroom staff: the best coaching rating in each training area, the best scouting judgement of
+        ability and potential, physio and sports science, and which coaching areas are weak enough to hire for."""
+        current = read_current(career)
+        return StaffReviewReport(save_context(current), staff_review(current.snapshot))
 
     return server
