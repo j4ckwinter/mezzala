@@ -10,8 +10,8 @@ PLAYERS_SHOWN_PER_CLUB = 3
 
 
 NO_LEAGUES_THEN = (
-    "The earlier snapshot was taken before mezzala recorded leagues, so relegations cannot be worked out from it. "
-    "They will show once there is a newer snapshot from before the season changed."
+    "The snapshot compared with was taken before mezzala recorded leagues, so relegations cannot be worked out "
+    "from it. Ask again with a later since date that is still before the season changed."
 )
 
 
