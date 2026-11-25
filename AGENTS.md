@@ -33,6 +33,7 @@ Run all four checks before committing.
 | Attribute profiles, how alike two players are, and the key attributes for each position | `src/mezzala/core/profile.py` |
 | Projected and observed growth | `src/mezzala/core/growth.py` |
 | Derived numbers: comparisons with similar players, league level, which release clause applies | `src/mezzala/core/metrics.py` |
+| Which league a club is in, and how a league is named | `src/mezzala/core/leagues.py` |
 | Money units and formatting | `src/mezzala/core/money.py` |
 | How a player is shown in answers | `src/mezzala/core/summary.py` |
 | Finding a player by name | `src/mezzala/core/lookup.py` |

@@ -1,13 +1,18 @@
-from collections import Counter
 from dataclasses import dataclass
 
-from mezzala.core.leagues import league_names
+from mezzala.core.leagues import club_leagues, league_names
 from mezzala.core.metrics import league_levels
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.reach import within_reach
 from mezzala.core.summary import PlayerSummary, summarize
 
 PLAYERS_SHOWN_PER_CLUB = 3
+
+
+NO_LEAGUES_THEN = (
+    "The earlier snapshot was taken before mezzala recorded leagues, so relegations cannot be worked out from it. "
+    "They will show once there is a newer snapshot from before the season changed."
+)
 
 
 @dataclass(frozen=True)
@@ -32,14 +37,6 @@ NO_HISTORY = (
 )
 
 
-def club_leagues(snapshot: Snapshot) -> dict[int, int]:
-    counts: dict[int, Counter[int]] = {}
-    for player in snapshot.players:
-        if player.club_uid is not None and player.league_id is not None and player.first_team:
-            counts.setdefault(player.club_uid, Counter())[player.league_id] += 1
-    return {club: found.most_common(1)[0][0] for club, found in counts.items()}
-
-
 def worth_a_look(players: list[Player], snapshot: Snapshot) -> list[PlayerSummary]:
     reachable = [player for player in players if within_reach(player, snapshot)]
     reachable.sort(key=lambda player: player.current_ability, reverse=True)
@@ -49,7 +46,9 @@ def worth_a_look(players: list[Player], snapshot: Snapshot) -> list[PlayerSummar
 def relegated_clubs(current: Snapshot, baseline: Snapshot | None) -> RelegatedClubs:
     if baseline is None:
         return RelegatedClubs(None, NO_HISTORY, [])
-    then, now = club_leagues(baseline), club_leagues(current)
+    if not any(player.league_id is not None for player in baseline.players):
+        return RelegatedClubs(baseline.game_date.isoformat(), NO_LEAGUES_THEN, [])
+    then, now = club_leagues(baseline.players), club_leagues(current.players)
     then_levels, now_levels = league_levels(baseline.players), league_levels(current.players)
     names = league_names(current.players)
     old_names = league_names(baseline.players)

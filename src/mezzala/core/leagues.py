@@ -1,3 +1,4 @@
+from collections import Counter
 from collections.abc import Iterable
 
 from mezzala.core.players import Player
@@ -14,3 +15,11 @@ def league_names(players: Iterable[Player]) -> dict[int, str]:
         league: ", ".join(sorted(found, key=lambda club: found[club], reverse=True)[:CLUBS_IN_LEAGUE_NAME])
         for league, found in clubs.items()
     }
+
+
+def club_leagues(players: Iterable[Player]) -> dict[int, int]:
+    counts: dict[int, Counter[int]] = {}
+    for player in players:
+        if player.club_uid is not None and player.league_id is not None and player.first_team:
+            counts.setdefault(player.club_uid, Counter())[player.league_id] += 1
+    return {club: found.most_common(1)[0][0] for club, found in counts.items()}

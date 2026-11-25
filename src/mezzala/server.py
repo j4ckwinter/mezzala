@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from enum import StrEnum
 from typing import Annotated
 
@@ -45,6 +45,7 @@ DEFAULT_FORMATION = Formation.FOUR_THREE_THREE
 DEFAULT_LIMIT = 10
 RISER_CA_BELOW_SQUAD_LEVEL = 20
 RISER_TARGET_MAX_AGE = 23
+RELEGATION_LOOKBACK_DAYS = 300
 
 INSTRUCTIONS = f"""\
 mezzala reads the manager's Football Manager 27 save and answers squad, formation and transfer questions about it.
@@ -454,12 +455,13 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
 
     @server.tool(name="relegated_clubs")
     def relegated_clubs_tool(since: date | None = None) -> RelegatedClubsReport:
-        """Clubs now in a weaker league than at an earlier snapshot (since is an in-game date; defaults to the
-        oldest), with their best players within reach. Needs a snapshot from before the season changed."""
+        """Clubs now in a weaker league than at an earlier snapshot, with their best players within reach. since
+        is an in-game date; by default the comparison is with the latest snapshot about a season earlier. Needs a
+        snapshot from before the season changed."""
         current = read_current(career)
-        return RelegatedClubsReport(
-            save_context(current), relegated_clubs(current.snapshot, career.baseline(current, since))
-        )
+        lookback = since or current.snapshot.game_date - timedelta(days=RELEGATION_LOOKBACK_DAYS)
+        result = relegated_clubs(current.snapshot, career.baseline(current, lookback))
+        return RelegatedClubsReport(save_context(current), result)
 
     @server.tool(name="squad_profile")
     def squad_profile_tool(formation: FormationChoice = DEFAULT_FORMATION) -> SquadProfileReport:

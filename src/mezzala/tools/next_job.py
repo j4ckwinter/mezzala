@@ -1,7 +1,7 @@
-from collections import Counter
 from dataclasses import dataclass
 
 from mezzala.core.formations import Formation
+from mezzala.core.leagues import club_leagues
 from mezzala.core.lineup import pick_lineup
 from mezzala.core.metrics import league_levels
 from mezzala.core.money import format_money
@@ -42,15 +42,14 @@ def squads(snapshot: Snapshot) -> dict[int, list[Player]]:
     return found
 
 
-def club_league(squad: list[Player]) -> int | None:
-    leagues = Counter(player.league_id for player in squad if player.league_id is not None)
-    return leagues.most_common(1)[0][0] if leagues else None
-
-
 def option(
-    vacancy: Vacancy, snapshot: Snapshot, squad: list[Player], levels: dict[int, float], formation: Formation
+    vacancy: Vacancy,
+    snapshot: Snapshot,
+    squad: list[Player],
+    league: int | None,
+    levels: dict[int, float],
+    formation: Formation,
 ) -> JobOption:
-    league = club_league(squad)
     return JobOption(
         club=vacancy.club_name,
         club_reputation=vacancy.club_reputation,
@@ -66,8 +65,9 @@ def option(
 def next_job(snapshot: Snapshot, formation: Formation, bigger_only: bool, limit: int) -> NextJob:
     levels = league_levels(snapshot.players)
     by_club = squads(snapshot)
+    leagues = club_leagues(snapshot.players)
     jobs = [
-        option(vacancy, snapshot, by_club.get(vacancy.club_uid, []), levels, formation)
+        option(vacancy, snapshot, by_club.get(vacancy.club_uid, []), leagues.get(vacancy.club_uid), levels, formation)
         for vacancy in snapshot.vacancies
         if not bigger_only or (vacancy.club_reputation or 0) > snapshot.club_reputation
     ]
