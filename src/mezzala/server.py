@@ -20,6 +20,7 @@ from mezzala.tools.compare_formations import FormationComparison, compare_format
 from mezzala.tools.contract_watch import ContractWatch, contract_watch
 from mezzala.tools.development_plan import DevelopmentPlan, development_plan
 from mezzala.tools.find_players import FoundPlayers, PlayerSearch, SearchScope, SortBy, find_players
+from mezzala.tools.league_comparison import LeagueComparison, league_comparison
 from mezzala.tools.regen_intake import RegenIntake, regen_intake
 from mezzala.tools.replacement import Limits, Replacements, find_replacements
 from mezzala.tools.risers import RiserFilters, Risers, RiserScope, find_risers
@@ -93,6 +94,12 @@ class WageReviewReport:
 class DevelopmentPlanReport:
     context: SaveContext
     result: DevelopmentPlan
+
+
+@dataclass(frozen=True)
+class LeagueComparisonReport:
+    context: SaveContext
+    result: LeagueComparison
 
 
 @dataclass(frozen=True)
@@ -281,6 +288,14 @@ def create_server(career: Career) -> MCPServer:
         by potential then projected growth."""
         current = read_current(career)
         return DevelopmentPlanReport(save_context(current), development_plan(current.snapshot, formation))
+
+    @server.tool(name="league_comparison")
+    def league_comparison_tool(formation: FormationChoice = DEFAULT_FORMATION) -> LeagueComparisonReport:
+        """How the club's squad compares with the rest of its league: every club ranked by the average CA of its
+        best eleven for the formation, with first-team value, and position by position the club's starters
+        against the league median and the best club there."""
+        current = read_current(career)
+        return LeagueComparisonReport(save_context(current), league_comparison(current.snapshot, formation))
 
     @server.tool(name="compare_formations")
     def compare_formations_tool(formations: FormationChoices = None) -> FormationReport:

@@ -59,6 +59,10 @@ class Lineup:
     def at(self, group: PositionGroup) -> list[Player]:
         return [place.player for place in self.places if place.group is group and place.player is not None]
 
+    def average_ability(self) -> float:
+        starters = self.starters
+        return round(sum(player.current_ability for player in starters) / len(starters), 1) if starters else 0.0
+
     def median_ability(self) -> float:
         starters = self.starters
         return median(player.current_ability for player in starters) if starters else 0.0
