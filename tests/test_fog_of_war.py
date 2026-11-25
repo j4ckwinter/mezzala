@@ -19,6 +19,8 @@ ARGUMENTS = {
     "training_plan": {"player": "Prospect"},
     "watch_player": {"player": "Rival Target"},
     "unwatch_player": {"player": "Rival Target"},
+    "reject_player": {"player": "Free Man"},
+    "unreject_player": {"player": "Free Man"},
 }
 
 
@@ -32,7 +34,9 @@ def distinctive_save():
 
 def tool_names(mezzala_server) -> list[str]:
     async def run() -> list[str]:
-        async with Client(create_server(mezzala_server.career, mezzala_server.watched)) as client:
+        async with Client(
+            create_server(mezzala_server.career, mezzala_server.watched, mezzala_server.rejections)
+        ) as client:
             return [tool.name for tool in (await client.list_tools()).tools]
 
     return asyncio.run(run())
@@ -68,7 +72,7 @@ def test_fog_of_war_tells_claude_not_to_reveal_ability_numbers(mezzala):
     server = mezzala(distinctive_save(), view=View.SPOILER_FREE)
 
     async def instructions() -> str:
-        async with Client(create_server(server.career, server.watched, View.SPOILER_FREE)) as client:
+        async with Client(create_server(server.career, server.watched, server.rejections, View.SPOILER_FREE)) as client:
             return client.instructions or ""
 
     assert "Fog of war is on" in asyncio.run(instructions())

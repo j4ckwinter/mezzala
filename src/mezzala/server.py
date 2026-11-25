@@ -14,10 +14,12 @@ from mezzala.core.money import format_money, format_weekly_wage, stored_from_pou
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import ACCOMPLISHED_POSITION_RATING, NATURAL_POSITION_RATING, PositionGroup
 from mezzala.core.reach import REPUTATION_REACH
+from mezzala.core.rejections import without_rejected
 from mezzala.core.squad import belongs_to_club, owned_players, plays_for_club, squad_level
 from mezzala.core.view import View, shows_hidden_information
 from mezzala.save.career import Career, Current
 from mezzala.save.reader import UnreadableSave
+from mezzala.save.rejections import RejectionStore
 from mezzala.save.store import FileStamp
 from mezzala.save.watchlist import WatchlistStore
 from mezzala.tools.compare_formations import FormationComparison, compare_formations
@@ -35,6 +37,7 @@ from mezzala.tools.performance import Performance, PerformanceScope, Performance
 from mezzala.tools.player_profile import PlayerProfiles, player_profiles
 from mezzala.tools.positional_fit import PositionalFit, positional_fit
 from mezzala.tools.regen_intake import RegenIntake, regen_intake
+from mezzala.tools.rejections import NotRejected, RejectedList, find_rejected_entry, rejected_list, rejected_record
 from mezzala.tools.relegated_clubs import RelegatedClubs, relegated_clubs
 from mezzala.tools.replacement import Limits, Replacements, find_replacements
 from mezzala.tools.risers import RiserFilters, Risers, RiserScope, find_risers
@@ -74,8 +77,9 @@ questions. shortlist builds a transfer shortlist within the budgets. wage_review
 league_comparison cover wages, young players and how the squad compares with its league. squad lists
 the players. compare_formations ranks formations by how well the squad fits them and shows each eleven.
 what_changed, development_check, squad_progress and the watchlist tools (watch_player, unwatch_player,
-watchlist) work from history and say so when there is only one snapshot. next_job, league_values and
-relegated_clubs cover managerial vacancies, the best-value leagues and clubs that dropped a league.
+watchlist) work from history and say so when there is only one snapshot. reject_player keeps a player who
+has said no out of recruitment answers; unreject_player and rejected_players manage that list. next_job,
+league_values and relegated_clubs cover managerial vacancies, the best-value leagues and clubs that dropped a league.
 player_profile shows one player in full, or two side by side. training_plan suggests one of the club's players'
 position, attribute focus, intensity, traits and mentors. dressing_room ranks captains and flags troublemakers.
 fitness lists injuries, bans, injury risks, condition and sharpness. staff_review rates the backroom staff.
@@ -316,6 +320,12 @@ class PerformanceReport:
 
 
 @dataclass(frozen=True)
+class RejectedReport:
+    context: SaveContext
+    result: RejectedList
+
+
+@dataclass(frozen=True)
 class RegenIntakeReport:
     context: SaveContext
     result: RegenIntake
@@ -416,7 +426,12 @@ PerformanceScopeChoice = Annotated[PerformanceScope, Field(description=one_of(Pe
 PerformanceSortChoice = Annotated[PerformanceSort, Field(description=one_of(PerformanceSort))]
 
 
-def create_server(career: Career, watched: WatchlistStore, view: View = View.FULL) -> MCPServer:
+def create_server(
+    career: Career, watched: WatchlistStore, rejections: RejectionStore, view: View = View.FULL
+) -> MCPServer:
+    def recruitable(current: Current) -> Snapshot:
+        return without_rejected(current.snapshot, rejections.entries(current.career))
+
     server = MCPServer("mezzala", instructions=instructions_for(view))
 
     @server.tool()
@@ -494,7 +509,7 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
             sort_by=sort_by,
             limit=limit,
         )
-        return FoundPlayersReport(save_context(current), find_players(current.snapshot, search, view))
+        return FoundPlayersReport(save_context(current), find_players(recruitable(current), search, view))
 
     @server.tool(name="shortlist")
     def shortlist_tool(
@@ -514,7 +529,7 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
         budget = current.snapshot.budget
         fees = optional_stored(transfer_budget) if transfer_budget is not None else budget.transfer_remaining
         wages = optional_stored(weekly_wage_budget) if weekly_wage_budget is not None else budget.wage_headroom_weekly
-        return ShortlistReport(context, shortlist(current.snapshot, formation, fees, wages, view))
+        return ShortlistReport(context, shortlist(recruitable(current), formation, fees, wages, view))
 
     @server.tool(name="wage_review")
     def wage_review_tool(formation: FormationChoice = None) -> WageReviewReport:
@@ -635,7 +650,7 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
         snapshot from before the season changed."""
         current = read_current(career)
         lookback = since or current.snapshot.game_date - timedelta(days=RELEGATION_LOOKBACK_DAYS)
-        result = relegated_clubs(current.snapshot, career.baseline(current, lookback), view)
+        result = relegated_clubs(recruitable(current), career.baseline(current, lookback), view)
         return RelegatedClubsReport(save_context(current), result)
 
     @server.tool(name="squad_profile")
@@ -702,7 +717,7 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
         target = target_player(snapshot, player, club)
         fee_cap = optional_stored(max_fee) if max_fee is not None else snapshot.budget.transfer_remaining
         limits = Limits(fee_cap, max_age, optional_stored(max_wage), within_reach)
-        result = find_replacements(snapshot, target, limits, limit, view, position)
+        result = find_replacements(recruitable(current), target, limits, limit, view, position)
         return ReplacementReport(save_context(current), result)
 
     @server.tool()
@@ -729,7 +744,7 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
         floor, age_limit = riser_defaults(scope, current.snapshot, min_ca, max_age)
         fee_cap = optional_stored(max_fee) if max_fee is not None else current.snapshot.budget.transfer_remaining
         filters = RiserFilters(scope, min_ca_gain, floor, within_reach, age_limit, fee_cap, position)
-        result = find_risers(current.snapshot, career.baseline(current, since), filters, limit, view)
+        result = find_risers(recruitable(current), career.baseline(current, since), filters, limit, view)
         return RisersReport(save_context(current), result)
 
     @server.tool(name="sell_high")
@@ -753,7 +768,7 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
         who would beat your current starter somewhere in the formation."""
         current = read_current(career)
         formation, context = with_formation(current, formation)
-        result = contract_watch(current.snapshot, formation, within_months, max_age, within_reach, limit, view)
+        result = contract_watch(recruitable(current), formation, within_months, max_age, within_reach, limit, view)
         return ContractWatchReport(context, result)
 
     @server.tool(name="regen_intake")
@@ -841,6 +856,36 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
         scouts other clubs (within_reach keeps realistic targets). Leagues between seasons have no stats yet."""
         current = read_current(career)
         search = PerformanceSearch(scope, sort_by, min_minutes, position, within_reach, limit)
-        return PerformanceReport(save_context(current), performance(current.snapshot, search, view))
+        return PerformanceReport(save_context(current), performance(recruitable(current), search, view))
+
+    @server.tool(name="reject_player")
+    def reject_player_tool(player: str, club: ClubChoice = None, note: str = "") -> RejectedReport:
+        """Mark a player as rejected, for example one who refused to talk, so find_players, shortlist,
+        find_replacement, contract_watch, risers, performance and relegated_clubs stop suggesting him."""
+        current = read_current(career)
+        target = target_player(current.snapshot, player, club)
+        if target.club_uid == current.snapshot.club_uid:
+            raise ToolError(
+                f"{target.name} plays for {current.snapshot.club_name}; only other clubs' players can be rejected."
+            )
+        rejections.add(current.career, rejected_record(target, current.snapshot, note))
+        return RejectedReport(save_context(current), rejected_list(rejections.entries(current.career)))
+
+    @server.tool(name="unreject_player")
+    def unreject_player_tool(player: str) -> RejectedReport:
+        """Take a player off the rejected list so recruitment answers can suggest him again."""
+        current = read_current(career)
+        try:
+            entry = find_rejected_entry(rejections.entries(current.career), player)
+        except NotRejected as error:
+            raise ToolError(str(error)) from error
+        rejections.remove(current.career, entry.uid)
+        return RejectedReport(save_context(current), rejected_list(rejections.entries(current.career)))
+
+    @server.tool(name="rejected_players")
+    def rejected_players_tool() -> RejectedReport:
+        """The players marked as rejected, who recruitment answers leave out."""
+        current = read_current(career)
+        return RejectedReport(save_context(current), rejected_list(rejections.entries(current.career)))
 
     return server

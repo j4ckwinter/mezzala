@@ -213,6 +213,15 @@ class WatchedPlayer:
 
 
 @dataclass(frozen=True)
+class RejectedPlayer:
+    uid: int
+    birth_date: date | None
+    name: str
+    added_on: date
+    note: str
+
+
+@dataclass(frozen=True)
 class PastPlayers:
     game_date: date
     by_uid: Mapping[int, Player]

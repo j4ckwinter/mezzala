@@ -37,6 +37,7 @@ Most players install the Claude Desktop extension, `mezzala.mcpb`, from the late
 | When a new snapshot is taken, and which earlier snapshot a tool compares with | `src/mezzala/save/career.py` |
 | How snapshots are stored | `src/mezzala/save/store.py` |
 | How the watchlist is stored | `src/mezzala/save/watchlist.py` |
+| How rejected players are stored | `src/mezzala/save/rejections.py` |
 | Position groups, and when a player is natural or accomplished in one | `src/mezzala/core/positions.py` |
 | Formations, how many starters each needs, the default formation, and which formation a saved tactic is | `src/mezzala/core/formations.py` |
 | Who belongs to the club, who plays for it, what it pays them, depth, leaving dates, squad level | `src/mezzala/core/squad.py` |
@@ -55,6 +56,7 @@ Most players install the Claude Desktop extension, `mezzala.mcpb`, from the late
 | How a player is shown in answers | `src/mezzala/core/summary.py` |
 | How ability is shown: CA and PA as numbers, or as stars in spoiler-free mode | `src/mezzala/core/view.py` |
 | Finding a player by name | `src/mezzala/core/lookup.py` |
+| Which players recruitment answers leave out because they were rejected | `src/mezzala/core/rejections.py` |
 | Each tool's rules | `src/mezzala/tools/`, one module per tool |
 | Tool names, parameters, defaults and errors | `src/mezzala/server.py` |
 | How the Claude Desktop extension installs and starts mezzala | `manifest.json`, with `.mcpbignore` for what the bundle leaves out |

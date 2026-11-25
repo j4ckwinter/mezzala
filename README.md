@@ -28,6 +28,7 @@ so i made an mcp server that reads my save and does the scouting for me. i ask c
 | `league_comparison` | where your squad ranks in your league, overall and position by position |
 | `what_changed` | what's changed since your last save: squad, budget, contracts, values, new regens, big transfers |
 | `watch_player`, `watchlist` | mezzala's own shortlist, flagging targets that got cheaper |
+| `reject_player`, `rejected_players` | players who've said no, kept out of recruitment answers until you take them off |
 | `development_check` | wonderkids who aren't developing as expected, and players in decline |
 | `squad_progress` | your squad now against when you started using mezzala |
 | `next_job` | open manager jobs, biggest club first, with each club's squad and money |

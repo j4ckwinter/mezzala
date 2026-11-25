@@ -7,7 +7,7 @@ from mezzala.server import INSTRUCTIONS, create_server
 
 def schemas() -> dict[str, dict]:
     async def run() -> dict[str, dict]:
-        async with Client(create_server(None, None)) as client:  # type: ignore[arg-type]
+        async with Client(create_server(None, None, None)) as client:  # type: ignore[arg-type]
             return {tool.name: tool.input_schema for tool in (await client.list_tools()).tools}
 
     return asyncio.run(run())
@@ -35,7 +35,7 @@ def test_the_instructions_state_the_position_thresholds_and_default_formation():
 
 def test_find_players_states_the_reach_rule_with_its_number():
     async def run() -> str:
-        async with Client(create_server(None, None)) as client:  # type: ignore[arg-type]
+        async with Client(create_server(None, None, None)) as client:  # type: ignore[arg-type]
             tools = {tool.name: tool for tool in (await client.list_tools()).tools}
             return tools["find_players"].description or ""
 
