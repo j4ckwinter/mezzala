@@ -26,6 +26,7 @@ from mezzala.tools.league_comparison import LeagueComparison, league_comparison
 from mezzala.tools.league_values import LeagueValues, league_values
 from mezzala.tools.next_job import NextJob, next_job
 from mezzala.tools.regen_intake import RegenIntake, regen_intake
+from mezzala.tools.relegated_clubs import RelegatedClubs, relegated_clubs
 from mezzala.tools.replacement import Limits, Replacements, find_replacements
 from mezzala.tools.risers import RiserFilters, Risers, RiserScope, find_risers
 from mezzala.tools.sell_high import SellHigh, sell_high
@@ -147,6 +148,12 @@ class NextJobReport:
 class LeagueValuesReport:
     context: SaveContext
     result: LeagueValues
+
+
+@dataclass(frozen=True)
+class RelegatedClubsReport:
+    context: SaveContext
+    result: RelegatedClubs
 
 
 @dataclass(frozen=True)
@@ -420,6 +427,15 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         Leagues are named after their three biggest clubs."""
         current = read_current(career)
         return LeagueValuesReport(save_context(current), league_values(current.snapshot, limit))
+
+    @server.tool(name="relegated_clubs")
+    def relegated_clubs_tool(since: date | None = None) -> RelegatedClubsReport:
+        """Clubs now in a weaker league than at an earlier snapshot (since is an in-game date; defaults to the
+        oldest), with their best players within reach. Needs a snapshot from before the season changed."""
+        current = read_current(career)
+        return RelegatedClubsReport(
+            save_context(current), relegated_clubs(current.snapshot, career.baseline(current, since))
+        )
 
     @server.tool(name="compare_formations")
     def compare_formations_tool(formations: FormationChoices = None) -> FormationReport:
