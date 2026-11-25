@@ -30,7 +30,8 @@ class PositionalFit:
 
 EXPLANATION = (
     "Each starter's key-attribute score (1-20) for the position he is picked in, and any other position he can "
-    f"play where his attributes score at least {BETTER_FIT_MARGIN:g} higher."
+    f"play where his attributes score at least {BETTER_FIT_MARGIN:g} higher. Treat these as hints: the scores weigh "
+    "a fixed set of key attributes per position and cannot see the roles your tactic asks for."
 )
 
 

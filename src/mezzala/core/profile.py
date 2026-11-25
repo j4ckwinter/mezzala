@@ -94,6 +94,8 @@ ATTRIBUTE_GROUPS: dict[str, tuple[str, ...]] = {
     "creativity": ("vision", "flair", "dribbling", "off_the_ball"),
     "finishing": ("finishing", "composure", "long_shots"),
     "work rate": ("work_rate", "teamwork", "determination", "bravery"),
+    "wide play": ("crossing", "dribbling", "agility", "acceleration"),
+    "decision making": ("decisions", "concentration", "anticipation", "composure"),
 }
 
 

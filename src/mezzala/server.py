@@ -467,8 +467,8 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
     @server.tool(name="squad_profile")
     def squad_profile_tool(formation: FormationChoice = DEFAULT_FORMATION) -> SquadProfileReport:
         """The best eleven's attribute strengths and weaknesses (pace, physical, aerial, defending, passing,
-        creativity, finishing, work rate) against the other clubs' best elevens in your league. Use it to suggest
-        tactics; the save's tactic itself cannot be read."""
+        creativity, finishing, work rate, wide play, decision making) against the other clubs' best elevens in
+        your league. Use it to suggest tactics; the save's tactic itself cannot be read."""
         current = read_current(career)
         return SquadProfileReport(save_context(current), squad_profile(current.snapshot, formation))
 

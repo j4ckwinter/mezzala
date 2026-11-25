@@ -29,8 +29,8 @@ class SquadProfile:
 
 EXPLANATION = (
     "Average attributes (1-20) of the best eleven's outfield players by group, against the median of the other "
-    "clubs' best elevens in your league. Use the strengths and weaknesses to shape tactics; mezzala cannot read "
-    "your tactic itself."
+    "clubs' best elevens in your league, each picked in your formation. Use the strengths and weaknesses to shape "
+    "tactics; mezzala cannot read your tactic itself."
 )
 
 
