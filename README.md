@@ -59,7 +59,7 @@ suggestions only include players whose reputation is close to your club's, so st
 
 ## install it
 
-you need football manager 27 and claude. paste this into claude code:
+you need football manager 27 and claude. paste this into claude, in the desktop app or claude code:
 
 > install the latest version of this mcp: https://github.com/j4ckwinter/mezzala
 
