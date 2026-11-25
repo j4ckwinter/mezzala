@@ -405,6 +405,7 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
         country: str | None = None,
         division_level: int | None = None,
         league: str | None = None,
+        fringe_only: bool = False,
         reserves_only: bool = False,
         bigger_clubs_only: bool = False,
         within_reach: bool = True,
@@ -423,7 +424,9 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
         nationality (first or second, for example "Republic of Ireland"); work_permit_free keeps British and Irish
         players, who need no UK work permit. country is where the club plays (Cardiff count as England);
         division_level is the league's level in that country, 1 for the top flight, estimated from how strong its
-        first teams are; league matches part of a league's name, such as a club in it."""
+        first teams are; league matches part of a league's name, such as a club in it. The save does not record
+        transfer or loan listing; fringe_only keeps players whose contract squad status says their club does not
+        count on them (surplus to requirements, fringe, backup), which are the likeliest to be listed or loaned."""
         current = read_current(career)
         refuse_hidden_filters(
             view, {"min_ca": min_ca is not None, "max_ca": max_ca is not None, "min_pa": min_pa is not None}
@@ -434,7 +437,7 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
             free_agents_only=free_agents_only, contract_ending_within_months=contract_ending_within_months,
             max_release_clause=optional_stored(max_release_clause), youth_contract_only=youth_contract_only,
             nationality=nationality, work_permit_free_only=work_permit_free, country=country,
-            division_level=division_level, league=league, reserves_only=reserves_only,
+            division_level=division_level, league=league, fringe_only=fringe_only, reserves_only=reserves_only,
             bigger_clubs_only=bigger_clubs_only, within_reach=within_reach, sort_by=sort_by, limit=limit,
         )  # fmt: skip
         return FoundPlayersReport(save_context(current), find_players(current.snapshot, search, view))

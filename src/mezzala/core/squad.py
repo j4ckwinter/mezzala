@@ -78,3 +78,12 @@ def squad_level(snapshot: Snapshot) -> float:
 def everyone_paid(snapshot: Snapshot) -> list[Player]:
     loaned_in = [player for player in available_squad(snapshot) if player.on_loan]
     return [*owned_players(snapshot), *loaned_in]
+
+
+NOT_COUNTED_ON = frozenset(
+    {"surplus to requirements", "fringe player", "backup", "emergency backup", "goalkeeper emergency backup"}
+)
+
+
+def not_counted_on(player: Player) -> bool:
+    return player.squad_status in NOT_COUNTED_ON

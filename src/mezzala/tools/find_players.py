@@ -24,6 +24,7 @@ from mezzala.core.squad import (
     contract_ends_within,
     is_outside_club,
     leaves_within,
+    not_counted_on,
     plays_for_club,
     wage_paid_by_club,
 )
@@ -70,6 +71,7 @@ class PlayerSearch:
     country: str | None
     division_level: int | None
     league: str | None
+    fringe_only: bool
     reserves_only: bool
     bigger_clubs_only: bool
     within_reach: bool
@@ -81,6 +83,7 @@ class PlayerSearch:
 class FoundPlayer:
     player: PlayerSummary
     team: str
+    squad_status: str | None
     league: str | None
     country: str | None
     division_level: int | None
@@ -184,6 +187,8 @@ def matches_market(player: Player, search: PlayerSearch, measures: Measures) -> 
         return False
     if not in_league(player, search, measures):
         return False
+    if search.fringe_only and not not_counted_on(player):
+        return False
     if search.reserves_only and player.first_team is not False:
         return False
     if search.bigger_clubs_only and not at_least(player.club_reputation, snapshot.club_reputation + 1):
@@ -257,6 +262,7 @@ def found(player: Player, search: PlayerSearch, measures: Measures, view: View) 
     return FoundPlayer(
         player=summarize(player, view),
         team=team_label(player),
+        squad_status=player.squad_status,
         league=league.name if (league := measures.league_of(player)) else None,
         country=player.club_country,
         division_level=league.division_level if league else None,

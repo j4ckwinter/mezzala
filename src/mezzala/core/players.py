@@ -106,6 +106,7 @@ class Player:
     season: SeasonStats | None = None
     nationalities: tuple[str, ...] = ()
     club_country: str | None = None
+    squad_status: str | None = None
 
     @property
     def headroom(self) -> int:
