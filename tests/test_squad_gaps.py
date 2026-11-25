@@ -103,3 +103,10 @@ def test_a_starting_place_nobody_can_fill_is_reported(mezzala):
     squad = [p for p in eleven() if p.position_ratings["gk"] != 20]
     issues = gaps_by_group(mezzala(snapshot(squad)))["goalkeeper"]
     assert "empty: 1 of 1 starting places with nobody to fill them" in issues
+
+
+def test_each_issue_is_labelled_with_its_kind(mezzala):
+    squad = eleven(age=22, pa=130) + eleven(age=21, pa=130)
+    squad.append(mine("Old Keeper", positions=("gk",), age=31, ca=150, contract_end=date(2027, 5, 31)))
+    keeper = {p["group"]: p for p in mezzala(snapshot(squad)).result("squad_gaps")["positions"]}["goalkeeper"]
+    assert keeper["issue_kinds"] == ["ageing", "leaving", "no successor"]
