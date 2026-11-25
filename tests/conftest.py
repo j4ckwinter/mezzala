@@ -10,6 +10,7 @@ import pytest
 from mcp import Client
 
 from mezzala.core.players import Snapshot
+from mezzala.core.view import View
 from mezzala.save.career import Career
 from mezzala.save.store import FileStamp, SnapshotStore
 from mezzala.save.watchlist import WatchlistStore
@@ -67,15 +68,16 @@ class Mezzala:
     career: Career
     database: Path
     watched: WatchlistStore
+    view: View = View.FULL
 
     def another_server(self) -> "Mezzala":
         store = SnapshotStore(self.database)
         career = Career(self.save.locate, store, self.save.read, self.save.stamp)
-        return Mezzala(self.save, career, self.database, WatchlistStore(self.database))
+        return Mezzala(self.save, career, self.database, WatchlistStore(self.database), self.view)
 
     def call(self, tool: str, **arguments: Any) -> ToolResult:
         async def run() -> ToolResult:
-            async with Client(create_server(self.career, self.watched)) as client:
+            async with Client(create_server(self.career, self.watched, self.view)) as client:
                 result = await client.call_tool(tool, arguments)
                 text = "".join(getattr(block, "text", "") for block in result.content)
                 data = result.structured_content or (json.loads(text) if not result.is_error else {})
@@ -85,7 +87,7 @@ class Mezzala:
 
     def call_together(self, *tools: str) -> list[ToolResult]:
         async def run() -> list[ToolResult]:
-            async with Client(create_server(self.career, self.watched)) as client:
+            async with Client(create_server(self.career, self.watched, self.view)) as client:
                 results = await asyncio.gather(*(client.call_tool(tool, {}) for tool in tools))
                 return [ToolResult(r.is_error, r.structured_content or {}, "") for r in results]
 
@@ -102,12 +104,12 @@ class Mezzala:
 
 
 @pytest.fixture
-def mezzala(tmp_path: Path) -> Callable[[Snapshot], Mezzala]:
-    def start(first: Snapshot) -> Mezzala:
+def mezzala(tmp_path: Path) -> Callable[..., Mezzala]:
+    def start(first: Snapshot, view: View = View.FULL) -> Mezzala:
         save = FakeSave()
         save.write(first)
         database = tmp_path / "snapshots.db"
         career = Career(save.locate, SnapshotStore(database), save.read, save.stamp)
-        return Mezzala(save, career, database, WatchlistStore(database))
+        return Mezzala(save, career, database, WatchlistStore(database), view)
 
     return start

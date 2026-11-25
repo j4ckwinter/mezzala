@@ -79,6 +79,8 @@ claude mcp add --scope user mezzala -- "$(uv tool dir --bin)/mezzala"
 
 on windows, the second line ends in `\mezzala.exe` instead of `/mezzala`. to stick to one career rather than the newest save, add `--save "/path/to/career.fm"` to the end. update with `uv tool upgrade mezzala`, then restart claude. remove it with `claude mcp remove --scope user mezzala` and `uv tool uninstall mezzala`.
 
+**fog of war:** by default mezzala sees everything, hidden ca and pa included. switch fog of war on and it shows ability as stars and keeps hidden attributes and personality numbers out of its answers. its picks still use the real numbers, like a scouting team that's never wrong. in the desktop app it's a setting on the extension (settings → extensions → mezzala). in claude code, add `--fog-of-war on` to the end of the `claude mcp add` line.
+
 **where it looks:** fm's usual save folders, `~/Library/Application Support/Sports Interactive/Football Manager 27/games` on a mac and `Documents\Sports Interactive\Football Manager 27\games` on windows (onedrive's too). snapshots live in `~/.mezzala`.
 
 **if it doesn't work:** check mezzala is switched on in settings → extensions, and start your question with "using mezzala". "no .fm saves found" means you haven't saved your career yet, or your saves are somewhere unusual, so use `--save`.
@@ -91,7 +93,7 @@ on windows, the second line ends in `\mezzala.exe` instead of `/mezzala`. to sti
 - it can't read your tactic or roles, so tactical advice comes from your players' attributes.
 - it doesn't know your formation. tell claude your formation (4-3-3, 4-2-3-1, 4-4-2, 4-4-2 diamond, 3-5-2 or 3-4-3) and it'll pass it along. the default is 4-3-3.
 - `compare_formations` ranks shapes by how well your players fit them, not by how the match engine rates them. it treats wingers and wide midfielders as the same position, and full backs and wing backs too, so 4-1-4-1 and 5-3-2 would tie with 4-3-3 and 3-5-2.
-- it sees everything, including hidden ca and pa. no fog of war.
+- it sees everything, including hidden ca and pa, unless you switch fog of war on. even then it can't know which players your scouts have actually seen.
 - the save doesn't name leagues, and leagues that aren't loaded in your save don't count, so "above league level" only covers players in loaded leagues.
 - a loan player counts at the club he's on loan to, so `reserves_only` and `bigger_clubs_only` don't find a big club's youngsters out on loan.
 - fmsave has only verified fm27 build `27.0.0+2486695`. my save is on 27.1.1 and reads fine, but treat the numbers as fmsave's best effort.

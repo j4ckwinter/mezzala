@@ -67,6 +67,19 @@ Positions are natural (FM rating {NATURAL_POSITION_RATING}+) or accomplished
 ({ACCOMPLISHED_POSITION_RATING}-{NATURAL_POSITION_RATING - 1}). Ask the manager which formation they
 play if it matters; tools that take one default to {DEFAULT_FORMATION.value}."""
 
+SPOILER_FREE_INSTRUCTIONS = """
+Fog of war is on: the manager does not want to see what FM hides. Ability and potential come as star ratings
+(5 stars is the best in the world), and hidden attributes and personality numbers are left out. Never state,
+estimate or work back to CA or PA numbers, and talk about players the way FM's coaches and scouts would."""
+
+
+def instructions_for(view: View) -> str:
+    match view:
+        case View.FULL:
+            return INSTRUCTIONS
+        case View.SPOILER_FREE:
+            return INSTRUCTIONS + SPOILER_FREE_INSTRUCTIONS
+
 
 @dataclass(frozen=True)
 class SaveContext:
@@ -280,7 +293,7 @@ CheckScopeChoice = Annotated[CheckScope, Field(description=one_of(CheckScope))]
 
 
 def create_server(career: Career, watched: WatchlistStore, view: View = View.FULL) -> MCPServer:
-    server = MCPServer("mezzala", instructions=INSTRUCTIONS)
+    server = MCPServer("mezzala", instructions=instructions_for(view))
 
     @server.tool()
     def snapshot() -> SnapshotReport:

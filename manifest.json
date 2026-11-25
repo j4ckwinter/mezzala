@@ -18,15 +18,38 @@
     "entry_point": "src/mezzala/__main__.py",
     "mcp_config": {
       "command": "uv",
-      "args": ["run", "--directory", "${__dirname}", "mezzala"]
+      "args": [
+        "run",
+        "--directory",
+        "${__dirname}",
+        "mezzala",
+        "--fog-of-war",
+        "${user_config.fog_of_war}"
+      ]
     }
   },
   "compatibility": {
-    "platforms": ["darwin", "win32"],
+    "platforms": [
+      "darwin",
+      "win32"
+    ],
     "runtimes": {
       "python": ">=3.12"
     }
   },
-  "keywords": ["football manager", "fm27", "scouting"],
-  "license": "MIT"
+  "keywords": [
+    "football manager",
+    "fm27",
+    "scouting"
+  ],
+  "license": "MIT",
+  "user_config": {
+    "fog_of_war": {
+      "type": "boolean",
+      "title": "Fog of war",
+      "description": "Hide what Football Manager hides: ability and potential show as stars, and hidden attributes and personality numbers stay out of answers.",
+      "default": false,
+      "required": false
+    }
+  }
 }
