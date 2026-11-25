@@ -53,86 +53,43 @@ suggestions only include players whose reputation is close to your club's, so st
 
 ## install it
 
-you need football manager 27 and [uv](https://docs.astral.sh/uv/). uv brings its own python, so you don't need one.
+you need football manager 27 and the claude desktop app, on a mac or windows.
 
-**1. get uv**, if you haven't already. on a mac or linux:
+1. download `mezzala.mcpb` from the [latest release](https://github.com/j4ckwinter/mezzala/releases/latest).
+2. open it. claude shows what mezzala is and asks before installing. click install.
+3. load your career in fm and save it.
+4. ask claude "using mezzala, show me my squad". the first time, claude sets up what mezzala needs and reads your whole save, so give it a minute.
 
-```sh
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
+nothing to configure. mezzala reads whichever fm27 save was written most recently, so it follows the career you last saved. save in fm whenever you want mezzala to see what's changed.
 
-on windows, in powershell:
-
-```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-```
-
-then open a new terminal so it's on your path.
-
-**2. install mezzala:**
-
-```sh
-uv tool install git+https://github.com/j4ckwinter/mezzala
-```
-
-**3. add it to claude.** for claude code on a mac or linux:
-
-```sh
-claude mcp add --scope user mezzala -- "$(uv tool dir --bin)/mezzala"
-```
-
-on windows, in powershell:
-
-```powershell
-claude mcp add --scope user mezzala -- "$(uv tool dir --bin)\mezzala.exe"
-```
-
-for the claude desktop app, run `uv tool dir --bin` to see where mezzala went. open settings → developer → edit config, and add mezzala to `mcpServers` with that folder's full path:
-
-```json
-{
-  "mcpServers": {
-    "mezzala": { "command": "/Users/you/.local/bin/mezzala" }
-  }
-}
-```
-
-on windows the command is `C:\\Users\\you\\.local\\bin\\mezzala.exe`, with doubled backslashes. if the file already has an `mcpServers` block, put the `mezzala` line inside it. then quit claude completely and reopen it. closing the window isn't enough.
-
-**4. try it.** load your career in fm, save it, and ask claude "using mezzala, show me my squad". the first question reads the whole save, so give it a moment.
+to update, download the new `mezzala.mcpb` and open it. to remove it, go to settings → extensions in claude.
 
 ### which save it reads
 
-mezzala reads whichever fm27 save was written most recently. it looks in fm's usual folders:
+it looks in fm's usual folders:
 
 - mac: `~/Library/Application Support/Sports Interactive/Football Manager 27/games`
 - windows: `Documents\Sports Interactive\Football Manager 27\games`, including a `Documents` folder that onedrive has moved
 
-if your saves live somewhere else, or you want to stick to one career, pin it with `--save`. in claude code:
+snapshots live in `~/.mezzala/snapshots.db`. delete that folder to start mezzala's history again.
+
+### using claude code instead
+
+you need [uv](https://docs.astral.sh/uv/getting-started/installation/), which brings its own python. get it from homebrew on a mac (`brew install uv`) or winget on windows (`winget install --id=astral-sh.uv -e`). then:
 
 ```sh
-claude mcp add --scope user mezzala -- "$(uv tool dir --bin)/mezzala" --save "/path/to/career.fm"
+uv tool install git+https://github.com/j4ckwinter/mezzala
+claude mcp add --scope user mezzala -- "$(uv tool dir --bin)/mezzala"
 ```
 
-in the desktop config, add `"args": ["--save", "/path/to/career.fm"]` next to `command`.
+on windows, the second line ends in `\mezzala.exe` instead of `/mezzala`. to stick to one career rather than the newest save, add `--save "/path/to/career.fm"` to the end. update with `uv tool upgrade mezzala`, and remove with `claude mcp remove --scope user mezzala` then `uv tool uninstall mezzala`.
 
-snapshots live in `~/.mezzala/snapshots.db`. save in fm whenever you want mezzala to see what's changed.
-
-### update or remove it
-
-```sh
-uv tool upgrade mezzala
-```
-
-then restart claude code and the desktop app. both share the same snapshots, and an older copy that's still running can't read snapshots a newer one wrote.
-
-to remove it: `claude mcp remove --scope user mezzala`, delete the `mezzala` entry from the desktop config, run `uv tool uninstall mezzala`, and delete `~/.mezzala` if you don't want your snapshots.
+if you use both claude code and the desktop app, restart both after updating either. they share the same snapshots, and an older copy that's still running can't read snapshots a newer one wrote.
 
 ### if it doesn't work
 
-- **claude doesn't list mezzala's tools.** run `claude mcp list` to see whether it connected. in the desktop app, check the command is a full path: the app doesn't use your terminal's path, so plain `mezzala` won't be found.
-- **"no .fm saves found".** save your career in fm at least once, or pin the save with `--save`.
-- **`uv` isn't found.** open a new terminal after installing it.
+- **claude doesn't use mezzala.** check it's switched on in settings → extensions, and start your question with "using mezzala".
+- **"no .fm saves found".** save your career in fm at least once. if your saves are somewhere unusual, use the claude code route with `--save`.
 
 ## what it can't do
 
