@@ -68,3 +68,41 @@ def test_a_new_player_given_a_watched_players_id_is_not_mistaken_for_him(mezzala
     newcomer = replace(veteran, name="Newcomer", age=15, birth_date=date(2011, 3, 3))
     app.play_to(snapshot([*squad, newcomer], game_date=LATER))
     assert entries(app.result("watchlist"))["Veteran"]["now"] is None
+
+
+def test_a_player_who_has_left_the_save_can_still_be_unwatched(mezzala):
+    squad = eleven()
+    app = mezzala(snapshot([*squad, player("Veteran", club=OTHER_CLUB, age=38)]))
+    app.result("watch_player", player="Veteran")
+    app.play_to(snapshot(squad, game_date=LATER))
+    assert app.result("unwatch_player", player="Veteran")["players"] == []
+
+
+def test_players_who_share_a_name_are_told_apart_by_club(mezzala):
+    squad = [
+        *eleven(),
+        player("João Silva", club=2, club_name="Porto B"),
+        player("João Silva", club=3, club_name="Braga"),
+    ]
+    app = mezzala(snapshot(squad))
+    assert app.call("watch_player", player="João Silva").is_error
+    watched = app.result("watch_player", player="João Silva", club="braga")["players"]
+    assert [(w["name"], w["now"]["club"]) for w in watched] == [("João Silva", "Braga")]
+
+
+def test_watching_a_player_again_keeps_his_baseline_and_updates_the_note(mezzala):
+    squad = eleven()
+    target = player("Target", club=OTHER_CLUB, value=2_000_000)
+    app = mezzala(snapshot([*squad, target]))
+    app.result("watch_player", player="Target", note="first look")
+    app.play_to(snapshot([*squad, replace(target, value=1_000_000)], game_date=LATER))
+    watched = entries(app.result("watch_player", player="Target", note="still keen"))["Target"]
+    assert watched["note"] == "still keen"
+    assert watched["added_on"] == "2026-06-29"
+    assert "value down from £2.0m to £1.0m" in watched["cheaper_because"]
+
+
+def test_a_player_who_was_already_a_free_agent_is_not_newly_free(mezzala):
+    app = mezzala(snapshot([*eleven(), player("Free", club=None, value=None)]))
+    watched = entries(app.result("watch_player", player="Free"))["Free"]
+    assert "now a free agent" not in watched["cheaper_because"]

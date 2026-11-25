@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from mezzala.core.lookup import folded
 from mezzala.core.metrics import release_clause_for
 from mezzala.core.money import format_money
 from mezzala.core.players import Player, Snapshot, WatchedPlayer
@@ -23,6 +24,23 @@ class WatchedNow:
 @dataclass(frozen=True)
 class Watchlist:
     players: list[WatchedNow]
+
+
+class NotWatched(LookupError):
+    pass
+
+
+def find_watched_entry(entries: list[WatchedPlayer], query: str) -> WatchedPlayer:
+    wanted = folded(query.strip())
+    exact = [entry for entry in entries if folded(entry.name) == wanted]
+    partial = [entry for entry in entries if wanted in folded(entry.name)]
+    for found in (exact, partial):
+        if len(found) == 1:
+            return found[0]
+        if len(found) > 1:
+            names = ", ".join(f"{entry.name} ({entry.club_name or 'free agent'})" for entry in found)
+            raise NotWatched(f"'{query}' matches several watched players: {names}. Use a fuller name.")
+    raise NotWatched(f"No player called '{query}' is on the watchlist.")
 
 
 def watched_record(player: Player, snapshot: Snapshot, note: str) -> WatchedPlayer:
@@ -52,7 +70,7 @@ def changes_since(watched: WatchedPlayer, player: Player) -> list[str]:
 
 def cheaper_because(watched: WatchedPlayer, player: Player, snapshot: Snapshot) -> list[str]:
     reasons: list[str] = []
-    if player.is_free_agent:
+    if player.is_free_agent and watched.club_name is not None:
         reasons.append("now a free agent")
     if watched.value and player.value is not None and player.value <= CHEAPER_SHARE * watched.value:
         reasons.append(f"value down from {format_money(watched.value)} to {format_money(player.value)}")

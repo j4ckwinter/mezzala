@@ -17,7 +17,10 @@ class AmbiguousPlayer(LookupError):
     matches: tuple[str, ...]
 
     def __str__(self) -> str:
-        return f"'{self.query}' matches several players: {', '.join(self.matches)}. Use a fuller name."
+        return (
+            f"'{self.query}' matches several players: {', '.join(self.matches)}. "
+            "Use a fuller name or say which club he plays for."
+        )
 
 
 def folded(text: str) -> str:
@@ -29,9 +32,15 @@ def describe(player: Player) -> str:
     return f"{player.name} ({player.age}, {player.club_name or 'free agent'})"
 
 
-def find_player(snapshot: Snapshot, query: str) -> Player:
+def at_named_club(player: Player, club: str | None) -> bool:
+    if club is None:
+        return True
+    return folded(club.strip()) in folded(player.club_name or "free agent")
+
+
+def find_player(snapshot: Snapshot, query: str, club: str | None = None) -> Player:
     wanted = folded(query.strip())
-    matches = [player for player in snapshot.players if wanted in folded(player.name)]
+    matches = [player for player in snapshot.players if wanted in folded(player.name) and at_named_club(player, club)]
     exact = [player for player in matches if folded(player.name) == wanted]
     at_club = [
         player

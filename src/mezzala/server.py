@@ -33,7 +33,7 @@ from mezzala.tools.squad_gaps import SquadGaps, squad_gaps
 from mezzala.tools.squad_list import SquadList, squad_list
 from mezzala.tools.squad_progress import SquadProgress, squad_progress
 from mezzala.tools.wage_review import WageReview, wage_review
-from mezzala.tools.watchlist import Watchlist, watched_record, watchlist
+from mezzala.tools.watchlist import NotWatched, Watchlist, find_watched_entry, watched_record, watchlist
 from mezzala.tools.what_changed import WhatChanged, what_changed
 
 DEFAULT_FORMATION = Formation.FOUR_THREE_THREE
@@ -208,9 +208,9 @@ def read_current(career: Career) -> Current:
         raise ToolError(f"Could not read the save: {error}") from error
 
 
-def target_player(snapshot: Snapshot, name: str) -> Player:
+def target_player(snapshot: Snapshot, name: str, club: str | None = None) -> Player:
     try:
-        return find_player(snapshot, name)
+        return find_player(snapshot, name, club)
     except (PlayerNotFound, AmbiguousPlayer) as error:
         raise ToolError(str(error)) from error
 
@@ -348,11 +348,12 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         return WhatChangedReport(save_context(current), what_changed(current.snapshot, career.previous(current)))
 
     @server.tool(name="watch_player")
-    def watch_player_tool(player: str, note: str = "") -> WatchlistReport:
+    def watch_player_tool(player: str, club: str | None = None, note: str = "") -> WatchlistReport:
         """Add a player to mezzala's watchlist (FM's own shortlist is not readable from the save). His value, CA and
-        club are recorded so later calls can show how he has changed and whether he has become cheaper."""
+        club are recorded so later calls can show how he has changed and whether he has become cheaper. club
+        narrows the search when players share a name. Watching a player again only updates the note."""
         current = read_current(career)
-        target = target_player(current.snapshot, player)
+        target = target_player(current.snapshot, player, club)
         watched.add(current.career, watched_record(target, current.snapshot, note))
         return WatchlistReport(save_context(current), watchlist(current.snapshot, watched.entries(current.career)))
 
@@ -360,9 +361,11 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
     def unwatch_player_tool(player: str) -> WatchlistReport:
         """Remove a player from mezzala's watchlist."""
         current = read_current(career)
-        target = target_player(current.snapshot, player)
-        if not watched.remove(current.career, target.uid):
-            raise ToolError(f"{target.name} is not on the watchlist.")
+        try:
+            entry = find_watched_entry(watched.entries(current.career), player)
+        except NotWatched as error:
+            raise ToolError(str(error)) from error
+        watched.remove(current.career, entry.uid)
         return WatchlistReport(save_context(current), watchlist(current.snapshot, watched.entries(current.career)))
 
     @server.tool(name="watchlist")
