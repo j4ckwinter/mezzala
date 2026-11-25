@@ -128,3 +128,26 @@ def test_players_without_a_market_value_are_not_called_good_value(mezzala):
     found = mezzala(snapshot(squad)).result("find_players", sort_by="value for money", limit=30)["players"]
     assert found[0]["player"]["name"] == "Bargain"
     assert {f["player"]["name"]: f["value_vs_similar_players"] for f in found}["Amateur"] == "unknown"
+
+
+def test_a_player_elsewhere_whose_loan_ends_is_not_a_contract_ending(mezzala):
+    squad = [
+        player(
+            "Loan Ending",
+            on_loan=True,
+            loan_parent_club_uid=9,
+            loan_end=date(2027, 5, 31),
+            contract_end=date(2030, 6, 30),
+        ),
+        player("Contract Ending", contract_end=date(2027, 5, 31)),
+        mine(
+            "Our Loanee",
+            on_loan=True,
+            loan_parent_club_uid=9,
+            loan_end=date(2027, 5, 31),
+            contract_end=date(2030, 6, 30),
+        ),
+    ]
+    app = mezzala(snapshot(squad))
+    assert names(app, contract_ending_within_months=12) == ["Contract Ending"]
+    assert names(app, scope="own", contract_ending_within_months=12) == ["Our Loanee"]

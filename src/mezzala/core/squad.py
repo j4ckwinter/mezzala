@@ -42,6 +42,13 @@ def leaving_date(player: Player, club_uid: int) -> date | None:
     return player.contract_end
 
 
+def contract_ends_within(player: Player, today: date, months: int) -> date | None:
+    end = player.contract_end
+    if end is not None and months_until(today, end) <= months:
+        return end
+    return None
+
+
 def leaves_within(player: Player, club_uid: int, today: date, months: int) -> date | None:
     leaving = leaving_date(player, club_uid)
     if leaving is not None and months_until(today, leaving) <= months:

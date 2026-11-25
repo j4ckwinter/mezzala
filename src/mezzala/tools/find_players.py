@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import date
 from enum import StrEnum
 
 from mezzala.core.metrics import (
@@ -15,7 +16,13 @@ from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import PositionGroup, covers, primary_group
 from mezzala.core.profile import position_score
 from mezzala.core.reach import within_reach
-from mezzala.core.squad import belongs_to_club, is_outside_club, leaves_within, plays_for_club
+from mezzala.core.squad import (
+    belongs_to_club,
+    contract_ends_within,
+    is_outside_club,
+    leaves_within,
+    plays_for_club,
+)
 from mezzala.core.summary import PlayerSummary, summarize
 
 
@@ -119,6 +126,12 @@ def matches_profile(player: Player, search: PlayerSearch) -> bool:
     )
 
 
+def ending(player: Player, snapshot: Snapshot, months: int) -> date | None:
+    if is_outside_club(player, snapshot.club_uid):
+        return contract_ends_within(player, snapshot.game_date, months)
+    return leaves_within(player, snapshot.club_uid, snapshot.game_date, months)
+
+
 def matches_market(player: Player, search: PlayerSearch, measures: Measures) -> bool:
     snapshot = measures.snapshot
     if search.free_agents_only and not player.is_free_agent:
@@ -128,8 +141,7 @@ def matches_market(player: Player, search: PlayerSearch, measures: Measures) -> 
     if search.max_wage is not None and player.wage is not None and player.wage > search.max_wage:
         return False
     if search.contract_ending_within_months is not None and (
-        player.is_free_agent
-        or leaves_within(player, snapshot.club_uid, snapshot.game_date, search.contract_ending_within_months) is None
+        player.is_free_agent or ending(player, snapshot, search.contract_ending_within_months) is None
     ):
         return False
     if search.max_release_clause is not None and not at_most(
