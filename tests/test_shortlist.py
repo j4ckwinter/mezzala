@@ -82,3 +82,34 @@ def test_a_player_whose_wage_cannot_be_worked_out_does_not_fit_a_wage_room(mezza
               player("Known Wage", positions=("stc",), ca=115, value=50_000, wage=2_000)]  # fmt: skip
     app = mezzala(snapshot(squad))
     assert picks(app, weekly_wage_budget=5_000)["striker"]["target"]["name"] == "Known Wage"
+
+
+def test_a_player_is_shortlisted_for_one_position_only(mezzala):
+    squad = [*[p for p in without("stc") if p.position_ratings["amc"] != 20]]
+    squad += [mine("Weak Striker", positions=("stc",), ca=60), mine("Weak Wide", positions=("aml",), ca=60)]
+    squad = [p for p in squad if p.position_ratings["aml"] != 20 or p.name == "Weak Wide"]
+    squad.append(player("Two Way", positions=("stc", "aml"), ca=130, value=50_000))
+    result = mezzala(snapshot(squad, transfer_budget=1_000_000)).result("shortlist")
+    chosen = [pick["target"]["name"] for pick in result["picks"] if pick["target"]]
+    assert chosen.count("Two Way") == 1
+
+
+def test_positions_without_issues_are_left_off(mezzala):
+    squad = eleven(age=22, pa=130) + eleven(age=21, pa=130)
+    squad.append(player("Great Keeper", positions=("gk",), ca=150, value=50_000))
+    assert mezzala(snapshot(squad)).result("shortlist")["picks"] == []
+
+
+def test_targets_out_of_reach_are_not_shortlisted(mezzala):
+    squad = [*without("stc"), mine("Weak Striker", positions=("stc",), ca=70)]
+    squad.append(player("Star", positions=("stc",), ca=150, value=50_000, reputation=9_000))
+    assert picks(mezzala(snapshot(squad)))["striker"]["target"] is None
+
+
+def test_each_picks_wage_comes_off_the_wage_room(mezzala):
+    squad = [p for p in without("stc") if p.position_ratings["gk"] != 20]
+    squad += [mine("Weak Keeper", positions=("gk",), ca=60), mine("Weak Striker", positions=("stc",), ca=60)]
+    squad += [player("Keeper", positions=("gk",), ca=120, value=50_000, wage=3_000),
+              player("Striker", positions=("stc",), ca=120, value=50_000, wage=3_000)]  # fmt: skip
+    result = mezzala(snapshot(squad)).result("shortlist", weekly_wage_budget=5_000)
+    assert len([pick for pick in result["picks"] if pick["target"]]) == 1

@@ -46,3 +46,18 @@ def test_a_youngster_who_is_the_only_backup_stays_rather_than_going_on_loan(mezz
     squad = [*eleven(ca=110), mine("Only Backup", positions=("stc",), age=18, ca=80, pa=130)]
     result = plan(mezzala(snapshot(squad)))
     assert "Only Backup" not in named(result["loan_out"])
+
+
+def test_starters_are_not_in_the_plan_and_focus_shows_five_at_most(mezzala):
+    starters = eleven(age=20, ca=100, pa=150)
+    squad = [*starters, *[mine(f"Kid {n}", positions=("stc",), age=18, ca=70, pa=130 + n) for n in range(7)]]
+    result = plan(mezzala(snapshot(squad)))
+    everyone = named(result["ready_for_first_team"]) + named(result["loan_out"])
+    assert not any(name.startswith("Starter") for name in everyone)
+    assert len(result["focus"]) == 5
+
+
+def test_three_below_the_weakest_starter_is_still_ready_but_four_is_not(mezzala):
+    squad = [*eleven(ca=100), *eleven(ca=100), mine("Three Off", positions=("stc",), age=19, ca=97, pa=140),
+             mine("Four Off", positions=("stc",), age=19, ca=96, pa=140)]  # fmt: skip
+    assert named(plan(mezzala(snapshot(squad)))["ready_for_first_team"]) == ["Three Off"]

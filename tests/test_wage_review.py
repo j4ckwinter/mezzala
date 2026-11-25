@@ -57,3 +57,11 @@ def test_a_starter_elsewhere_is_not_counted_as_cover(mezzala):
     squad = [*eleven(age=26, pa=100), mine("Backup Right Back", positions=("dr",), age=25, ca=95, pa=100)]
     squad[1] = mine("Centre Back Who Can Play Right", positions=("dc", "dr"), age=26, ca=100, pa=100)
     assert "Backup Right Back" not in [e["name"] for e in review(mezzala(snapshot(squad)))["surplus"]]
+
+
+def test_players_out_on_loan_are_listed_as_out_on_loan_not_surplus(mezzala):
+    away = player("Away", club=OTHER_CLUB, age=25, ca=60, pa=60, wage=800, on_loan=True, loan_parent_club_uid=1,
+                  loan_wage=300)  # fmt: skip
+    result = review(mezzala(snapshot([*eleven(), *peers(25, ca=60, age=25, pa=60, wage=100), away])))
+    assert "Away" not in [e["name"] for e in result["surplus"]]
+    assert {e["name"]: e["role"] for e in result["overpaid"]}["Away"] == "out on loan"

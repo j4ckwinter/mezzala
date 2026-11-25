@@ -41,3 +41,13 @@ def test_targets_out_of_reach_are_left_out(mezzala):
     assert [
         t["player"]["name"] for t in watch(mezzala(snapshot([*eleven(), famous])), within_reach=False)["free_agents"]
     ] == ["Famous"]
+
+
+def test_targets_are_measured_against_the_weakest_starter_in_a_position(mezzala):
+    squad = [p for p in eleven() if p.position_ratings["dc"] != 20]
+    squad += [mine("Strong Centre Back", positions=("dc",), ca=130), mine("Weak Centre Back", positions=("dc",), ca=90)]
+    squad.append(player("Free Defender", positions=("dc",), ca=110, club=None, value=None))
+    report = watch(mezzala(snapshot(squad)))
+    assert [(t["player"]["name"], t["improves_on"]) for t in report["free_agents"]] == [
+        ("Free Defender", "Weak Centre Back (90)")
+    ]

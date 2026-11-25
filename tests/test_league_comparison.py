@@ -41,3 +41,10 @@ def test_a_club_whose_league_is_unknown_gets_an_explanation(mezzala):
     squad = [replace(p, league_id=None) for p in eleven()]
     result = mezzala(snapshot(squad)).result("league_comparison")
     assert result["clubs"] == [] and "could not be identified" in result["explanation"]
+
+
+def test_squad_value_counts_only_the_first_team(mezzala):
+    reserve = player("Reserve", club=RIVAL, league_id=MY_LEAGUE, first_team=False, value=9_000_000, club_name="Rival")
+    rival = [*club_eleven(RIVAL, 120, name="Rival"), reserve]
+    rows = {row["club"]: row for row in mezzala(snapshot([*eleven(), *rival])).result("league_comparison")["clubs"]}
+    assert rows["Rival"]["squad_value"] == "£5.5m"
