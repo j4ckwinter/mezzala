@@ -38,8 +38,9 @@ class LeagueComparison:
 
 NO_LEAGUE = "Your club's league could not be identified from this save's fixtures, so there is nothing to compare."
 EXPLANATION = (
-    "Each club's best eleven for the formation, ranked by its average CA, with the first team's total "
-    "transfer value. Positions compare the average CA of each club's starters there."
+    "Each club's best eleven for the formation, ranked by its average CA (an empty place counts as 0, and "
+    "equal averages share a rank), with the first team's total transfer value. Positions compare the "
+    "average CA of each club's starters there."
 )
 
 
@@ -89,10 +90,11 @@ def league_comparison(snapshot: Snapshot, formation: Formation) -> LeagueCompari
     names[snapshot.club_uid] = snapshot.club_name
     lineups = {club: pick_lineup(squad, formation) for club, squad in squads.items()}
     ordered = sorted(lineups, key=lambda club: lineups[club].average_ability(), reverse=True)
+    averages = [lineups[club].average_ability() for club in ordered]
     clubs = [
-        ClubRow(rank, names[club], lineups[club].average_ability(), format_money(squad_value(squads[club])),
+        ClubRow(averages.index(average) + 1, names[club], average, format_money(squad_value(squads[club])),
                 club == snapshot.club_uid)
-        for rank, club in enumerate(ordered, start=1)
+        for club, average in zip(ordered, averages, strict=True)
     ]  # fmt: skip
     your_rank = next(row.rank for row in clubs if row.yours)
     return LeagueComparison(

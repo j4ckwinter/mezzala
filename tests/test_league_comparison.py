@@ -48,3 +48,17 @@ def test_squad_value_counts_only_the_first_team(mezzala):
     rival = [*club_eleven(RIVAL, 120, name="Rival"), reserve]
     rows = {row["club"]: row for row in mezzala(snapshot([*eleven(), *rival])).result("league_comparison")["clubs"]}
     assert rows["Rival"]["squad_value"] == "£5.5m"
+
+
+def test_clubs_with_equal_elevens_share_a_rank(mezzala):
+    squad = [*eleven(ca=100), *club_eleven(RIVAL, 100, name="Rival"), *club_eleven(MINNOW, 80, name="Minnow")]
+    ranks = {row["club"]: row["rank"] for row in mezzala(snapshot(squad)).result("league_comparison")["clubs"]}
+    assert ranks == {"Paisley": 1, "Rival": 1, "Minnow": 3}
+
+
+def test_a_club_short_of_players_is_not_flattered(mezzala):
+    short = club_eleven(RIVAL, 110, name="Rival")[:9]
+    rows = {
+        row["club"]: row for row in mezzala(snapshot([*eleven(ca=100), *short])).result("league_comparison")["clubs"]
+    }
+    assert rows["Rival"]["eleven_average_ability"] == 90.0
