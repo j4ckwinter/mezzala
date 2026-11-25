@@ -18,6 +18,7 @@ from mezzala.save.career import Career, Current
 from mezzala.save.reader import UnreadableSave
 from mezzala.tools.compare_formations import FormationComparison, compare_formations
 from mezzala.tools.contract_watch import ContractWatch, contract_watch
+from mezzala.tools.development_plan import DevelopmentPlan, development_plan
 from mezzala.tools.find_players import FoundPlayers, PlayerSearch, SearchScope, SortBy, find_players
 from mezzala.tools.regen_intake import RegenIntake, regen_intake
 from mezzala.tools.replacement import Limits, Replacements, find_replacements
@@ -86,6 +87,12 @@ class ShortlistReport:
 class WageReviewReport:
     context: SaveContext
     result: WageReview
+
+
+@dataclass(frozen=True)
+class DevelopmentPlanReport:
+    context: SaveContext
+    result: DevelopmentPlan
 
 
 @dataclass(frozen=True)
@@ -265,6 +272,15 @@ def create_server(career: Career) -> MCPServer:
         anywhere in the formation, and not a young prospect) with the weekly saving if they all went."""
         current = read_current(career)
         return WageReviewReport(save_context(current), wage_review(current.snapshot, formation))
+
+    @server.tool(name="development_plan")
+    def development_plan_tool(formation: FormationChoice = DEFAULT_FORMATION) -> DevelopmentPlanReport:
+        """The club's players aged 21 or under: who is ready for the first team (within a few CA of the weakest
+        starter in a position he can play), who to loan out for games (not ready, old enough, room to grow),
+        who is already on loan, and the five to focus on: potential that reaches the first eleven's level, ranked
+        by potential then projected growth."""
+        current = read_current(career)
+        return DevelopmentPlanReport(save_context(current), development_plan(current.snapshot, formation))
 
     @server.tool(name="compare_formations")
     def compare_formations_tool(formations: FormationChoices = None) -> FormationReport:
