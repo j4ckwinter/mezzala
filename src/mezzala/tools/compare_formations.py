@@ -3,19 +3,18 @@ from dataclasses import dataclass
 from mezzala.core.formations import Formation, shape_for
 from mezzala.core.lineup import (
     ACCOMPLISHED_PENALTY,
+    SCORE_TIE_MARGIN,
     Lineup,
-    Place,
     StarterEntry,
-    ability_in,
     pick_lineup,
+    place_ability,
+    score,
     starter_entries,
 )
 from mezzala.core.players import Snapshot
 from mezzala.core.positions import Fit, fit
 from mezzala.core.squad import available_squad
 from mezzala.core.view import Measure, View, measure, rating
-
-SCORE_TIE_MARGIN = 0.5
 
 EXPLANATION = (
     "Each formation gets the best eleven the squad can field, using each player once. The score is the "
@@ -42,16 +41,6 @@ class FormationFit:
 class FormationComparison:
     explanation: str
     ranking: list[FormationFit]
-
-
-def place_ability(place: Place) -> float:
-    if place.player is None:
-        return 0.0
-    return ability_in(place.player, place.group) or 0.0
-
-
-def score(lineup: Lineup) -> float:
-    return round(sum(place_ability(place) for place in lineup.places) / len(lineup.places), 1)
 
 
 def weakest_place(lineup: Lineup, view: View) -> str:

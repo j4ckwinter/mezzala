@@ -9,6 +9,7 @@ from mezzala.core.positions import Fit, PositionGroup, fit
 from mezzala.core.view import Rating, View, rating
 
 ACCOMPLISHED_PENALTY = 5
+SCORE_TIE_MARGIN = 0.5
 
 
 def ability_in(player: Player, group: PositionGroup) -> int | None:
@@ -132,6 +133,16 @@ def starter_entries(lineup: Lineup, view: View) -> list[StarterEntry]:
                              fit(player, place.group).value)
             )  # fmt: skip
     return entries
+
+
+def place_ability(place: Place) -> float:
+    if place.player is None:
+        return 0.0
+    return ability_in(place.player, place.group) or 0.0
+
+
+def score(lineup: Lineup) -> float:
+    return round(sum(place_ability(place) for place in lineup.places) / len(lineup.places), 1)
 
 
 def backup_lineup(squad: list[Player], shape: Shape) -> Lineup:

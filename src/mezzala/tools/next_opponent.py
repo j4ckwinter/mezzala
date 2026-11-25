@@ -4,13 +4,12 @@ from datetime import date
 from mezzala.core.availability import absence, injured_on, possible_ban
 from mezzala.core.formations import Formation, Shape, shape_for
 from mezzala.core.leagues import club_league
-from mezzala.core.lineup import Lineup, StarterEntry, pick_lineup, starter_entries
+from mezzala.core.lineup import SCORE_TIE_MARGIN, Lineup, StarterEntry, pick_lineup, score, starter_entries
 from mezzala.core.players import Match, Player, Snapshot
 from mezzala.core.profile import outfield_profile
 from mezzala.core.squad import available_squad
 from mezzala.core.summary import PlayerSummary, summarize
 from mezzala.core.view import View
-from mezzala.tools.compare_formations import SCORE_TIE_MARGIN, score
 
 KEY_PLAYERS_SHOWN = 3
 RECENT_RESULTS_SHOWN = 5

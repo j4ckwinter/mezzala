@@ -6,11 +6,11 @@ from mezzala.core.money import format_money, format_weekly_wage
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import PositionGroup, covers
 from mezzala.core.reach import within_reach
-from mezzala.core.squad import available_squad, is_outside_club
+from mezzala.core.squad import LOOKAHEAD_SEASONS, ageing_age, available_squad, is_outside_club
 from mezzala.core.summary import PlayerSummary, summarize
 from mezzala.core.view import View
 from mezzala.core.wages import WageGuide, amount, describe_wage, wage_guide
-from mezzala.tools.squad_gaps import LOOKAHEAD_SEASONS, ageing_age, squad_gaps
+from mezzala.tools.squad_gaps import squad_gaps
 
 ALTERNATIVES_PER_POSITION = 2
 CLOSE_ENOUGH_ABILITY = 3

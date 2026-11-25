@@ -4,6 +4,10 @@ from statistics import median
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import PositionGroup, covers, group_rating
 
+AGEING_OUTFIELD_AGE = 30
+AGEING_GOALKEEPER_AGE = 32
+LOOKAHEAD_SEASONS = 2
+
 
 def plays_for_club(player: Player, club_uid: int) -> bool:
     return player.club_uid == club_uid
@@ -87,3 +91,7 @@ NOT_COUNTED_ON = frozenset(
 
 def not_counted_on(player: Player) -> bool:
     return player.squad_status in NOT_COUNTED_ON
+
+
+def ageing_age(group: PositionGroup) -> int:
+    return AGEING_GOALKEEPER_AGE if group is PositionGroup.GOALKEEPER else AGEING_OUTFIELD_AGE

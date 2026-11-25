@@ -5,13 +5,10 @@ from mezzala.core.formations import PLAYERS_PER_STARTING_PLACE, Shape
 from mezzala.core.lineup import ACCOMPLISHED_PENALTY, StarterEntry, pick_lineup, starter_entries
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import Fit, PositionGroup, fit
-from mezzala.core.squad import available_squad, depth_chart, leaves_within
+from mezzala.core.squad import LOOKAHEAD_SEASONS, ageing_age, available_squad, depth_chart, leaves_within
 from mezzala.core.view import Measure, Rating, View, ability_text, measure, rating, rating_text
 
-AGEING_OUTFIELD_AGE = 30
-AGEING_GOALKEEPER_AGE = 32
 SUCCESSOR_MAX_AGE = 23
-LOOKAHEAD_SEASONS = 2
 LEAVING_WITHIN_MONTHS = 12
 WEAK_STARTER_MARGIN = 8
 
@@ -52,10 +49,6 @@ class SquadGaps:
     starting_eleven_median_ability: Measure
     eleven: list[StarterEntry]
     positions: list[PositionReport]
-
-
-def ageing_age(group: PositionGroup) -> int:
-    return AGEING_GOALKEEPER_AGE if group is PositionGroup.GOALKEEPER else AGEING_OUTFIELD_AGE
 
 
 def depth_entry(player: Player, group: PositionGroup, starters: list[Player], view: View) -> DepthEntry:
