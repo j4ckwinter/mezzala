@@ -14,6 +14,14 @@ Use Python 3.12 or newer. On Jack's Mac that is Homebrew's `python3.15`.
 
 Run all four checks before committing.
 
+## Releasing
+
+Most players install the Claude Desktop extension, `mezzala.mcpb`, from the latest GitHub release. It is a `uv` bundle: Claude Desktop installs the dependencies from `pyproject.toml`, so the bundle carries only the source.
+
+1. Raise `version` in both `pyproject.toml` and `manifest.json`. A test fails if they differ.
+2. `npx @anthropic-ai/mcpb validate manifest.json && npx @anthropic-ai/mcpb pack . mezzala.mcpb` builds the bundle.
+3. `gh release create v<version> mezzala.mcpb` publishes it. The asset must keep the name `mezzala.mcpb`, because the README links to the latest release's copy.
+
 ## Owners
 
 | Decision | Owner |
@@ -39,6 +47,7 @@ Run all four checks before committing.
 | Finding a player by name | `src/mezzala/core/lookup.py` |
 | Each tool's rules | `src/mezzala/tools/`, one module per tool |
 | Tool names, parameters, defaults and errors | `src/mezzala/server.py` |
+| How the Claude Desktop extension installs and starts mezzala | `manifest.json`, with `.mcpbignore` for what the bundle leaves out |
 
 ## Conventions
 
@@ -59,4 +68,4 @@ Run all four checks before committing.
 
 ## Committing
 
-Commit each completed change on `main` and push to the private GitHub repository. Making the repository public, publishing a package or changing Jack's Claude Code settings needs his request.
+Commit each completed change on `main` and push to the private GitHub repository. Making the repository public, publishing a package or a release, or changing Jack's Claude Code settings needs his request.
