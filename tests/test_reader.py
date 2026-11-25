@@ -2,9 +2,16 @@ from types import SimpleNamespace
 from typing import cast
 
 from fmsave import ClauseKind, Contract, ContractType, Fixture, TransferValueState
+from fmsave import Player as FmPlayer
 
 from mezzala.core.players import ReleaseClause, ReleaseScope
-from mezzala.save.reader import first_team_leagues, known_value, release_clauses, youth_contract
+from mezzala.save.reader import (
+    first_team_leagues,
+    known_value,
+    release_clauses,
+    wage_paid_by_current_club,
+    youth_contract,
+)
 
 
 def test_a_player_valued_at_zero_costs_nothing_rather_than_an_unknown_fee():
@@ -55,3 +62,17 @@ def test_a_clubs_league_is_where_its_first_team_plays_most():
     leagues = first_team_leagues(cast(list[Fixture], fixtures))
     assert leagues[1] == 33
     assert leagues[4] == 90
+
+
+def loanee(on_loan: bool):
+    chain = (SimpleNamespace(club_uid=676, wage=12_500), SimpleNamespace(club_uid=1597, wage=2_500))
+    contract = SimpleNamespace(wage=12_500, chain=chain)
+    return cast(FmPlayer, SimpleNamespace(on_loan=on_loan, club_uid=1597, contract=contract))
+
+
+def test_a_loan_players_wage_is_what_his_current_club_pays():
+    assert wage_paid_by_current_club(loanee(on_loan=True)) == 2_500
+
+
+def test_a_permanent_players_wage_is_his_contract_wage():
+    assert wage_paid_by_current_club(loanee(on_loan=False)) == 12_500
