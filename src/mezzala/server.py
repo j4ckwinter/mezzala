@@ -25,6 +25,7 @@ from mezzala.tools.find_players import FoundPlayers, PlayerSearch, SearchScope, 
 from mezzala.tools.league_comparison import LeagueComparison, league_comparison
 from mezzala.tools.league_values import LeagueValues, league_values
 from mezzala.tools.next_job import NextJob, next_job
+from mezzala.tools.positional_fit import PositionalFit, positional_fit
 from mezzala.tools.regen_intake import RegenIntake, regen_intake
 from mezzala.tools.relegated_clubs import RelegatedClubs, relegated_clubs
 from mezzala.tools.replacement import Limits, Replacements, find_replacements
@@ -162,6 +163,12 @@ class RelegatedClubsReport:
 class SquadProfileReport:
     context: SaveContext
     result: SquadProfile
+
+
+@dataclass(frozen=True)
+class PositionalFitReport:
+    context: SaveContext
+    result: PositionalFit
 
 
 @dataclass(frozen=True)
@@ -452,6 +459,13 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         tactics; the save's tactic itself cannot be read."""
         current = read_current(career)
         return SquadProfileReport(save_context(current), squad_profile(current.snapshot, formation))
+
+    @server.tool(name="positional_fit")
+    def positional_fit_tool(formation: FormationChoice = DEFAULT_FORMATION) -> PositionalFitReport:
+        """Whether the best eleven's players suit the positions they are picked in: each starter's key-attribute
+        score there, and starters whose attributes suit another position they can play noticeably better."""
+        current = read_current(career)
+        return PositionalFitReport(save_context(current), positional_fit(current.snapshot, formation))
 
     @server.tool(name="compare_formations")
     def compare_formations_tool(formations: FormationChoices = None) -> FormationReport:
