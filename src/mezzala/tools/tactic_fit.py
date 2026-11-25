@@ -5,7 +5,7 @@ from mezzala.core.assignment import BLOCKED, min_cost_assignment
 from mezzala.core.feet import preferred_foot
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import Fit, covers, fit
-from mezzala.core.roles import FootPreference, role_score
+from mezzala.core.roles import FOOT_ADJUSTMENT, SCORE_DECIMALS, FootPreference, role_score, roles_wanting
 from mezzala.core.shapes import Slot
 from mezzala.core.squad import available_squad
 
@@ -13,14 +13,14 @@ ROLE_ACCOMPLISHED_PENALTY = 1.0
 ALTERNATIVES_PER_SLOT = 2
 WEAKEST_SLOTS_SHOWN = 3
 FILLED_SLOT_BONUS = 1_000
-SCORE_DECIMALS = 1
 
 EXPLANATION = (
     "Each slot is filled by the player whose attributes suit its role best, using each player once. A role score "
     "is out of 20: the role's key attributes count double, its preferable ones once, as FM describes the role. "
-    f"Playing where he is only accomplished costs {ROLE_ACCOMPLISHED_PENALTY:g}, and a foot that suits the role "
-    "and side (opposite for inside forwards, inverted wingers and wing-backs, same side for wingers and "
-    "full-backs) adds 1 or costs 1. These are mezzala's weightings, not the match engine's."
+    f"Playing where he is only accomplished costs {ROLE_ACCOMPLISHED_PENALTY:g}. On one side of the pitch, the foot "
+    f"a role wants adds {FOOT_ADJUSTMENT:g} and the other costs {FOOT_ADJUSTMENT:g}: the opposite foot for "
+    f"{', '.join(roles_wanting(FootPreference.OPPOSITE_SIDE))}; the same foot for "
+    f"{', '.join(roles_wanting(FootPreference.SAME_SIDE))}. These are mezzala's weightings, not the match engine's."
 )
 
 

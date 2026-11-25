@@ -535,6 +535,10 @@ ROLE_ALIASES = {
 }  # fmt: skip
 
 
+def roles_wanting(foot: FootPreference) -> list[str]:
+    return [role.name for role in ROLES if role.foot is foot]
+
+
 def find_role(text: str) -> Role:
     wanted = words(text)
     found = ROLE_NAMES.get(wanted) or ROLE_NAMES.get(words(ROLE_ALIASES.get(wanted, "")))

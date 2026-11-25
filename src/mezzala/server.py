@@ -118,10 +118,11 @@ key attributes for the position (combine with max_ca to find attributes ahead of
 overpaid" ranks wages against similar players.
 
 Who: scope "elsewhere" (default) searches other clubs and free agents, "own" your club, "everyone" the
-whole save. position matches players natural or accomplished there (FM rating 15 or more); natural_only
-keeps naturals (18 or more). nationality matches a first or second nationality, such as "Republic of
-Ireland"; work_permit_free keeps British and Irish players, who need no UK work permit. free_agents_only
-and clubs_only keep or leave out players without a club.
+whole save. position matches players natural or accomplished there (FM rating
+{ACCOMPLISHED_POSITION_RATING} or more); natural_only keeps naturals ({NATURAL_POSITION_RATING} or more).
+nationality matches a first or second nationality, such as "Republic of Ireland"; work_permit_free keeps
+British and Irish players, who need no UK work permit. free_agents_only and clubs_only keep or leave out
+players without a club.
 
 Where: country is where the club plays (Cardiff count as England); division_level is 1 for a country's
 top flight, estimated from first-team strength because the save names no leagues; league matches part
