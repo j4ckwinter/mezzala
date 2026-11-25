@@ -53,49 +53,31 @@ suggestions only include players whose reputation is close to your club's, so st
 
 ## install it
 
-you need football manager 27 and the claude desktop app, on a mac or windows.
-
-1. download `mezzala.mcpb` from the [latest release](https://github.com/j4ckwinter/mezzala/releases/latest).
-2. open it. claude shows what mezzala is and asks before installing. click install.
-3. load your career in fm and save it.
-4. ask claude "using mezzala, show me my squad". the first time, claude sets up what mezzala needs and reads your whole save, so give it a minute.
-
-nothing to configure. mezzala reads whichever fm27 save was written most recently, so it follows the career you last saved. save in fm whenever you want mezzala to see what's changed.
-
-to update, download the new `mezzala.mcpb` and open it. to remove it, go to settings → extensions in claude.
-
-### which save it reads
-
-it looks in fm's usual folders:
-
-- mac: `~/Library/Application Support/Sports Interactive/Football Manager 27/games`
-- windows: `Documents\Sports Interactive\Football Manager 27\games`, including a `Documents` folder that onedrive has moved
-
-snapshots live in `~/.mezzala/snapshots.db`. delete that folder to start mezzala's history again.
-
-### using claude code instead
-
-the easy way: ask claude code to do it.
+you need football manager 27 and claude. paste this into claude code:
 
 > install the latest version of this mcp: https://github.com/j4ckwinter/mezzala
 
-it'll read this readme and run the steps below, asking before each one. the desktop app's chat can't install things, so this only works in claude code.
+then load your career in fm, save it, and ask claude "using mezzala, show me my squad". mezzala reads whichever fm27 save was written most recently, so save in fm whenever you want it to see what's changed.
 
-or do it yourself. you need [uv](https://docs.astral.sh/uv/getting-started/installation/), which brings its own python. get it from homebrew on a mac (`brew install uv`) or winget on windows (`winget install --id=astral-sh.uv -e`). then:
+<details>
+<summary>install it yourself</summary>
+
+**claude desktop app:** download `mezzala.mcpb` from the [latest release](https://github.com/j4ckwinter/mezzala/releases/latest) and open it. claude asks before installing. the first question takes a minute while it sets up and reads your save. to update, open the new `mezzala.mcpb`. to remove it, go to settings → extensions.
+
+**claude code:** you need [uv](https://docs.astral.sh/uv/getting-started/installation/), which brings its own python. get it from homebrew on a mac (`brew install uv`) or winget on windows (`winget install --id=astral-sh.uv -e`). then:
 
 ```sh
 uv tool install git+https://github.com/j4ckwinter/mezzala
 claude mcp add --scope user mezzala -- "$(uv tool dir --bin)/mezzala"
 ```
 
-on windows, the second line ends in `\mezzala.exe` instead of `/mezzala`. to stick to one career rather than the newest save, add `--save "/path/to/career.fm"` to the end. update with `uv tool upgrade mezzala`, and remove with `claude mcp remove --scope user mezzala` then `uv tool uninstall mezzala`.
+on windows, the second line ends in `\mezzala.exe` instead of `/mezzala`. to stick to one career rather than the newest save, add `--save "/path/to/career.fm"` to the end. update with `uv tool upgrade mezzala`, then restart claude. remove it with `claude mcp remove --scope user mezzala` and `uv tool uninstall mezzala`.
 
-if you use both claude code and the desktop app, restart both after updating either. they share the same snapshots, and an older copy that's still running can't read snapshots a newer one wrote.
+**where it looks:** fm's usual save folders, `~/Library/Application Support/Sports Interactive/Football Manager 27/games` on a mac and `Documents\Sports Interactive\Football Manager 27\games` on windows (onedrive's too). snapshots live in `~/.mezzala`.
 
-### if it doesn't work
+**if it doesn't work:** check mezzala is switched on in settings → extensions, and start your question with "using mezzala". "no .fm saves found" means you haven't saved your career yet, or your saves are somewhere unusual, so use `--save`.
 
-- **claude doesn't use mezzala.** check it's switched on in settings → extensions, and start your question with "using mezzala".
-- **"no .fm saves found".** save your career in fm at least once. if your saves are somewhere unusual, use the claude code route with `--save`.
+</details>
 
 ## what it can't do
 
