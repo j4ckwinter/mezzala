@@ -68,20 +68,26 @@ def matched(before: Snapshot, after: Snapshot) -> list[tuple[Player, Player]]:
     return pairs
 
 
+def loan_note(player: Player) -> str:
+    return " (on loan)" if player.on_loan else ""
+
+
+def where_now(player: Player, current: dict[int, Player]) -> str:
+    now = current.get(player.uid)
+    if now is None or not is_same_person(player, now):
+        return "no longer in the save"
+    return f"now at {now.club_name or 'no club'}{loan_note(now)}"
+
+
 def squad_moves(before: Snapshot, after: Snapshot) -> tuple[list[Change], list[Change]]:
     club = after.club_uid
     now = {player.uid: player for player in after.players if is_ours(player, club)}
     then = {player.uid: player for player in before.players if is_ours(player, club)}
     current = after.by_uid()
     earlier = before.by_uid()
-    joined = [Change(summarize(p), f"from {then_club(earlier, p)}") for uid, p in now.items() if uid not in then]
-    left = [
-        Change(
-            summarize(p), f"now at {current[uid].club_name or 'no club'}" if uid in current else "no longer in the save"
-        )
-        for uid, p in then.items()
-        if uid not in now
-    ]
+    arrivals = sorted((p for uid, p in now.items() if uid not in then), key=lambda p: p.current_ability, reverse=True)
+    joined = [Change(summarize(p), f"from {then_club(earlier, p)}{loan_note(p)}") for p in arrivals]
+    left = [Change(summarize(p), where_now(p, current)) for uid, p in then.items() if uid not in now]
     return joined, left
 
 
@@ -117,6 +123,8 @@ def notable_transfers(pairs: list[tuple[Player, Player]], club: int) -> list[Cha
         (old, new)
         for old, new in pairs
         if old.club_uid != new.club_uid
+        and not old.on_loan
+        and not new.on_loan
         and (new.value or 0) >= NOTABLE_TRANSFER_VALUE
         and not is_ours(new, club)
         and not is_ours(old, club)
@@ -131,6 +139,9 @@ def notable_transfers(pairs: list[tuple[Player, Player]], club: int) -> list[Cha
 def what_changed(current: Snapshot, previous: Snapshot | None) -> WhatChanged:
     if previous is None:
         return WhatChanged(None, NO_EARLIER_SNAPSHOT, [], [], [], [], [], [], 0, [], [])
+    if previous.club_uid != current.club_uid:
+        moved = f"You moved from {previous.club_name} to {current.club_name}, so the squads are not compared."
+        return WhatChanged(previous.game_date.isoformat(), moved, [], [], [], [], [], [], 0, [], [])
     pairs = matched(previous, current)
     joined, left = squad_moves(previous, current)
     ability, contracts, values = own_changes(pairs, current.club_uid)

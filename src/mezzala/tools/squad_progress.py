@@ -62,6 +62,12 @@ def measures(snapshot: Snapshot, formation: Formation) -> dict[str, str]:
 def squad_progress(current: Snapshot, first: Snapshot | None, formation: Formation) -> SquadProgress:
     if first is None:
         return SquadProgress(None, FIRST_SNAPSHOT_ONLY, [], [])
+    if first.club_uid != current.club_uid:
+        moved = (
+            f"You managed {first.club_name} in the first snapshot and {current.club_name} now, "
+            "so there is no squad to compare."
+        )
+        return SquadProgress(first.game_date.isoformat(), moved, [], [])
     then = measures(first, formation)
     now = measures(current, formation)
     earlier = first.by_uid()

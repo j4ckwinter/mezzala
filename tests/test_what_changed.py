@@ -70,3 +70,37 @@ def test_changes_are_measured_from_the_previous_snapshot_not_the_first(mezzala):
     result = changes(app)
     assert result["compared_with"] == "2026-09-01"
     assert [c["detail"] for c in result["ability"]] == ["CA 110 -> 112"]
+
+
+def test_a_loan_is_not_reported_as_a_transfer_and_loan_arrivals_say_so(mezzala):
+    squad = eleven()
+    star = player("Star", club=OTHER_CLUB, value=20_000_000)
+    borrowed = player("Borrowed", club=3)
+    app = mezzala(snapshot([*squad, star, borrowed]))
+    app.call("snapshot")
+    loaned_star = replace(star, club_uid=3, club_name="Club 3", on_loan=True, loan_parent_club_uid=OTHER_CLUB)
+    arrived = replace(borrowed, club_uid=1, club_name="Paisley", on_loan=True, loan_parent_club_uid=3)
+    app.play_to(snapshot([*squad, loaned_star, arrived], game_date=LATER))
+    result = changes(app)
+    assert result["notable_transfers"] == []
+    assert [c["detail"] for c in result["joined"]] == ["from Club 3 (on loan)"]
+
+
+def test_a_departed_player_whose_id_was_reused_is_not_placed_at_the_new_persons_club(mezzala):
+    squad = eleven()
+    leaver = mine("Leaver", age=34)
+    app = mezzala(snapshot([*squad, leaver]))
+    app.call("snapshot")
+    newcomer = replace(leaver, name="Newcomer", age=15, birth_date=date(2011, 1, 1), club_uid=3, club_name="Club 3")
+    app.play_to(snapshot([*squad, newcomer], game_date=LATER))
+    assert [c["detail"] for c in changes(app)["left"]] == ["no longer in the save"]
+
+
+def test_a_change_of_club_is_explained_instead_of_compared(mezzala):
+    squad = eleven()
+    app = mezzala(snapshot(squad))
+    app.call("snapshot")
+    moved = snapshot([replace(p, club_uid=OTHER_CLUB) for p in squad], game_date=LATER)
+    app.play_to(replace(moved, club_uid=OTHER_CLUB, club_name="New Club"))
+    result = changes(app)
+    assert "You moved from Paisley to New Club" in result["explanation"] and result["left"] == []

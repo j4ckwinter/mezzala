@@ -28,3 +28,14 @@ def test_the_squad_is_compared_with_the_first_snapshot(mezzala):
     assert rows["value of the club's players"] == ("£11.0m", "£14.0m")
     assert rows["weekly wage bill"] == ("£22,000 p/w", "£27,000 p/w")
     assert [improver["ability_change"] for improver in result["most_improved"]][:2] == [20, 10]
+
+
+def test_a_change_of_club_is_explained_instead_of_compared(mezzala):
+    squad = eleven()
+    app = mezzala(snapshot(squad))
+    app.call("snapshot")
+    moved = snapshot([replace(p, club_uid=2) for p in squad], game_date=date(2027, 1, 1))
+    app.play_to(replace(moved, club_uid=2, club_name="New Club"))
+    result = progress(app)
+    assert "You managed Paisley in the first snapshot and New Club now" in result["explanation"]
+    assert result["measures"] == []
