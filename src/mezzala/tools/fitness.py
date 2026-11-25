@@ -1,14 +1,13 @@
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from mezzala.core.availability import absence, possible_ban
+from mezzala.core.availability import absence, injury_prone, possible_ban
 from mezzala.core.formations import Shape
 from mezzala.core.lineup import pick_lineup
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.squad import available_squad
 from mezzala.core.view import View, shows_hidden_information
 
-INJURY_PRONE_FROM = 14
 RECENT_INJURIES_FOR_RISK = 2
 LOW_CONDITION_BELOW = 90
 LOW_SHARPNESS_BELOW = 70
@@ -53,7 +52,7 @@ def explanation(view: View) -> str:
 
 def injury_risk(player: Player, view: View) -> str | None:
     reasons: list[str] = []
-    if shows_hidden_information(view) and player.attributes["injury_proneness"] >= INJURY_PRONE_FROM:
+    if shows_hidden_information(view) and injury_prone(player):
         reasons.append("prone to injury")
     if len(player.injuries) >= RECENT_INJURIES_FOR_RISK:
         reasons.append(f"{len(player.injuries)} injuries in the last two years")

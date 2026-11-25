@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import StrEnum
 
+from mezzala.core.availability import injury_prone
 from mezzala.core.growth import projected_growth
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import PositionGroup, covers, fit, primary_group
@@ -10,7 +11,6 @@ from mezzala.core.view import View, shows_hidden_information, signed_amount_text
 
 FOCUS_ATTRIBUTES = 3
 MAX_ATTRIBUTE = 20
-INJURY_PRONE_FROM = 14
 LOW_NATURAL_FITNESS_BELOW = 11
 VETERAN_AGE = 32
 RECENT_INJURIES_FOR_CAUTION = 2
@@ -92,7 +92,7 @@ def additional_focus(player: Player, group: PositionGroup) -> list[FocusAttribut
 
 def intensity(player: Player, view: View) -> tuple[Intensity, list[str]]:
     reasons: list[str] = []
-    if shows_hidden_information(view) and player.attributes["injury_proneness"] >= INJURY_PRONE_FROM:
+    if shows_hidden_information(view) and injury_prone(player):
         reasons.append("he is prone to injury")
     if player.attributes["natural_fitness"] < LOW_NATURAL_FITNESS_BELOW:
         reasons.append("his natural fitness is low")

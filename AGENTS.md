@@ -42,7 +42,7 @@ Most players install the Claude Desktop extension, `mezzala.mcpb`, from the late
 | Formations and shapes, how many starters each needs, the default formation, and the shape of a saved tactic | `src/mezzala/core/formations.py` |
 | Who belongs to the club, who plays for it, what it pays them, depth, leaving dates, squad level | `src/mezzala/core/squad.py` |
 | Choosing a starting eleven and its cover (a second eleven) for a formation | `src/mezzala/core/lineup.py` |
-| Who is injured or banned on a given day | `src/mezzala/core/availability.py` |
+| Who is injured or banned on a given day, and who is injury-prone | `src/mezzala/core/availability.py` |
 | Nationality, and who needs no UK work permit | `src/mezzala/core/nationality.py` |
 | A player's preferred foot and weak foot | `src/mezzala/core/feet.py` |
 | FM roles: their key and preferable attributes, which foot suits them, and a player's role score | `src/mezzala/core/roles.py` |

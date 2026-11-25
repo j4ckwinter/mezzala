@@ -2,6 +2,12 @@ from datetime import date
 
 from mezzala.core.players import Player
 
+INJURY_PRONE_FROM = 14
+
+
+def injury_prone(player: Player) -> bool:
+    return player.attributes["injury_proneness"] >= INJURY_PRONE_FROM
+
 
 def injured_on(player: Player, day: date) -> bool:
     return player.injured_until is not None and player.injured_until >= day
