@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from enum import StrEnum
 from typing import Annotated
 
@@ -18,6 +18,7 @@ from mezzala.core.squad import belongs_to_club, owned_players, plays_for_club, s
 from mezzala.core.view import View, shows_hidden_information
 from mezzala.save.career import Career, Current
 from mezzala.save.reader import UnreadableSave
+from mezzala.save.store import FileStamp
 from mezzala.save.watchlist import WatchlistStore
 from mezzala.tools.compare_formations import FormationComparison, compare_formations
 from mezzala.tools.contract_watch import ContractWatch, contract_watch
@@ -54,14 +55,18 @@ RISER_CA_BELOW_SQUAD_LEVEL = 20
 RISER_TARGET_MAX_AGE = 23
 RELEGATION_LOOKBACK_DAYS = 300
 PERFORMANCE_MIN_MINUTES = 450
+NANOSECONDS_PER_SECOND = 1_000_000_000
+WRITTEN_FORMAT = "%Y-%m-%d %H:%M UTC"
 DEVELOPMENT_MIN_PA = 150
 REGEN_MIN_PA = 120
 RISER_MIN_CA_GAIN = 3
 
 INSTRUCTIONS = f"""\
 mezzala reads the manager's Football Manager 27 save and answers squad, formation and transfer questions about it.
-Every answer starts with the save's in-game date and club. Each call checks the save file and stores a new
-snapshot when it has changed, so growth compares real snapshots once there are two or more.
+Every answer starts with the save's in-game date and club, and when the save file was written (save_written).
+mezzala sees only what FM wrote at that save: budgets, transfers or squad changes made in the game since then do not
+show until the manager saves again, so say so when an answer looks out of date. Each call checks the save file
+and stores a new snapshot when it has changed, so growth compares real snapshots once there are two or more.
 Money is in pounds. Fees are FM's transfer values, because asking prices are not stored in the save.
 Current and potential ability (CA, PA) are FM's hidden 1-200 numbers.
 find_players searches every player in the save with filters and sorts, and answers most recruitment
@@ -128,6 +133,7 @@ class SaveContext:
     game_date: str
     club: str
     club_reputation: int
+    save_written: str
     transfer_budget: str
     wage_headroom: str
     snapshots: int
@@ -315,6 +321,12 @@ class RegenIntakeReport:
     result: RegenIntake
 
 
+def written_at(stamp: FileStamp | None) -> str:
+    if stamp is None:
+        return "unknown"
+    return datetime.fromtimestamp(stamp.mtime_ns / NANOSECONDS_PER_SECOND, UTC).strftime(WRITTEN_FORMAT)
+
+
 def save_context(current: Current, notes: list[str] | None = None) -> SaveContext:
     snapshot = current.snapshot
     return SaveContext(
@@ -322,6 +334,7 @@ def save_context(current: Current, notes: list[str] | None = None) -> SaveContex
         game_date=snapshot.game_date.isoformat(),
         club=snapshot.club_name,
         club_reputation=snapshot.club_reputation,
+        save_written=written_at(current.written),
         transfer_budget=format_money(snapshot.budget.transfer_remaining),
         wage_headroom=format_weekly_wage(snapshot.budget.wage_headroom_weekly),
         snapshots=current.snapshot_count,

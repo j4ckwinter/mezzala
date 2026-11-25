@@ -21,6 +21,7 @@ class Current:
     snapshot: Snapshot
     snapshot_count: int
     notes: list[str]
+    written: FileStamp | None
 
 
 def spread(dates: list[date], count: int) -> list[date]:
@@ -96,8 +97,10 @@ class Career:
         career = str(path.resolve())
         notes: list[str] = []
         latest = self._store.latest_date(career)
+        written: FileStamp | None = None
         try:
             stamp = self._stamp(path)
+            written = stamp
             if latest is not None and self._store.latest_stamp(career) == stamp:
                 snapshot = self._load(career, latest)
             else:
@@ -109,7 +112,7 @@ class Career:
             notes.append(f"Could not read the save ({error}); using the snapshot from {latest.isoformat()}.")
         self._last_path = path
         earlier = [day for day in self._store.dates(career) if day < snapshot.game_date]
-        return Current(path, career, snapshot, len(earlier) + 1, notes)
+        return Current(path, career, snapshot, len(earlier) + 1, notes, written)
 
     def earlier_dates(self, current: Current) -> list[date]:
         with self._lock:

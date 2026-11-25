@@ -238,3 +238,22 @@ def test_the_new_player_and_club_facts_survive_a_restart(mezzala):
     app.call("snapshot")
     stored = SnapshotStore(app.database).load(str(Path("career.fm").resolve()), first.game_date)
     assert stored == first
+
+
+def test_every_answer_says_when_the_save_was_written(mezzala):
+    app = mezzala(snapshot(eleven()))
+    app.save.version = 1_782_000_000_000_000_000
+    assert app.call("squad").data["context"]["save_written"] == "2026-06-21 00:00 UTC"
+
+
+def test_the_write_time_is_unknown_when_falling_back_to_a_stored_snapshot(mezzala):
+    app = mezzala(snapshot(eleven()))
+    app.call("squad")
+    app.save.missing.add(app.save.path)
+    assert app.call("squad").data["context"]["save_written"] == "unknown"
+
+
+def test_the_instructions_warn_that_changes_in_fm_show_only_after_saving():
+    from mezzala.server import INSTRUCTIONS
+
+    assert "show until the manager saves again" in INSTRUCTIONS
