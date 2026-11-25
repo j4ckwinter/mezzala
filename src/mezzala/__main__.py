@@ -23,7 +23,7 @@ def fog_of_war(text: str) -> View:
     raise argparse.ArgumentTypeError(f"expected on or off, not {text!r}")
 
 
-def main() -> None:
+def parse_arguments(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="mezzala", description="Football Manager 27 transfer MCP server")
     parser.add_argument(
         "--save", type=Path, help="the .fm save to read; defaults to whichever FM27 save was written last"
@@ -33,11 +33,15 @@ def main() -> None:
         "--fog-of-war",
         type=fog_of_war,
         nargs="?",
-        const=View.SPOILER_FREE,
-        default=View.FULL,
+        const="on",
+        default="off",
         help="hide what FM hides: show ability as stars, leave out hidden attributes (on or off; default off)",
     )
-    arguments = parser.parse_args()
+    return parser.parse_args(argv)
+
+
+def main() -> None:
+    arguments = parse_arguments()
     pinned: Path | None = arguments.save
     locate = (lambda: pinned) if pinned is not None else (lambda: newest_save(Path.home()))
     career = Career(locate, SnapshotStore(arguments.database), read_snapshot)

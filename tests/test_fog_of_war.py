@@ -8,7 +8,7 @@ import pytest
 from factory import eleven, mine, player, snapshot
 from mcp import Client
 
-from mezzala.__main__ import fog_of_war
+from mezzala.__main__ import fog_of_war, parse_arguments
 from mezzala.core.view import View
 from mezzala.server import create_server
 
@@ -82,3 +82,10 @@ def test_the_fog_of_war_switch_reads_the_words_a_settings_screen_sends():
 def test_an_unclear_fog_of_war_switch_is_refused():
     with pytest.raises(argparse.ArgumentTypeError):
         fog_of_war("maybe")
+
+
+def test_fog_of_war_is_off_unless_the_option_is_given():
+    assert parse_arguments([]).fog_of_war is View.FULL
+    assert parse_arguments(["--fog-of-war"]).fog_of_war is View.SPOILER_FREE
+    assert parse_arguments(["--fog-of-war", "false"]).fog_of_war is View.FULL
+    assert parse_arguments(["--fog-of-war", "on"]).fog_of_war is View.SPOILER_FREE
