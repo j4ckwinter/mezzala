@@ -266,8 +266,9 @@ def create_server(career: Career) -> MCPServer:
         """A realistic transfer shortlist: for each position squad_gaps flags, worst first, the best player
         within reach who beats the current starter, spending down the transfer budget and weekly wage room as it
         goes, with two alternatives each. Budgets are in pounds and default to the club's remaining transfer
-        budget and wage room. Wages shown are the player's current wage; a free agent's is estimated from
-        similar players and counted against the wage room."""
+        budget and wage room. A target is expected to want at least the going rate for his ability at clubs
+        of similar reputation to yours. Positions flagged as ageing or without a successor only get younger
+        targets, and among targets within a few CA of the best the cheapest wins."""
         current = read_current(career)
         budget = current.snapshot.budget
         fees = optional_stored(transfer_budget) if transfer_budget is not None else budget.transfer_remaining

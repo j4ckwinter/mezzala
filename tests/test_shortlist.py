@@ -41,15 +41,29 @@ def test_wages_must_fit_the_wage_room(mezzala):
     assert (striker["target"]["name"], striker["weekly_wage"]) == ("Modest Wages", "£3,000 p/w")
 
 
-def test_a_free_agents_wage_is_estimated_from_similar_players_and_counted(mezzala):
-    paid = [player(f"Paid {n}", positions=("gk",), ca=120, age=30, wage=4_000) for n in range(25)]
+def test_a_target_is_expected_to_want_the_going_rate_at_clubs_like_yours(mezzala):
+    paid = [player(f"Paid {n}", positions=("gk",), ca=120, age=27, wage=4_000) for n in range(6)]
     squad = [*without("stc"), mine("Weak Striker", positions=("stc",), ca=70), *paid]
-    squad.append(player("Free Striker", positions=("stc",), ca=120, age=30, club=None, value=None, wage=None))
+    squad += [player("Free Striker", positions=("stc",), ca=120, age=27, club=None, value=None, wage=None),
+              player("Underpaid Striker", positions=("stc",), ca=119, age=27, value=50_000, wage=300)]  # fmt: skip
     app = mezzala(snapshot(squad))
-    assert picks(app, weekly_wage_budget=5_000)["striker"]["weekly_wage"] == (
-        "about £4,000 p/w (estimated from similar players)"
-    )
+    striker = picks(app, weekly_wage_budget=5_000)["striker"]
+    assert striker["weekly_wage"] == "about £4,000 p/w (the going rate for his ability at clubs like yours)"
     assert picks(app, weekly_wage_budget=3_000)["striker"]["target"] is None
+
+
+def test_an_ageing_position_gets_a_younger_target(mezzala):
+    squad = [*without("stc"), *without("stc"), mine("Old Striker", positions=("stc",), age=31, ca=100, pa=100)]
+    squad += [player("Older", positions=("stc",), age=28, ca=125, value=50_000),
+              player("Younger", positions=("stc",), age=26, ca=115, value=50_000)]  # fmt: skip
+    assert picks(mezzala(snapshot(squad, transfer_budget=1_000_000)))["striker"]["target"]["name"] == "Younger"
+
+
+def test_the_cheapest_of_the_near_best_targets_is_picked(mezzala):
+    squad = [*without("stc"), mine("Weak Striker", positions=("stc",), ca=70)]
+    squad += [player("Best But Dear", positions=("stc",), ca=122, value=900_000),
+              player("Nearly As Good", positions=("stc",), ca=120, value=100_000)]  # fmt: skip
+    assert picks(mezzala(snapshot(squad, transfer_budget=1_000_000)))["striker"]["target"]["name"] == "Nearly As Good"
 
 
 def test_a_position_with_nothing_affordable_says_so(mezzala):
