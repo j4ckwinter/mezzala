@@ -15,6 +15,7 @@ from mezzala.tools.squad_gaps import LOOKAHEAD_SEASONS, ageing_age, squad_gaps
 
 ALTERNATIVES_PER_POSITION = 2
 GOING_RATE_ABILITY_BAND = 5
+WIDER_GOING_RATE_ABILITY_BAND = 10
 MIN_GOING_RATE_PLAYERS = 5
 CLOSE_ENOUGH_ABILITY = 3
 
@@ -82,10 +83,13 @@ class WageGuide:
     peers: PeerMedians
 
     def going_rate(self, player: Player) -> WageEstimate | None:
-        for wages, source in ((self.domestic, WageSource.DOMESTIC), (self.similar_clubs, WageSource.SIMILAR_CLUBS)):
-            nearby = [
-                wage for ability, wage in wages if abs(ability - player.current_ability) <= GOING_RATE_ABILITY_BAND
-            ]
+        searches = (
+            (self.domestic, GOING_RATE_ABILITY_BAND, WageSource.DOMESTIC),
+            (self.domestic, WIDER_GOING_RATE_ABILITY_BAND, WageSource.DOMESTIC),
+            (self.similar_clubs, GOING_RATE_ABILITY_BAND, WageSource.SIMILAR_CLUBS),
+        )
+        for wages, band, source in searches:
+            nearby = [wage for ability, wage in wages if abs(ability - player.current_ability) <= band]
             if len(nearby) >= MIN_GOING_RATE_PLAYERS:
                 return WageEstimate(round(median(nearby)), source)
         estimate = self.peers.of(player)

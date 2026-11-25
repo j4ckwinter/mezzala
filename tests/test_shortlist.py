@@ -157,3 +157,13 @@ def test_reserve_team_wages_do_not_set_the_going_rate(mezzala):
     squad.append(player("Free Striker", positions=("stc",), ca=120, age=27, club=None, value=None, wage=None))
     striker = picks(mezzala(snapshot(squad)), weekly_wage_budget=5_000)["striker"]
     assert striker["weekly_wage"].startswith("about £3,000 p/w")
+
+
+def test_a_wider_domestic_band_is_tried_before_clubs_abroad(mezzala):
+    home = [player(f"Home {n}", positions=("gk",), ca=112, age=27, wage=3_000) for n in range(6)]
+    abroad = [player(f"Abroad {n}", positions=("gk",), ca=120, age=27, wage=9_000, club_nation_id=139)
+              for n in range(10)]  # fmt: skip
+    squad = [*without("stc"), mine("Weak Striker", positions=("stc",), ca=70), *home, *abroad]
+    squad.append(player("Free Striker", positions=("stc",), ca=120, age=27, club=None, value=None, wage=None))
+    striker = picks(mezzala(snapshot(squad)), weekly_wage_budget=5_000)["striker"]
+    assert striker["weekly_wage"] == "about £3,000 p/w (the going rate at clubs like yours in your country)"
