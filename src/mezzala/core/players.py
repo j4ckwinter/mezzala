@@ -102,6 +102,18 @@ class Snapshot:
 
 
 @dataclass(frozen=True)
+class WatchedPlayer:
+    uid: int
+    birth_date: date | None
+    name: str
+    added_on: date
+    value: int | None
+    current_ability: int
+    club_name: str | None
+    note: str
+
+
+@dataclass(frozen=True)
 class PastPlayers:
     game_date: date
     by_uid: Mapping[int, Player]

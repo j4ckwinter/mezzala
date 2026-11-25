@@ -23,6 +23,7 @@ Run all four checks before committing.
 | Where FM27 keeps saves, and which one is used by default | `src/mezzala/save/saves.py` |
 | When a new snapshot is taken, and which earlier snapshot a tool compares with | `src/mezzala/save/career.py` |
 | How snapshots are stored | `src/mezzala/save/store.py` |
+| How the watchlist is stored | `src/mezzala/save/watchlist.py` |
 | Position groups, and when a player is natural or accomplished in one | `src/mezzala/core/positions.py` |
 | Formations and how many starters each needs | `src/mezzala/core/formations.py` |
 | Who belongs to the club, who plays for it, what it pays them, depth, leaving dates, squad level | `src/mezzala/core/squad.py` |

@@ -5,6 +5,7 @@ from mezzala.save.career import Career
 from mezzala.save.reader import read_snapshot
 from mezzala.save.saves import newest_save
 from mezzala.save.store import SnapshotStore
+from mezzala.save.watchlist import WatchlistStore
 from mezzala.server import create_server
 
 DEFAULT_DATABASE = Path.home() / ".mezzala" / "snapshots.db"
@@ -20,7 +21,7 @@ def main() -> None:
     pinned: Path | None = arguments.save
     locate = (lambda: pinned) if pinned is not None else (lambda: newest_save(Path.home()))
     career = Career(locate, SnapshotStore(arguments.database), read_snapshot)
-    create_server(career).run()
+    create_server(career, WatchlistStore(arguments.database)).run()
 
 
 if __name__ == "__main__":

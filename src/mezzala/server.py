@@ -16,6 +16,7 @@ from mezzala.core.positions import ACCOMPLISHED_POSITION_RATING, NATURAL_POSITIO
 from mezzala.core.squad import owned_players, squad_level
 from mezzala.save.career import Career, Current
 from mezzala.save.reader import UnreadableSave
+from mezzala.save.watchlist import WatchlistStore
 from mezzala.tools.compare_formations import FormationComparison, compare_formations
 from mezzala.tools.contract_watch import ContractWatch, contract_watch
 from mezzala.tools.development_plan import DevelopmentPlan, development_plan
@@ -29,6 +30,7 @@ from mezzala.tools.shortlist import Shortlist, shortlist
 from mezzala.tools.squad_gaps import SquadGaps, squad_gaps
 from mezzala.tools.squad_list import SquadList, squad_list
 from mezzala.tools.wage_review import WageReview, wage_review
+from mezzala.tools.watchlist import Watchlist, watched_record, watchlist
 from mezzala.tools.what_changed import WhatChanged, what_changed
 
 DEFAULT_FORMATION = Formation.FOUR_THREE_THREE
@@ -109,6 +111,12 @@ class LeagueComparisonReport:
 class WhatChangedReport:
     context: SaveContext
     result: WhatChanged
+
+
+@dataclass(frozen=True)
+class WatchlistReport:
+    context: SaveContext
+    result: Watchlist
 
 
 @dataclass(frozen=True)
@@ -207,7 +215,7 @@ SearchScopeChoice = Annotated[SearchScope, Field(description=one_of(SearchScope)
 SortChoice = Annotated[SortBy, Field(description=one_of(SortBy))]
 
 
-def create_server(career: Career) -> MCPServer:
+def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
     server = MCPServer("mezzala", instructions=INSTRUCTIONS)
 
     @server.tool()
@@ -313,6 +321,31 @@ def create_server(career: Career) -> MCPServer:
         players whose CA, contract or value moved, new regens, and big transfers elsewhere."""
         current = read_current(career)
         return WhatChangedReport(save_context(current), what_changed(current.snapshot, career.previous(current)))
+
+    @server.tool(name="watch_player")
+    def watch_player_tool(player: str, note: str = "") -> WatchlistReport:
+        """Add a player to mezzala's watchlist (FM's own shortlist is not readable from the save). His value, CA and
+        club are recorded so later calls can show how he has changed and whether he has become cheaper."""
+        current = read_current(career)
+        target = target_player(current.snapshot, player)
+        watched.add(current.career, watched_record(target, current.snapshot, note))
+        return WatchlistReport(save_context(current), watchlist(current.snapshot, watched.entries(current.career)))
+
+    @server.tool(name="unwatch_player")
+    def unwatch_player_tool(player: str) -> WatchlistReport:
+        """Remove a player from mezzala's watchlist."""
+        current = read_current(career)
+        target = target_player(current.snapshot, player)
+        if not watched.remove(current.career, target.uid):
+            raise ToolError(f"{target.name} is not on the watchlist.")
+        return WatchlistReport(save_context(current), watchlist(current.snapshot, watched.entries(current.career)))
+
+    @server.tool(name="watchlist")
+    def watchlist_tool() -> WatchlistReport:
+        """mezzala's watchlist: each player now, what has changed since he was added, and whether he has become
+        cheaper (value down, contract ending within a year, now a free agent, or a release clause that applies)."""
+        current = read_current(career)
+        return WatchlistReport(save_context(current), watchlist(current.snapshot, watched.entries(current.career)))
 
     @server.tool(name="compare_formations")
     def compare_formations_tool(formations: FormationChoices = None) -> FormationReport:

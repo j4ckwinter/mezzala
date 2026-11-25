@@ -12,6 +12,7 @@ from mcp import Client
 from mezzala.core.players import Snapshot
 from mezzala.save.career import Career
 from mezzala.save.store import FileStamp, SnapshotStore
+from mezzala.save.watchlist import WatchlistStore
 from mezzala.server import create_server
 
 
@@ -65,14 +66,16 @@ class Mezzala:
     save: FakeSave
     career: Career
     database: Path
+    watched: WatchlistStore
 
     def another_server(self) -> "Mezzala":
         store = SnapshotStore(self.database)
-        return Mezzala(self.save, Career(self.save.locate, store, self.save.read, self.save.stamp), self.database)
+        career = Career(self.save.locate, store, self.save.read, self.save.stamp)
+        return Mezzala(self.save, career, self.database, WatchlistStore(self.database))
 
     def call(self, tool: str, **arguments: Any) -> ToolResult:
         async def run() -> ToolResult:
-            async with Client(create_server(self.career)) as client:
+            async with Client(create_server(self.career, self.watched)) as client:
                 result = await client.call_tool(tool, arguments)
                 text = "".join(getattr(block, "text", "") for block in result.content)
                 data = result.structured_content or (json.loads(text) if not result.is_error else {})
@@ -82,7 +85,7 @@ class Mezzala:
 
     def call_together(self, *tools: str) -> list[ToolResult]:
         async def run() -> list[ToolResult]:
-            async with Client(create_server(self.career)) as client:
+            async with Client(create_server(self.career, self.watched)) as client:
                 results = await asyncio.gather(*(client.call_tool(tool, {}) for tool in tools))
                 return [ToolResult(r.is_error, r.structured_content or {}, "") for r in results]
 
@@ -104,6 +107,7 @@ def mezzala(tmp_path: Path) -> Callable[[Snapshot], Mezzala]:
         save = FakeSave()
         save.write(first)
         database = tmp_path / "snapshots.db"
-        return Mezzala(save, Career(save.locate, SnapshotStore(database), save.read, save.stamp), database)
+        career = Career(save.locate, SnapshotStore(database), save.read, save.stamp)
+        return Mezzala(save, career, database, WatchlistStore(database))
 
     return start

@@ -7,7 +7,7 @@ from mezzala.server import INSTRUCTIONS, create_server
 
 def schemas() -> dict[str, dict]:
     async def run() -> dict[str, dict]:
-        async with Client(create_server(None)) as client:  # type: ignore[arg-type]
+        async with Client(create_server(None, None)) as client:  # type: ignore[arg-type]
             return {tool.name: tool.input_schema for tool in (await client.list_tools()).tools}
 
     return asyncio.run(run())
