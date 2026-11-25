@@ -16,7 +16,7 @@ from mezzala.core.positions import ACCOMPLISHED_POSITION_RATING, NATURAL_POSITIO
 from mezzala.core.reach import REPUTATION_REACH
 from mezzala.core.rejections import without_rejected
 from mezzala.core.roles import Side, UnknownRole, find_role
-from mezzala.core.shapes import BadSlot, parse_slot
+from mezzala.core.slots import BadSlot, parse_slot
 from mezzala.core.squad import belongs_to_club, is_outside_club, owned_players, plays_for_club, squad_level
 from mezzala.core.view import View, shows_hidden_information
 from mezzala.save.career import Career, Current

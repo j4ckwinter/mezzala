@@ -6,7 +6,7 @@ from mezzala.core.feet import preferred_foot
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import Fit, covers, fit
 from mezzala.core.roles import FOOT_ADJUSTMENT, SCORE_DECIMALS, FootPreference, role_score, roles_wanting
-from mezzala.core.shapes import Slot
+from mezzala.core.slots import Slot
 from mezzala.core.squad import available_squad
 
 ROLE_ACCOMPLISHED_PENALTY = 1.0
