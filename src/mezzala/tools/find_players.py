@@ -30,6 +30,7 @@ from mezzala.core.squad import (
 )
 from mezzala.core.summary import PlayerSummary, summarize
 from mezzala.core.view import Measure, View, measure_change
+from mezzala.core.wages import WageGuide, describe_wage, wage_guide
 
 
 class SearchScope(StrEnum):
@@ -91,6 +92,7 @@ class FoundPlayer:
     division_level: int | None
     value_vs_similar_players: str
     wage_vs_similar_players: str
+    expected_wage: str
     above_league_level: Measure | None
     position: str
     position_attribute_score: float
@@ -112,6 +114,7 @@ class Measures:
     wages: PeerMedians
     leagues: dict[int, float]
     named_leagues: dict[int, League]
+    wage_guide: WageGuide
 
     def league_of(self, player: Player) -> League | None:
         return self.named_leagues.get(player.league_id) if player.league_id is not None else None
@@ -276,6 +279,7 @@ def found(player: Player, search: PlayerSearch, measures: Measures, view: View) 
         division_level=league.division_level if league else None,
         value_vs_similar_players=describe_ratio(measures.value_ratio(player)),
         wage_vs_similar_players=describe_ratio(measures.wage_ratio(player)),
+        expected_wage=describe_wage(measures.wage_guide.expected(player)),
         above_league_level=None if excess is None else measure_change(view, round(excess, 1)),
         position=group.value,
         position_attribute_score=position_score(player, group),
@@ -291,6 +295,7 @@ def find_players(snapshot: Snapshot, search: PlayerSearch, view: View) -> FoundP
         PeerMedians(snapshot.players, weekly_wage),
         league_levels(snapshot.players),
         leagues(snapshot.players),
+        wage_guide(snapshot),
     )
     matched = [
         player

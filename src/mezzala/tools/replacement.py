@@ -8,6 +8,7 @@ from mezzala.core.reach import within_reach
 from mezzala.core.squad import is_outside_club, leaves_within
 from mezzala.core.summary import PlayerSummary, summarize
 from mezzala.core.view import View, ability_text, potential_text, rating
+from mezzala.core.wages import describe_wage, wage_guide
 
 ABILITY_SHORTFALL_ALLOWED = 5
 GROWS_INTO_IT_MAX_AGE = 21
@@ -33,6 +34,7 @@ class Candidate:
     score: float
     profile_similarity: float
     reasons: list[str]
+    expected_wage: str
 
 
 @dataclass(frozen=True)
@@ -91,6 +93,7 @@ def find_replacements(
 ) -> Replacements:
     position = group or primary_group(target)
     ranked: list[Candidate] = []
+    wages = wage_guide(snapshot)
     for candidate in snapshot.players:
         if candidate.uid == target.uid or not is_outside_club(candidate, snapshot.club_uid):
             continue
@@ -102,7 +105,8 @@ def find_replacements(
         score = SIMILARITY_WEIGHT * similarity + ABILITY_WEIGHT * ability_score(target, candidate)
         ranked.append(
             Candidate(summarize(candidate, view), round(score, 3), round(similarity, 3),
-                      reasons(snapshot, target, candidate, similarity, view))
+                      reasons(snapshot, target, candidate, similarity, view),
+                      describe_wage(wages.expected(candidate)))
         )  # fmt: skip
     ranked.sort(key=lambda candidate: candidate.score, reverse=True)
     fee_cap = "no limit" if limits.max_fee is None else format_money(limits.max_fee)

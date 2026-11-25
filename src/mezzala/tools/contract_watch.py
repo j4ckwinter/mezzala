@@ -8,6 +8,7 @@ from mezzala.core.reach import within_reach
 from mezzala.core.squad import available_squad, is_outside_club, leaves_within, owned_players
 from mezzala.core.summary import PlayerSummary, summarize
 from mezzala.core.view import View
+from mezzala.core.wages import WageGuide, describe_wage, wage_guide
 
 KEY_PLAYER_MARGIN = 5
 
@@ -25,6 +26,7 @@ class Target:
     position: str
     improves_on: str
     reason: str
+    expected_wage: str
 
 
 @dataclass(frozen=True)
@@ -62,12 +64,14 @@ def best_improvement(
     return group, improves_on
 
 
-def target(player: Player, bars: dict[PositionGroup, Bar | None], why: str, view: View) -> Target | None:
+def target(
+    player: Player, bars: dict[PositionGroup, Bar | None], why: str, wages: WageGuide, view: View
+) -> Target | None:
     improvement = best_improvement(player, bars, view)
     if improvement is None:
         return None
     group, improves_on = improvement
-    return Target(summarize(player, view), group.value, improves_on, why)
+    return Target(summarize(player, view), group.value, improves_on, why, describe_wage(wages.expected(player)))
 
 
 def best_first(found: list[tuple[int, Target]], limit: int) -> list[Target]:
@@ -84,6 +88,7 @@ def contract_watch(
     view: View,
 ) -> ContractWatch:
     bars = weakest_starters(available_squad(snapshot), formation)
+    wages = wage_guide(snapshot)
     free: list[tuple[int, Target]] = []
     pre_contract: list[tuple[int, Target]] = []
     loaned_in = [player for player in available_squad(snapshot) if player.on_loan]
@@ -98,7 +103,7 @@ def contract_watch(
         if reachable_only and not within_reach(player, snapshot):
             continue
         if player.is_free_agent:
-            found = target(player, bars, "free agent: wages only, no fee", view)
+            found = target(player, bars, "free agent: wages only, no fee", wages, view)
             if found is not None:
                 free.append((player.current_ability, found))
             continue
@@ -107,7 +112,7 @@ def contract_watch(
         leaving = leaves_within(player, snapshot.club_uid, snapshot.game_date, within_months)
         if leaving is not None:
             why = f"contract ends {leaving.isoformat()}: pre-contract or a cut-price fee"
-            found = target(player, bars, why, view)
+            found = target(player, bars, why, wages, view)
             if found is not None:
                 pre_contract.append((player.current_ability, found))
     return ContractWatch(within_months, own[:limit], best_first(free, limit), best_first(pre_contract, limit))
