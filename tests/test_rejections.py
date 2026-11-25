@@ -53,3 +53,41 @@ def test_your_own_players_cannot_be_rejected(mezzala):
 def test_unrejecting_someone_not_on_the_list_is_reported(mezzala):
     outcome = mezzala(save()).call("unreject_player", player="Nobody")
     assert outcome.is_error and "No player called 'Nobody'" in outcome.text
+
+
+def test_a_rejected_player_who_later_signs_counts_as_yours_again(mezzala):
+    first = save()
+    app = mezzala(first)
+    app.call("reject_player", player="Refuser")
+    signed = replace(next(p for p in first.players if p.name == "Refuser"), club_uid=1, club_name="Paisley")
+    app.play_to(replace(first, game_date=date(2027, 1, 1), players=(*eleven(), signed)))
+    own = {found["player"]["name"] for found in app.result("find_players", scope="own")["players"]}
+    assert "Refuser" in own
+
+
+def test_your_own_player_out_on_loan_cannot_be_rejected(mezzala):
+    loanee = player("Our Loanee", on_loan=True, loan_parent_club_uid=1)
+    outcome = mezzala(save(loanee)).call("reject_player", player="Our Loanee")
+    assert outcome.is_error and "only other clubs' players" in outcome.text
+
+
+def test_namesakes_on_the_list_are_told_apart_by_club(mezzala):
+    twins = [player("John Smith", club=2, club_name="Club 2"), player("John Smith", club=3, club_name="Club 3")]
+    app = mezzala(save(*twins))
+    app.call("reject_player", player="John Smith", club="Club 2")
+    app.call("reject_player", player="John Smith", club="Club 3")
+    assert "Say which club he is at" in app.call("unreject_player", player="John Smith").text
+    left = app.result("unreject_player", player="John Smith", club="Club 3")["players"]
+    assert [entry["name"] for entry in left] == ["John Smith"]
+
+
+def test_shortlist_and_contract_watch_leave_rejected_players_out(mezzala):
+    squad = [p for p in eleven() if p.position_ratings["stc"] != 20]
+    squad += [player("Refusing Striker", positions=("stc",), ca=130, value=100_000),
+              player("Free Refuser", positions=("stc",), ca=130, club=None, value=None)]  # fmt: skip
+    app = mezzala(snapshot(squad))
+    app.call("reject_player", player="Refusing Striker")
+    app.call("reject_player", player="Free Refuser")
+    striker = {pick["position"]: pick for pick in app.result("shortlist")["picks"]}["striker"]
+    assert striker["target"] is None
+    assert app.result("contract_watch")["free_agents"] == []

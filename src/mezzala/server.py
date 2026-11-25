@@ -17,7 +17,7 @@ from mezzala.core.reach import REPUTATION_REACH
 from mezzala.core.rejections import without_rejected
 from mezzala.core.roles import Side, UnknownRole, find_role
 from mezzala.core.shapes import BadSlot, parse_slot
-from mezzala.core.squad import belongs_to_club, owned_players, plays_for_club, squad_level
+from mezzala.core.squad import belongs_to_club, is_outside_club, owned_players, plays_for_club, squad_level
 from mezzala.core.view import View, shows_hidden_information
 from mezzala.save.career import Career, Current
 from mezzala.save.reader import UnreadableSave
@@ -893,7 +893,7 @@ def create_server(
         find_replacement, contract_watch, risers, performance and relegated_clubs stop suggesting him."""
         current = read_current(career)
         target = target_player(current.snapshot, player, club)
-        if target.club_uid == current.snapshot.club_uid:
+        if not is_outside_club(target, current.snapshot.club_uid):
             raise ToolError(
                 f"{target.name} plays for {current.snapshot.club_name}; only other clubs' players can be rejected."
             )
@@ -901,11 +901,11 @@ def create_server(
         return RejectedReport(save_context(current), rejected_list(rejections.entries(current.career)))
 
     @server.tool(name="unreject_player")
-    def unreject_player_tool(player: str) -> RejectedReport:
+    def unreject_player_tool(player: str, club: ClubChoice = None) -> RejectedReport:
         """Take a player off the rejected list so recruitment answers can suggest him again."""
         current = read_current(career)
         try:
-            entry = find_rejected_entry(rejections.entries(current.career), player)
+            entry = find_rejected_entry(rejections.entries(current.career), player, club, current.snapshot)
         except NotRejected as error:
             raise ToolError(str(error)) from error
         rejections.remove(current.career, entry.uid)

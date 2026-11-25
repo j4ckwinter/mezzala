@@ -31,15 +31,24 @@ def rejected_record(player: Player, snapshot: Snapshot, note: str) -> RejectedPl
     return RejectedPlayer(player.uid, player.birth_date, player.name, snapshot.game_date, note)
 
 
-def find_rejected_entry(entries: list[RejectedPlayer], query: str) -> RejectedPlayer:
+def at_club(entry: RejectedPlayer, club: str | None, clubs: dict[int, str]) -> bool:
+    return club is None or folded(club.strip()) in folded(clubs.get(entry.uid, "free agent"))
+
+
+def find_rejected_entry(
+    entries: list[RejectedPlayer], query: str, club: str | None, snapshot: Snapshot
+) -> RejectedPlayer:
     wanted = folded(query.strip())
-    exact = [entry for entry in entries if folded(entry.name) == wanted]
-    partial = [entry for entry in entries if wanted in folded(entry.name)]
+    clubs = {player.uid: player.club_name or "free agent" for player in snapshot.players}
+    matching = [entry for entry in entries if at_club(entry, club, clubs)]
+    exact = [entry for entry in matching if folded(entry.name) == wanted]
+    partial = [entry for entry in matching if wanted in folded(entry.name)]
     for found in (exact, partial):
         if len(found) == 1:
             return found[0]
         if len(found) > 1:
-            raise NotRejected(f"'{query}' matches several rejected players: {', '.join(e.name for e in found)}.")
+            named = ", ".join(f"{entry.name} ({clubs.get(entry.uid, 'free agent')})" for entry in found)
+            raise NotRejected(f"'{query}' matches several rejected players: {named}. Say which club he is at.")
     raise NotRejected(f"No player called '{query}' is on the rejected list.")
 
 
