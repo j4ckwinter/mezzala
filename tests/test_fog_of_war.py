@@ -125,3 +125,13 @@ def test_fog_of_war_refuses_filters_that_would_reveal_hidden_ability(mezzala):
 
 def test_without_fog_of_war_the_ability_filters_work(mezzala):
     assert mezzala(distinctive_save()).result("find_players", min_pa=187, within_reach=False)["matched"] == 2
+
+
+def test_fog_of_war_judges_injury_risk_only_on_injuries_the_game_shows(mezzala):
+    squad = eleven()
+    squad[1] = replace(squad[1], attributes={**squad[1].attributes, "injury_proneness": 18})
+    kid = mine("Prone Kid", age=19, attributes={"injury_proneness": 18, "natural_fitness": 15})
+    fogged = mezzala(snapshot([*squad, kid]), view=View.SPOILER_FREE)
+    assert fogged.result("fitness")["injury_risks_in_the_eleven"] == []
+    assert fogged.result("training_plan", player="Prone Kid")["why_this_intensity"] == []
+    assert mezzala(snapshot(squad)).result("fitness")["injury_risks_in_the_eleven"] != []

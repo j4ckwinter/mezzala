@@ -6,6 +6,7 @@ from mezzala.core.formations import Formation
 from mezzala.core.lineup import pick_lineup
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.squad import available_squad
+from mezzala.core.view import View, shows_hidden_information
 
 INJURY_PRONE_FROM = 14
 RECENT_INJURIES_FOR_RISK = 2
@@ -36,9 +37,9 @@ EXPLANATION = (
 )
 
 
-def injury_risk(player: Player) -> str | None:
+def injury_risk(player: Player, view: View) -> str | None:
     reasons: list[str] = []
-    if player.attributes["injury_proneness"] >= INJURY_PRONE_FROM:
+    if shows_hidden_information(view) and player.attributes["injury_proneness"] >= INJURY_PRONE_FROM:
         reasons.append("prone to injury")
     if len(player.injuries) >= RECENT_INJURIES_FOR_RISK:
         reasons.append(f"{len(player.injuries)} injuries in the last two years")
@@ -50,10 +51,10 @@ def below(players: list[Player], measure: Callable[[Player], int | None], limit:
     return [FitnessEntry(player.name, f"{value}%") for value, player in sorted(found, key=lambda item: item[0])]
 
 
-def fitness(snapshot: Snapshot, formation: Formation) -> FitnessReport:
+def fitness(snapshot: Snapshot, formation: Formation, view: View) -> FitnessReport:
     squad = available_squad(snapshot)
     starters = pick_lineup(squad, formation).starters
-    risks = [FitnessEntry(player.name, risk) for player in starters if (risk := injury_risk(player)) is not None]
+    risks = [FitnessEntry(player.name, risk) for player in starters if (risk := injury_risk(player, view)) is not None]
     return FitnessReport(
         formation.value,
         EXPLANATION,

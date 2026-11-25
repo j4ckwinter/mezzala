@@ -6,7 +6,7 @@ from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import PositionGroup, covers, fit, primary_group
 from mezzala.core.profile import KEY_ATTRIBUTES, attribute_label, position_score
 from mezzala.core.squad import available_squad
-from mezzala.core.view import View, signed_amount_text
+from mezzala.core.view import View, shows_hidden_information, signed_amount_text
 
 FOCUS_ATTRIBUTES = 3
 MAX_ATTRIBUTE = 20
@@ -90,9 +90,9 @@ def additional_focus(player: Player, group: PositionGroup) -> list[FocusAttribut
     return [FocusAttribute(attribute_label(name), player.attributes[name]) for name in weakest]
 
 
-def intensity(player: Player) -> tuple[Intensity, list[str]]:
+def intensity(player: Player, view: View) -> tuple[Intensity, list[str]]:
     reasons: list[str] = []
-    if player.attributes["injury_proneness"] >= INJURY_PRONE_FROM:
+    if shows_hidden_information(view) and player.attributes["injury_proneness"] >= INJURY_PRONE_FROM:
         reasons.append("he is prone to injury")
     if player.attributes["natural_fitness"] < LOW_NATURAL_FITNESS_BELOW:
         reasons.append("his natural fitness is low")
@@ -154,7 +154,7 @@ def suggested_mentors(player: Player, group: PositionGroup, snapshot: Snapshot) 
 
 def training_plan(player: Player, snapshot: Snapshot, asked: PositionGroup | None, view: View) -> TrainingPlan:
     group = asked or best_position(player)
-    level, reasons = intensity(player)
+    level, reasons = intensity(player, view)
     return TrainingPlan(
         player=player.name,
         age=player.age,

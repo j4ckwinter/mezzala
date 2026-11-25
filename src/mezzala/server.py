@@ -741,7 +741,7 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
         condition or match sharpness."""
         current = read_current(career)
         formation, context = with_formation(current, formation)
-        return FitnessToolReport(context, fitness(current.snapshot, formation))
+        return FitnessToolReport(context, fitness(current.snapshot, formation, view))
 
     @server.tool(name="staff_review")
     def staff_review_tool() -> StaffReviewReport:
