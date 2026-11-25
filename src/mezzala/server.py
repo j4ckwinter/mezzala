@@ -23,6 +23,7 @@ from mezzala.tools.regen_intake import RegenIntake, regen_intake
 from mezzala.tools.replacement import Limits, Replacements, find_replacements
 from mezzala.tools.risers import RiserFilters, Risers, RiserScope, find_risers
 from mezzala.tools.sell_high import SellHigh, sell_high
+from mezzala.tools.shortlist import Shortlist, shortlist
 from mezzala.tools.squad_gaps import SquadGaps, squad_gaps
 from mezzala.tools.squad_list import SquadList, squad_list
 
@@ -72,6 +73,12 @@ class SquadReport:
 class FoundPlayersReport:
     context: SaveContext
     result: FoundPlayers
+
+
+@dataclass(frozen=True)
+class ShortlistReport:
+    context: SaveContext
+    result: Shortlist
 
 
 @dataclass(frozen=True)
@@ -226,6 +233,23 @@ def create_server(career: Career) -> MCPServer:
             within_reach, sort_by, limit,
         )  # fmt: skip
         return FoundPlayersReport(save_context(current), find_players(current.snapshot, search))
+
+    @server.tool(name="shortlist")
+    def shortlist_tool(
+        formation: FormationChoice = DEFAULT_FORMATION,
+        transfer_budget: float | None = None,
+        weekly_wage_budget: float | None = None,
+    ) -> ShortlistReport:
+        """A realistic transfer shortlist: for each position squad_gaps flags, worst first, the best player
+        within reach who beats the current starter, spending down the transfer budget and weekly wage room as it
+        goes, with two alternatives each. Budgets are in pounds and default to the club's remaining transfer
+        budget and wage room. Wages shown are the player's current wage; a free agent's is estimated from
+        similar players and counted against the wage room."""
+        current = read_current(career)
+        budget = current.snapshot.budget
+        fees = optional_stored(transfer_budget) if transfer_budget is not None else budget.transfer_remaining
+        wages = optional_stored(weekly_wage_budget) if weekly_wage_budget is not None else budget.wage_headroom_weekly
+        return ShortlistReport(save_context(current), shortlist(current.snapshot, formation, fees, wages))
 
     @server.tool(name="compare_formations")
     def compare_formations_tool(formations: FormationChoices = None) -> FormationReport:
