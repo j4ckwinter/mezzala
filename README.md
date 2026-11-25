@@ -1,6 +1,6 @@
 <div align="center">
 
-# mezzala
+# <img src="icon.png" alt="" width="40" align="top"> mezzala
 
 i love football manager. i hate scrolling a 40,000-player search screen to find one decent centre back on a st mirren budget.
 so i made an mcp server that reads my save and does the scouting for me. i ask claude, it asks mezzala, mezzala reads the save.
