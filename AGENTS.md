@@ -60,7 +60,10 @@ Most players install the Claude Desktop extension, `mezzala.mcpb`, from the late
 | Finding a player by name | `src/mezzala/core/lookup.py` |
 | Which players recruitment answers leave out because they were rejected | `src/mezzala/core/rejections.py` |
 | Each tool's rules | `src/mezzala/tools/`, one module per tool |
-| Tool names, parameters, defaults and errors | `src/mezzala/server.py` |
+| Registering each tool: its name, parameters and which tool function answers it | `src/mezzala/server/app.py` |
+| What Claude is told about mezzala, and tool descriptions built from constants | `src/mezzala/server/instructions.py` |
+| Parameter types and defaults, reading the save for a call, and the errors a call can raise | `src/mezzala/server/parameters.py` |
+| The shape of each answer, and the save context every answer starts with | `src/mezzala/server/reports.py` |
 | How the Claude Desktop extension installs and starts mezzala | `manifest.json`, with `.mcpbignore` for what the bundle leaves out |
 
 ## Conventions
@@ -69,10 +72,10 @@ Most players install the Claude Desktop extension, `mezzala.mcpb`, from the late
 - CA and PA are FM's hidden current and potential ability, from 1 to 200. Attributes run from 1 to 20.
 - `uid` identifies a person within one save. FM can give a deleted person's `uid` to someone new, so matching across snapshots also checks the birth date (`is_same_person`).
 - Stored snapshots encode each player as a positional list (`save/store.py`). Snapshots are history that cannot be rebuilt from the save, so a change to that encoding must keep existing rows readable: append new facts, add their defaults to `FACTS_ADDED_LATER`, and raise `CURRENT_FORMAT` so a snapshot in an older format is read again from the save.
-- `core/` holds the football rules every tool shares, `tools/` one module per tool, and `save/` everything that reads saves or stores snapshots. `core/` and `tools/` take snapshots and return results; only `save/` and `server.py` touch fmsave, files, SQLite or MCP, and `core/` never imports from `tools/` or `save/`.
+- `core/` holds the football rules every tool shares, `tools/` one module per tool, `save/` everything that reads saves or stores snapshots, and `server/` the MCP surface. `core/` and `tools/` take snapshots and return results; only `save/` and `server/` touch fmsave, files, SQLite or MCP, and `core/` never imports from `tools/` or `save/`.
 - Tests go through the MCP client (`tests/conftest.py`) with a fake save, so they pin behaviour, not internals.
 - Anything shown to the manager that is CA, PA, or derived from them (averages, levels, gains) goes through `core/view.py` with the server's `View`. Under fog of war (`View.SPOILER_FREE`) they become stars, and hidden attributes and personality numbers stay out of answers; personality may still be described in words. `tests/test_fog_of_war.py` calls every tool, so a new tool that needs arguments gets an entry in its `ARGUMENTS`.
-- Tools that take a formation accept none and resolve it with `with_formation` in `server.py`: the saved first-team tactic's shape (a built-in formation when it matches one, else the tactic's own places), else `DEFAULT_FORMATION`, with a note in the answer when the tactic decided. Tools work from a `Shape`, never a `Formation` directly.
+- Tools that take a formation accept none and resolve it with `with_formation` in `server/parameters.py`: the saved first-team tactic's shape (a built-in formation when it matches one, else the tactic's own places), else `DEFAULT_FORMATION`, with a note in the answer when the tactic decided. Tools work from a `Shape`, never a `Formation` directly.
 
 ## Standards
 

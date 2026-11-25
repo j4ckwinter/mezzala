@@ -1,458 +1,111 @@
-from dataclasses import dataclass
-from datetime import UTC, date, datetime, timedelta
-from enum import StrEnum
+from datetime import date, timedelta
 from typing import Annotated
 
-import fmsave
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field
 
-from mezzala.core.formations import DEFAULT_FORMATION, Formation, Shape, places_text, saved_shape, shape_for
-from mezzala.core.lookup import AmbiguousPlayer, PlayerNotFound, find_player
-from mezzala.core.money import format_money, format_weekly_wage, stored_from_pounds
-from mezzala.core.players import Player, Snapshot
-from mezzala.core.positions import ACCOMPLISHED_POSITION_RATING, NATURAL_POSITION_RATING, PositionGroup
-from mezzala.core.reach import REPUTATION_REACH
+from mezzala.core.formations import Formation
+from mezzala.core.players import Snapshot
 from mezzala.core.rejections import without_rejected
-from mezzala.core.roles import Side, UnknownRole, find_role
+from mezzala.core.roles import UnknownRole, find_role
 from mezzala.core.slots import BadSlot, parse_slot
 from mezzala.core.squad import belongs_to_club, is_outside_club, owned_players, plays_for_club
-from mezzala.core.view import View, shows_hidden_information
+from mezzala.core.view import View
 from mezzala.save.career import Career, Current
-from mezzala.save.reader import UnreadableSave
 from mezzala.save.rejections import RejectionStore
-from mezzala.save.store import FileStamp
 from mezzala.save.watchlist import WatchlistStore
-from mezzala.tools.compare_formations import FormationComparison, compare_formations
-from mezzala.tools.contract_watch import ContractWatch, contract_watch
-from mezzala.tools.development_check import CheckScope, DevelopmentCheck, development_check
-from mezzala.tools.development_plan import DevelopmentPlan, development_plan
-from mezzala.tools.dressing_room import DressingRoom, dressing_room
-from mezzala.tools.find_players import FoundPlayers, PlayerSearch, SearchScope, SortBy, find_players
-from mezzala.tools.fitness import FitnessReport, fitness
-from mezzala.tools.league_comparison import LeagueComparison, league_comparison
-from mezzala.tools.league_values import LeagueValues, league_values
-from mezzala.tools.next_job import NextJob, next_job
-from mezzala.tools.next_opponent import NextOpponent, next_opponent
-from mezzala.tools.performance import Performance, PerformanceScope, PerformanceSearch, PerformanceSort, performance
-from mezzala.tools.player_profile import PlayerProfiles, player_profiles
-from mezzala.tools.positional_fit import PositionalFit, positional_fit
-from mezzala.tools.regen_intake import RegenIntake, regen_intake
-from mezzala.tools.rejections import NotRejected, RejectedList, find_rejected_entry, rejected_list, rejected_record
-from mezzala.tools.relegated_clubs import RelegatedClubs, relegated_clubs
-from mezzala.tools.replacement import Limits, Replacements, find_replacements
-from mezzala.tools.risers import (
-    CA_BELOW_SQUAD_LEVEL,
-    TARGET_MAX_AGE,
-    RiserFilters,
-    Risers,
-    RiserScope,
-    find_risers,
-    riser_defaults,
+from mezzala.server.instructions import FIND_PLAYERS_DESCRIPTION, RISERS_DESCRIPTION, instructions_for
+from mezzala.server.parameters import (
+    DEFAULT_LIMIT,
+    DEVELOPMENT_MIN_PA,
+    PERFORMANCE_MIN_MINUTES,
+    REGEN_MIN_PA,
+    RELEGATION_LOOKBACK_DAYS,
+    RISER_MIN_CA_GAIN,
+    CheckScopeChoice,
+    ClubChoice,
+    FormationChoice,
+    FormationChoices,
+    PerformanceScopeChoice,
+    PerformanceSortChoice,
+    PositionChoice,
+    ScopeChoice,
+    SearchScopeChoice,
+    SideChoice,
+    SortChoice,
+    optional_stored,
+    read_current,
+    refuse_hidden_filters,
+    target_player,
+    with_formation,
 )
-from mezzala.tools.sell_high import SellHigh, sell_high
-from mezzala.tools.shortlist import Shortlist, shortlist
-from mezzala.tools.squad_gaps import SquadGaps, squad_gaps
-from mezzala.tools.squad_list import SquadList, squad_list
-from mezzala.tools.squad_profile import SquadProfile, squad_profile
-from mezzala.tools.squad_progress import SquadProgress, squad_progress
-from mezzala.tools.staff_review import StaffReview, staff_review
-from mezzala.tools.tactic_fit import TacticFit, tactic_fit
-from mezzala.tools.training_plan import TrainingPlan, training_plan
-from mezzala.tools.wage_review import WageReview, wage_review
-from mezzala.tools.watchlist import NotWatched, Watchlist, find_watched_entry, watched_record, watchlist
-from mezzala.tools.what_changed import WhatChanged, what_changed
-
-DEFAULT_LIMIT = 10
-RELEGATION_LOOKBACK_DAYS = 300
-PERFORMANCE_MIN_MINUTES = 450
-NANOSECONDS_PER_SECOND = 1_000_000_000
-WRITTEN_FORMAT = "%Y-%m-%d %H:%M UTC"
-DEVELOPMENT_MIN_PA = 150
-REGEN_MIN_PA = 120
-RISER_MIN_CA_GAIN = 3
-
-INSTRUCTIONS = f"""\
-mezzala reads the manager's Football Manager 27 save and answers squad, formation and transfer questions about it.
-Every answer starts with the save's in-game date and club, and when the save file was written (save_written).
-mezzala sees only what FM wrote at that save: budgets, transfers or squad changes made in the game since then do not
-show until the manager saves again, so say so when an answer looks out of date. Each call checks the save file
-and stores a new snapshot when it has changed, so growth compares real snapshots once there are two or more.
-Money is in pounds. Fees are FM's transfer values, because asking prices are not stored in the save.
-Current and potential ability (CA, PA) are FM's hidden 1-200 numbers.
-find_players searches every player in the save with filters and sorts, and answers most recruitment
-questions. shortlist builds a transfer shortlist within the budgets. wage_review, development_plan and
-league_comparison cover wages, young players and how the squad compares with its league. squad lists
-the players. compare_formations ranks formations by how well the squad fits them and shows each eleven.
-what_changed, development_check, squad_progress and the watchlist tools (watch_player, unwatch_player,
-watchlist) work from history and say so when there is only one snapshot. reject_player keeps a player who
-has said no out of recruitment answers; unreject_player and rejected_players manage that list. next_job,
-league_values and relegated_clubs cover managerial vacancies, the best-value leagues and clubs that dropped a league.
-player_profile shows one player in full, or two side by side. training_plan suggests one of the club's players'
-position, attribute focus, intensity, traits and mentors. dressing_room ranks captains and flags troublemakers.
-fitness lists injuries, bans, injury risks, condition and sharpness. staff_review rates the backroom staff.
-performance ranks season stats: who plays above or below their ability, finishing against xG, output per 90.
-tactic_fit fits the squad to a custom shape given slot by slot with roles, scoring players by role.
-squad_profile, positional_fit and next_opponent support tactics and match preparation; the save stores formations
-but not roles or instructions, so suggest tactics from the attributes they report.
-Positions are natural (FM rating {NATURAL_POSITION_RATING}+) or accomplished
-({ACCOMPLISHED_POSITION_RATING}-{NATURAL_POSITION_RATING - 1}). Ask the manager which formation they
-play if it matters. Tools that take one default to the shape of the first-team tactic saved in the game, even one
-none of the formations match, and to {DEFAULT_FORMATION.value} when no saved tactic can be read; the notes say which."""
-
-SPOILER_FREE_INSTRUCTIONS = """
-Fog of war is on: the manager does not want to see what FM hides. Ability and potential come as star ratings
-(5 stars is the best in the world), and hidden attributes and personality numbers are left out. Never state,
-estimate or work back to CA or PA numbers, and talk about players the way FM's coaches and scouts would."""
-
-
-def instructions_for(view: View) -> str:
-    match view:
-        case View.FULL:
-            return INSTRUCTIONS
-        case View.SPOILER_FREE:
-            return INSTRUCTIONS + SPOILER_FREE_INSTRUCTIONS
-
-
-RISERS_DESCRIPTION = f"""\
-Players whose current ability is rising fastest.
-
-scope: elsewhere (transfer targets), own (your players) or former (players who have left you, to spot
-sales made too early). since is an in-game date; it defaults to the oldest snapshot. With one snapshot,
-gains are projected rather than observed. max_fee is in pounds and defaults to the remaining transfer budget;
-free agents always qualify. For elsewhere, min_ca defaults to {CA_BELOW_SQUAD_LEVEL} below the level of the current
-first eleven and max_age to {TARGET_MAX_AGE}; for own and former there is no floor or age limit unless given."""
-
-FIND_PLAYERS_DESCRIPTION = f"""\
-Search every player in the save with filters and a sort. Money is in pounds (max_wage weekly).
-
-Sorts: "value for money" puts players valued lowest against similar players first; "above league level"
-puts players furthest above their league's first-team median CA first; "position attributes" ranks the
-key attributes for the position (combine with max_ca to find attributes ahead of ability); "most
-overpaid" ranks wages against similar players.
-
-Who: scope "elsewhere" (default) searches other clubs and free agents, "own" your club, "everyone" the
-whole save. position matches players natural or accomplished there (FM rating
-{ACCOMPLISHED_POSITION_RATING} or more); natural_only keeps naturals ({NATURAL_POSITION_RATING} or more).
-nationality matches a first or second nationality, such as "Republic of Ireland"; work_permit_free keeps
-British and Irish players, who need no UK work permit. free_agents_only and clubs_only keep or leave out
-players without a club.
-
-Where: country is where the club plays (Cardiff count as England); division_level is 1 for a country's
-top flight, estimated from first-team strength because the save names no leagues; league matches part
-of a league's name, such as a club in it. reserves_only keeps players outside their club's first team;
-bigger_clubs_only keeps clubs with a higher reputation than yours. within_reach keeps players whose
-reputation is at most your club's plus {REPUTATION_REACH} (results show both), so a move is realistic
-on paper, though a player may still refuse; set it false for questions like the best players in the world.
-
-Availability: the save does not record transfer or loan listing; fringe_only keeps players whose
-contract squad status says their club does not count on them (surplus to requirements, fringe player or
-emergency backup), the likeliest to be listed or loaned.
-
-Output: compact returns compact_players, one short row each (name, age, club, nationality, positions, ability,
-potential, value, expected wage), instead of the full players list; use it for long searches.
-
-Roles: role (an FM role such as "inside forward" or "ball-playing centre-back") adds each player's role score out
-of 20 and allows sort "role fit"; side ("left" or "right") lets the score favour the foot the role wants there."""
-
-
-@dataclass(frozen=True)
-class SaveContext:
-    save: str
-    game_date: str
-    club: str
-    club_reputation: int
-    save_written: str
-    transfer_budget: str
-    wage_headroom: str
-    snapshots: int
-    notes: list[str]
-
-
-@dataclass(frozen=True)
-class SnapshotReport:
-    context: SaveContext
-    players: int
-    snapshot_dates: list[str]
-
-
-@dataclass(frozen=True)
-class SquadReport:
-    context: SaveContext
-    result: SquadList
-
-
-@dataclass(frozen=True)
-class FoundPlayersReport:
-    context: SaveContext
-    result: FoundPlayers
-
-
-@dataclass(frozen=True)
-class ShortlistReport:
-    context: SaveContext
-    result: Shortlist
-
-
-@dataclass(frozen=True)
-class WageReviewReport:
-    context: SaveContext
-    result: WageReview
-
-
-@dataclass(frozen=True)
-class DevelopmentPlanReport:
-    context: SaveContext
-    result: DevelopmentPlan
-
-
-@dataclass(frozen=True)
-class LeagueComparisonReport:
-    context: SaveContext
-    result: LeagueComparison
-
-
-@dataclass(frozen=True)
-class WhatChangedReport:
-    context: SaveContext
-    result: WhatChanged
-
-
-@dataclass(frozen=True)
-class WatchlistReport:
-    context: SaveContext
-    result: Watchlist
-
-
-@dataclass(frozen=True)
-class DevelopmentCheckReport:
-    context: SaveContext
-    result: DevelopmentCheck
-
-
-@dataclass(frozen=True)
-class SquadProgressReport:
-    context: SaveContext
-    result: SquadProgress
-
-
-@dataclass(frozen=True)
-class NextJobReport:
-    context: SaveContext
-    result: NextJob
-
-
-@dataclass(frozen=True)
-class LeagueValuesReport:
-    context: SaveContext
-    result: LeagueValues
-
-
-@dataclass(frozen=True)
-class RelegatedClubsReport:
-    context: SaveContext
-    result: RelegatedClubs
-
-
-@dataclass(frozen=True)
-class SquadProfileReport:
-    context: SaveContext
-    result: SquadProfile
-
-
-@dataclass(frozen=True)
-class PositionalFitReport:
-    context: SaveContext
-    result: PositionalFit
-
-
-@dataclass(frozen=True)
-class NextOpponentReport:
-    context: SaveContext
-    result: NextOpponent
-
-
-@dataclass(frozen=True)
-class FormationReport:
-    context: SaveContext
-    result: FormationComparison
-
-
-@dataclass(frozen=True)
-class SquadGapsReport:
-    context: SaveContext
-    result: SquadGaps
-
-
-@dataclass(frozen=True)
-class ReplacementReport:
-    context: SaveContext
-    result: Replacements
-
-
-@dataclass(frozen=True)
-class RisersReport:
-    context: SaveContext
-    result: Risers
-
-
-@dataclass(frozen=True)
-class SellHighReport:
-    context: SaveContext
-    result: SellHigh
-
-
-@dataclass(frozen=True)
-class ContractWatchReport:
-    context: SaveContext
-    result: ContractWatch
-
-
-@dataclass(frozen=True)
-class PlayerProfileReport:
-    context: SaveContext
-    result: PlayerProfiles
-
-
-@dataclass(frozen=True)
-class TrainingPlanReport:
-    context: SaveContext
-    result: TrainingPlan
-
-
-@dataclass(frozen=True)
-class DressingRoomReport:
-    context: SaveContext
-    result: DressingRoom
-
-
-@dataclass(frozen=True)
-class FitnessToolReport:
-    context: SaveContext
-    result: FitnessReport
-
-
-@dataclass(frozen=True)
-class StaffReviewReport:
-    context: SaveContext
-    result: StaffReview
-
-
-@dataclass(frozen=True)
-class PerformanceReport:
-    context: SaveContext
-    result: Performance
-
-
-@dataclass(frozen=True)
-class RejectedReport:
-    context: SaveContext
-    result: RejectedList
-
-
-@dataclass(frozen=True)
-class TacticFitReport:
-    context: SaveContext
-    result: TacticFit
-
-
-@dataclass(frozen=True)
-class RegenIntakeReport:
-    context: SaveContext
-    result: RegenIntake
-
-
-def written_at(stamp: FileStamp | None) -> str:
-    if stamp is None:
-        return "unknown"
-    return datetime.fromtimestamp(stamp.mtime_ns / NANOSECONDS_PER_SECOND, UTC).strftime(WRITTEN_FORMAT)
-
-
-def save_context(current: Current, notes: list[str] | None = None) -> SaveContext:
-    snapshot = current.snapshot
-    return SaveContext(
-        save=current.save_path.name,
-        game_date=snapshot.game_date.isoformat(),
-        club=snapshot.club_name,
-        club_reputation=snapshot.club_reputation,
-        save_written=written_at(current.written),
-        transfer_budget=format_money(snapshot.budget.transfer_remaining),
-        wage_headroom=format_weekly_wage(snapshot.budget.wage_headroom_weekly),
-        snapshots=current.snapshot_count,
-        notes=[*current.notes, *(notes or [])],
-    )
-
-
-def optional_stored(pounds: float | None) -> int | None:
-    return None if pounds is None else stored_from_pounds(pounds)
-
-
-def read_current(career: Career) -> Current:
-    try:
-        return career.current()
-    except (fmsave.FmsaveError, UnreadableSave, OSError) as error:
-        raise ToolError(f"Could not read the save: {error}") from error
-
-
-def target_player(snapshot: Snapshot, name: str, club: str | None = None) -> Player:
-    try:
-        return find_player(snapshot, name, club)
-    except (PlayerNotFound, AmbiguousPlayer) as error:
-        raise ToolError(str(error)) from error
-
-
-def refuse_hidden_filters(view: View, filters: dict[str, bool]) -> None:
-    used = [name for name, is_set in filters.items() if is_set]
-    if used and not shows_hidden_information(view):
-        raise ToolError(f"Fog of war is on, so {', '.join(used)} cannot be used: it filters on hidden ability.")
-
-
-def with_formation(current: Current, asked: Formation | None) -> tuple[Shape, SaveContext]:
-    if asked is not None:
-        return shape_for(asked), save_context(current)
-    saved = saved_shape(current.snapshot.tactics)
-    if saved is None and current.snapshot.tactics:
-        unreadable = (
-            f"Your saved tactic '{current.snapshot.tactics[0].name}' has positions mezzala cannot read, so "
-            f"{DEFAULT_FORMATION.value} is used; say which formation you play for a closer answer."
-        )
-        return shape_for(DEFAULT_FORMATION), save_context(current, [unreadable])
-    if saved is None:
-        return shape_for(DEFAULT_FORMATION), save_context(current)
-    if saved.built_in:
-        return saved.shape, save_context(
-            current, [f"Formation {saved.shape.name}, from your saved tactic '{saved.tactic.name}'."]
-        )
-    own = (
-        f"Your saved tactic '{saved.tactic.name}' matches none of the built-in formations, so its own shape is "
-        f"used: {places_text(saved.shape)}."
-    )
-    return saved.shape, save_context(current, [own])
-
-
-def one_of(choices: type[StrEnum]) -> str:
-    return "One of: " + ", ".join(f'"{choice.value}"' for choice in choices)
-
-
-FORMATION_DEFAULT = f"Defaults to the saved first-team tactic's shape, else {DEFAULT_FORMATION.value}."
-FormationChoice = Annotated[Formation | None, Field(description=f"{FORMATION_DEFAULT} {one_of(Formation)}")]
-FormationChoices = Annotated[list[Formation] | None, Field(description=f"Defaults to all. {one_of(Formation)}")]
-PositionChoice = Annotated[PositionGroup | None, Field(description=one_of(PositionGroup))]
-ClubChoice = Annotated[
-    str | None,
-    Field(
-        description="The club the player is at now, to tell apart players who share a name. Leave it out "
-        "unless an answer says the name is ambiguous."
-    ),
-]
-ScopeChoice = Annotated[RiserScope, Field(description=one_of(RiserScope))]
-SearchScopeChoice = Annotated[SearchScope, Field(description=one_of(SearchScope))]
-SortChoice = Annotated[SortBy, Field(description=one_of(SortBy))]
-CheckScopeChoice = Annotated[CheckScope, Field(description=one_of(CheckScope))]
-SideChoice = Annotated[Side | None, Field(description=one_of(Side))]
-PerformanceScopeChoice = Annotated[PerformanceScope, Field(description=one_of(PerformanceScope))]
-PerformanceSortChoice = Annotated[PerformanceSort, Field(description=one_of(PerformanceSort))]
+from mezzala.server.reports import (
+    ContractWatchReport,
+    DevelopmentCheckReport,
+    DevelopmentPlanReport,
+    DressingRoomReport,
+    FitnessToolReport,
+    FormationReport,
+    FoundPlayersReport,
+    LeagueComparisonReport,
+    LeagueValuesReport,
+    NextJobReport,
+    NextOpponentReport,
+    PerformanceReport,
+    PlayerProfileReport,
+    PositionalFitReport,
+    RegenIntakeReport,
+    RejectedReport,
+    RelegatedClubsReport,
+    ReplacementReport,
+    RisersReport,
+    SellHighReport,
+    ShortlistReport,
+    SnapshotReport,
+    SquadGapsReport,
+    SquadProfileReport,
+    SquadProgressReport,
+    SquadReport,
+    StaffReviewReport,
+    TacticFitReport,
+    TrainingPlanReport,
+    WageReviewReport,
+    WatchlistReport,
+    WhatChangedReport,
+    save_context,
+)
+from mezzala.tools.compare_formations import compare_formations
+from mezzala.tools.contract_watch import contract_watch
+from mezzala.tools.development_check import CheckScope, development_check
+from mezzala.tools.development_plan import development_plan
+from mezzala.tools.dressing_room import dressing_room
+from mezzala.tools.find_players import PlayerSearch, SearchScope, SortBy, find_players
+from mezzala.tools.fitness import fitness
+from mezzala.tools.league_comparison import league_comparison
+from mezzala.tools.league_values import league_values
+from mezzala.tools.next_job import next_job
+from mezzala.tools.next_opponent import next_opponent
+from mezzala.tools.performance import PerformanceScope, PerformanceSearch, PerformanceSort, performance
+from mezzala.tools.player_profile import player_profiles
+from mezzala.tools.positional_fit import positional_fit
+from mezzala.tools.regen_intake import regen_intake
+from mezzala.tools.rejections import NotRejected, find_rejected_entry, rejected_list, rejected_record
+from mezzala.tools.relegated_clubs import relegated_clubs
+from mezzala.tools.replacement import Limits, find_replacements
+from mezzala.tools.risers import RiserFilters, RiserScope, find_risers, riser_defaults
+from mezzala.tools.sell_high import sell_high
+from mezzala.tools.shortlist import shortlist
+from mezzala.tools.squad_gaps import squad_gaps
+from mezzala.tools.squad_list import squad_list
+from mezzala.tools.squad_profile import squad_profile
+from mezzala.tools.squad_progress import squad_progress
+from mezzala.tools.staff_review import staff_review
+from mezzala.tools.tactic_fit import tactic_fit
+from mezzala.tools.training_plan import training_plan
+from mezzala.tools.wage_review import wage_review
+from mezzala.tools.watchlist import NotWatched, find_watched_entry, watched_record, watchlist
+from mezzala.tools.what_changed import what_changed
 
 
 def create_server(
