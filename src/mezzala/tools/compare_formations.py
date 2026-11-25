@@ -1,4 +1,4 @@
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 
 from mezzala.core.formations import Formation
 from mezzala.core.lineup import (
@@ -13,6 +13,7 @@ from mezzala.core.lineup import (
 from mezzala.core.players import Snapshot
 from mezzala.core.positions import Fit, fit
 from mezzala.core.squad import available_squad
+from mezzala.core.view import Measure, View, measure, rating
 
 SCORE_TIE_MARGIN = 0.5
 
@@ -28,9 +29,9 @@ EXPLANATION = (
 class FormationFit:
     formation: str
     rank: int
-    score: float
+    score: Measure
     tied_with_best: bool
-    median_ability: float
+    median_ability: Measure
     accomplished_starters: int
     empty_places: int
     weakest_place: str
@@ -53,34 +54,32 @@ def score(lineup: Lineup) -> float:
     return round(sum(place_ability(place) for place in lineup.places) / len(lineup.places), 1)
 
 
-def weakest_place(lineup: Lineup) -> str:
+def weakest_place(lineup: Lineup, view: View) -> str:
     place = min(lineup.places, key=place_ability)
     if place.player is None:
         return f"{place.group.value}: nobody"
-    return f"{place.group.value}: {place.player.name} ({place.player.current_ability})"
+    return f"{place.group.value}: {place.player.name} ({rating(view, place.player.current_ability)})"
 
 
-def formation_fit(lineup: Lineup) -> FormationFit:
+def formation_fit(lineup: Lineup, rank: int, best: float, view: View) -> FormationFit:
     accomplished = [p for p in lineup.places if p.player is not None and fit(p.player, p.group) is Fit.ACCOMPLISHED]
     return FormationFit(
         formation=lineup.formation.value,
-        rank=0,
-        score=score(lineup),
-        tied_with_best=False,
-        median_ability=lineup.median_ability(),
+        rank=rank,
+        score=measure(view, score(lineup)),
+        tied_with_best=round(best - score(lineup), 1) <= SCORE_TIE_MARGIN,
+        median_ability=measure(view, lineup.median_ability()),
         accomplished_starters=len(accomplished),
         empty_places=sum(1 for place in lineup.places if place.player is None),
-        weakest_place=weakest_place(lineup),
-        eleven=starter_entries(lineup),
+        weakest_place=weakest_place(lineup, view),
+        eleven=starter_entries(lineup, view),
     )
 
 
-def compare_formations(snapshot: Snapshot, formations: list[Formation]) -> FormationComparison:
+def compare_formations(snapshot: Snapshot, formations: list[Formation], view: View) -> FormationComparison:
     squad = available_squad(snapshot)
-    fits = sorted((formation_fit(pick_lineup(squad, f)) for f in formations), key=lambda f: f.score, reverse=True)
-    best = fits[0].score if fits else 0.0
-    ranked = [
-        replace(fit, rank=rank, tied_with_best=round(best - fit.score, 1) <= SCORE_TIE_MARGIN)
-        for rank, fit in enumerate(fits, start=1)
-    ]
-    return FormationComparison(EXPLANATION, ranked)
+    lineups = sorted((pick_lineup(squad, f) for f in formations), key=score, reverse=True)
+    best = score(lineups[0]) if lineups else 0.0
+    return FormationComparison(
+        EXPLANATION, [formation_fit(lineup, rank, best, view) for rank, lineup in enumerate(lineups, start=1)]
+    )

@@ -5,6 +5,7 @@ from mezzala.core.metrics import league_levels
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.reach import within_reach
 from mezzala.core.summary import PlayerSummary, summarize
+from mezzala.core.view import View
 
 PLAYERS_SHOWN_PER_CLUB = 3
 
@@ -37,13 +38,13 @@ NO_HISTORY = (
 )
 
 
-def worth_a_look(players: list[Player], snapshot: Snapshot) -> list[PlayerSummary]:
+def worth_a_look(players: list[Player], snapshot: Snapshot, view: View) -> list[PlayerSummary]:
     reachable = [player for player in players if within_reach(player, snapshot)]
     reachable.sort(key=lambda player: player.current_ability, reverse=True)
-    return [summarize(player) for player in reachable[:PLAYERS_SHOWN_PER_CLUB]]
+    return [summarize(player, view) for player in reachable[:PLAYERS_SHOWN_PER_CLUB]]
 
 
-def relegated_clubs(current: Snapshot, baseline: Snapshot | None) -> RelegatedClubs:
+def relegated_clubs(current: Snapshot, baseline: Snapshot | None, view: View) -> RelegatedClubs:
     if baseline is None:
         return RelegatedClubs(None, NO_HISTORY, [])
     if not any(player.league_id is not None for player in baseline.players):
@@ -66,7 +67,7 @@ def relegated_clubs(current: Snapshot, baseline: Snapshot | None) -> RelegatedCl
         squad = squads.get(club, [])
         club_name = next((p.club_name for p in squad if p.club_name), "unknown")
         clubs.append(RelegatedClub(club_name, old_names.get(before, "unknown"), names.get(league, "unknown"),
-                                   worth_a_look(squad, current)))  # fmt: skip
+                                   worth_a_look(squad, current, view)))  # fmt: skip
     explanation = (
         f"Clubs now in a weaker league than on {baseline.game_date.isoformat()}, with their best players within reach."
     )

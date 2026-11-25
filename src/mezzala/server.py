@@ -14,6 +14,7 @@ from mezzala.core.money import format_money, format_weekly_wage, stored_from_pou
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import ACCOMPLISHED_POSITION_RATING, NATURAL_POSITION_RATING, PositionGroup
 from mezzala.core.squad import owned_players, squad_level
+from mezzala.core.view import View
 from mezzala.save.career import Career, Current
 from mezzala.save.reader import UnreadableSave
 from mezzala.save.watchlist import WatchlistStore
@@ -278,7 +279,7 @@ SortChoice = Annotated[SortBy, Field(description=one_of(SortBy))]
 CheckScopeChoice = Annotated[CheckScope, Field(description=one_of(CheckScope))]
 
 
-def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
+def create_server(career: Career, watched: WatchlistStore, view: View = View.FULL) -> MCPServer:
     server = MCPServer("mezzala", instructions=INSTRUCTIONS)
 
     @server.tool()
@@ -293,7 +294,7 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         """Everyone available to the club, loan players included, best first, with natural and accomplished
         positions; plus the club's own players who are out on loan."""
         current = read_current(career)
-        return SquadReport(save_context(current), squad_list(current.snapshot))
+        return SquadReport(save_context(current), squad_list(current.snapshot, view))
 
     @server.tool(name="find_players")
     def find_players_tool(
@@ -333,7 +334,7 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
             optional_stored(max_release_clause), youth_contract_only, reserves_only, bigger_clubs_only,
             within_reach, sort_by, limit,
         )  # fmt: skip
-        return FoundPlayersReport(save_context(current), find_players(current.snapshot, search))
+        return FoundPlayersReport(save_context(current), find_players(current.snapshot, search, view))
 
     @server.tool(name="shortlist")
     def shortlist_tool(
@@ -352,7 +353,7 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         budget = current.snapshot.budget
         fees = optional_stored(transfer_budget) if transfer_budget is not None else budget.transfer_remaining
         wages = optional_stored(weekly_wage_budget) if weekly_wage_budget is not None else budget.wage_headroom_weekly
-        return ShortlistReport(save_context(current), shortlist(current.snapshot, formation, fees, wages))
+        return ShortlistReport(save_context(current), shortlist(current.snapshot, formation, fees, wages, view))
 
     @server.tool(name="wage_review")
     def wage_review_tool(formation: FormationChoice = DEFAULT_FORMATION) -> WageReviewReport:
@@ -360,7 +361,7 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         of similar CA, age and potential, and surplus players (not in the best eleven and not needed for cover
         anywhere in the formation, and not a young prospect) with the weekly saving if they all went."""
         current = read_current(career)
-        return WageReviewReport(save_context(current), wage_review(current.snapshot, formation))
+        return WageReviewReport(save_context(current), wage_review(current.snapshot, formation, view))
 
     @server.tool(name="development_plan")
     def development_plan_tool(formation: FormationChoice = DEFAULT_FORMATION) -> DevelopmentPlanReport:
@@ -369,7 +370,7 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         who is already on loan, and the five to focus on: potential that reaches the first eleven's level, ranked
         by potential then projected growth."""
         current = read_current(career)
-        return DevelopmentPlanReport(save_context(current), development_plan(current.snapshot, formation))
+        return DevelopmentPlanReport(save_context(current), development_plan(current.snapshot, formation, view))
 
     @server.tool(name="league_comparison")
     def league_comparison_tool(formation: FormationChoice = DEFAULT_FORMATION) -> LeagueComparisonReport:
@@ -377,14 +378,14 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         best eleven for the formation, with first-team value, and position by position the club's starters
         against the league median and the best club there."""
         current = read_current(career)
-        return LeagueComparisonReport(save_context(current), league_comparison(current.snapshot, formation))
+        return LeagueComparisonReport(save_context(current), league_comparison(current.snapshot, formation, view))
 
     @server.tool(name="what_changed")
     def what_changed_tool() -> WhatChangedReport:
         """What has changed since the previous snapshot: budget, players who joined or left the club, the club's
         players whose CA, contract or value moved, new regens, and big transfers elsewhere."""
         current = read_current(career)
-        return WhatChangedReport(save_context(current), what_changed(current.snapshot, career.previous(current)))
+        return WhatChangedReport(save_context(current), what_changed(current.snapshot, career.previous(current), view))
 
     @server.tool(name="watch_player")
     def watch_player_tool(player: str, club: str | None = None, note: str = "") -> WatchlistReport:
@@ -395,7 +396,9 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         current = read_current(career)
         target = target_player(current.snapshot, player, club)
         watched.add(current.career, watched_record(target, current.snapshot, note))
-        return WatchlistReport(save_context(current), watchlist(current.snapshot, watched.entries(current.career)))
+        return WatchlistReport(
+            save_context(current), watchlist(current.snapshot, watched.entries(current.career), view)
+        )
 
     @server.tool(name="unwatch_player")
     def unwatch_player_tool(player: str, club: str | None = None) -> WatchlistReport:
@@ -406,14 +409,18 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         except NotWatched as error:
             raise ToolError(str(error)) from error
         watched.remove(current.career, entry.uid)
-        return WatchlistReport(save_context(current), watchlist(current.snapshot, watched.entries(current.career)))
+        return WatchlistReport(
+            save_context(current), watchlist(current.snapshot, watched.entries(current.career), view)
+        )
 
     @server.tool(name="watchlist")
     def watchlist_tool() -> WatchlistReport:
         """mezzala's watchlist: each player now, what has changed since he was added, and whether he has become
         cheaper (value down, contract ending within a year, now a free agent, or a release clause that applies)."""
         current = read_current(career)
-        return WatchlistReport(save_context(current), watchlist(current.snapshot, watched.entries(current.career)))
+        return WatchlistReport(
+            save_context(current), watchlist(current.snapshot, watched.entries(current.career), view)
+        )
 
     @server.tool(name="development_check")
     def development_check_tool(
@@ -426,7 +433,7 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         with potential of at least min_pa who are gaining less than half the CA projected for them, and players
         who have lost 3 or more CA. scope "own" is the club's players, "everyone" the whole save."""
         current = read_current(career)
-        result = development_check(current.snapshot, career.baseline(current, since), scope, min_pa, limit)
+        result = development_check(current.snapshot, career.baseline(current, since), scope, min_pa, limit, view)
         return DevelopmentCheckReport(save_context(current), result)
 
     @server.tool(name="squad_progress")
@@ -435,7 +442,7 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         best eleven, league rank, size, age, value and wage bill then and now, and the most improved players."""
         current = read_current(career)
         first = career.baseline(current, None)
-        return SquadProgressReport(save_context(current), squad_progress(current.snapshot, first, formation))
+        return SquadProgressReport(save_context(current), squad_progress(current.snapshot, first, formation, view))
 
     @server.tool(name="next_job")
     def next_job_tool(
@@ -444,7 +451,7 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         """Open first-team manager jobs in the save, biggest club first: each club's reputation against yours,
         its league level, the strength of its best eleven, and its money where the save has finances."""
         current = read_current(career)
-        return NextJobReport(save_context(current), next_job(current.snapshot, formation, bigger_only, limit))
+        return NextJobReport(save_context(current), next_job(current.snapshot, formation, bigger_only, limit, view))
 
     @server.tool(name="league_values")
     def league_values_tool(limit: int = DEFAULT_LIMIT) -> LeagueValuesReport:
@@ -452,7 +459,7 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         (same CA, age and potential) across the save, cheapest first, with each league's level and median value.
         Leagues are named after their three biggest clubs."""
         current = read_current(career)
-        return LeagueValuesReport(save_context(current), league_values(current.snapshot, limit))
+        return LeagueValuesReport(save_context(current), league_values(current.snapshot, limit, view))
 
     @server.tool(name="relegated_clubs")
     def relegated_clubs_tool(since: date | None = None) -> RelegatedClubsReport:
@@ -461,7 +468,7 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         snapshot from before the season changed."""
         current = read_current(career)
         lookback = since or current.snapshot.game_date - timedelta(days=RELEGATION_LOOKBACK_DAYS)
-        result = relegated_clubs(current.snapshot, career.baseline(current, lookback))
+        result = relegated_clubs(current.snapshot, career.baseline(current, lookback), view)
         return RelegatedClubsReport(save_context(current), result)
 
     @server.tool(name="squad_profile")
@@ -485,7 +492,7 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         eleven, key players, how their outfield attributes compare with your eleven's, and their recent results.
         Use it to suggest tactical adjustments."""
         current = read_current(career)
-        return NextOpponentReport(save_context(current), next_opponent(current.snapshot, formation))
+        return NextOpponentReport(save_context(current), next_opponent(current.snapshot, formation, view))
 
     @server.tool(name="compare_formations")
     def compare_formations_tool(formations: FormationChoices = None) -> FormationReport:
@@ -494,13 +501,13 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         and whether it is effectively tied with the best."""
         current = read_current(career)
         chosen = list(dict.fromkeys(formations)) if formations else list(Formation)
-        return FormationReport(save_context(current), compare_formations(current.snapshot, chosen))
+        return FormationReport(save_context(current), compare_formations(current.snapshot, chosen, view))
 
     @server.tool(name="squad_gaps")
     def squad_gaps_tool(formation: FormationChoice = DEFAULT_FORMATION) -> SquadGapsReport:
         """Where the squad is thin, ageing, leaving, weak or has no young successor, by position for a formation."""
         current = read_current(career)
-        return SquadGapsReport(save_context(current), squad_gaps(current.snapshot, formation))
+        return SquadGapsReport(save_context(current), squad_gaps(current.snapshot, formation, view))
 
     @server.tool()
     def find_replacement(
@@ -523,7 +530,7 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         target = target_player(snapshot, player, club)
         fee_cap = optional_stored(max_fee) if max_fee is not None else snapshot.budget.transfer_remaining
         limits = Limits(fee_cap, max_age, optional_stored(max_wage), within_reach)
-        result = find_replacements(snapshot, target, limits, limit, position)
+        result = find_replacements(snapshot, target, limits, limit, view, position)
         return ReplacementReport(save_context(current), result)
 
     @server.tool()
@@ -549,7 +556,7 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         floor, age_limit = riser_defaults(scope, current.snapshot, min_ca, max_age)
         fee_cap = optional_stored(max_fee) if max_fee is not None else current.snapshot.budget.transfer_remaining
         filters = RiserFilters(scope, min_ca_gain, floor, within_reach, age_limit, fee_cap, position)
-        result = find_risers(current.snapshot, career.baseline(current, since), filters, limit)
+        result = find_risers(current.snapshot, career.baseline(current, since), filters, limit, view)
         return RisersReport(save_context(current), result)
 
     @server.tool(name="sell_high")
@@ -558,7 +565,7 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         contract running down, or (with history) value falling or ability stalled while value rose."""
         current = read_current(career)
         owned = {player.uid for player in owned_players(current.snapshot)}
-        result = sell_high(current.snapshot, career.past_players(current, owned), limit)
+        result = sell_high(current.snapshot, career.past_players(current, owned), limit, view)
         return SellHighReport(save_context(current), result)
 
     @server.tool(name="contract_watch")
@@ -572,7 +579,7 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         """Your contracts and loans ending soon, plus free agents and players elsewhere with expiring contracts
         who would beat your current starter somewhere in the formation."""
         current = read_current(career)
-        result = contract_watch(current.snapshot, formation, within_months, max_age, within_reach, limit)
+        result = contract_watch(current.snapshot, formation, within_months, max_age, within_reach, limit, view)
         return ContractWatchReport(save_context(current), result)
 
     @server.tool(name="regen_intake")
@@ -589,7 +596,7 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         keeps regens on youth contracts or without a club, i.e. not yet on professional terms."""
         current = read_current(career)
         baseline = career.previous(current) if since_last_save else career.baseline(current, since)
-        result = regen_intake(current.snapshot, baseline, min_pa, unsigned_only, limit)
+        result = regen_intake(current.snapshot, baseline, min_pa, unsigned_only, limit, view)
         return RegenIntakeReport(save_context(current), result)
 
     return server

@@ -26,6 +26,7 @@ from mezzala.core.squad import (
     wage_paid_by_club,
 )
 from mezzala.core.summary import PlayerSummary, summarize
+from mezzala.core.view import Measure, View, measure_change
 
 
 class SearchScope(StrEnum):
@@ -75,7 +76,7 @@ class FoundPlayer:
     team: str
     value_vs_similar_players: str
     wage_vs_similar_players: str
-    above_league_level: float | None
+    above_league_level: Measure | None
     position: str
     position_attribute_score: float
     release_clause: str
@@ -217,23 +218,23 @@ def team_label(player: Player) -> str:
     return "first team" if player.first_team else "reserves or youth"
 
 
-def found(player: Player, search: PlayerSearch, measures: Measures) -> FoundPlayer:
+def found(player: Player, search: PlayerSearch, measures: Measures, view: View) -> FoundPlayer:
     group = group_for(player, search)
     excess = above_league(player, measures.leagues)
     clause = measures.release_clause(player)
     return FoundPlayer(
-        player=summarize(player),
+        player=summarize(player, view),
         team=team_label(player),
         value_vs_similar_players=describe_ratio(measures.value_ratio(player)),
         wage_vs_similar_players=describe_ratio(measures.wage_ratio(player)),
-        above_league_level=None if excess is None else round(excess, 1),
+        above_league_level=None if excess is None else measure_change(view, round(excess, 1)),
         position=group.value,
         position_attribute_score=position_score(player, group),
         release_clause="none" if clause is None else format_money(clause),
     )
 
 
-def find_players(snapshot: Snapshot, search: PlayerSearch) -> FoundPlayers:
+def find_players(snapshot: Snapshot, search: PlayerSearch, view: View) -> FoundPlayers:
     measures = Measures(
         snapshot,
         PeerMedians(snapshot.players, transfer_value),
@@ -249,5 +250,5 @@ def find_players(snapshot: Snapshot, search: PlayerSearch) -> FoundPlayers:
     ]
     matched.sort(key=sort_key(search.sort_by, search, measures))
     return FoundPlayers(
-        len(matched), search.sort_by.value, [found(p, search, measures) for p in matched[: search.limit]]
+        len(matched), search.sort_by.value, [found(p, search, measures, view) for p in matched[: search.limit]]
     )

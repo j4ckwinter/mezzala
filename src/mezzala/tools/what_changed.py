@@ -4,6 +4,7 @@ from mezzala.core.money import format_money, format_weekly_wage
 from mezzala.core.players import Player, Snapshot, is_same_person
 from mezzala.core.squad import belongs_to_club, plays_for_club
 from mezzala.core.summary import PlayerSummary, summarize
+from mezzala.core.view import View, ability_text, rating
 from mezzala.tools.regen_intake import regen_intake
 
 ABILITY_CHANGE_MIN = 2
@@ -79,15 +80,15 @@ def where_now(player: Player, current: dict[int, Player]) -> str:
     return f"now at {now.club_name or 'no club'}{loan_note(now)}"
 
 
-def squad_moves(before: Snapshot, after: Snapshot) -> tuple[list[Change], list[Change]]:
+def squad_moves(before: Snapshot, after: Snapshot, view: View) -> tuple[list[Change], list[Change]]:
     club = after.club_uid
     now = {player.uid: player for player in after.players if is_ours(player, club)}
     then = {player.uid: player for player in before.players if is_ours(player, club)}
     current = after.by_uid()
     earlier = before.by_uid()
     arrivals = sorted((p for uid, p in now.items() if uid not in then), key=lambda p: p.current_ability, reverse=True)
-    joined = [Change(summarize(p), f"from {then_club(earlier, p)}{loan_note(p)}") for p in arrivals]
-    left = [Change(summarize(p), where_now(p, current)) for uid, p in then.items() if uid not in now]
+    joined = [Change(summarize(p, view), f"from {then_club(earlier, p)}{loan_note(p)}") for p in arrivals]
+    left = [Change(summarize(p, view), where_now(p, current)) for uid, p in then.items() if uid not in now]
     return joined, left
 
 
@@ -98,7 +99,9 @@ def then_club(earlier: dict[int, Player], player: Player) -> str:
     return old.club_name or "no club"
 
 
-def own_changes(pairs: list[tuple[Player, Player]], club: int) -> tuple[list[Change], list[Change], list[Change]]:
+def own_changes(
+    pairs: list[tuple[Player, Player]], club: int, view: View
+) -> tuple[list[Change], list[Change], list[Change]]:
     ability: list[tuple[int, Change]] = []
     contracts: list[Change] = []
     values: list[Change] = []
@@ -107,18 +110,19 @@ def own_changes(pairs: list[tuple[Player, Player]], club: int) -> tuple[list[Cha
             continue
         gain = new.current_ability - old.current_ability
         if abs(gain) >= ABILITY_CHANGE_MIN:
-            ability.append((gain, Change(summarize(new), f"CA {old.current_ability} -> {new.current_ability}")))
+            moved = f"{ability_text(view, old.current_ability)} -> {rating(view, new.current_ability)}"
+            ability.append((gain, Change(summarize(new, view), moved)))
         if old.contract_end != new.contract_end:
             before_end = old.contract_end.isoformat() if old.contract_end else "none"
             after_end = new.contract_end.isoformat() if new.contract_end else "none"
-            contracts.append(Change(summarize(new), f"contract {before_end} -> {after_end}"))
+            contracts.append(Change(summarize(new, view), f"contract {before_end} -> {after_end}"))
         if old.value and new.value and abs(new.value - old.value) >= VALUE_CHANGE_SHARE * old.value:
-            values.append(Change(summarize(new), f"value {format_money(old.value)} -> {format_money(new.value)}"))
+            values.append(Change(summarize(new, view), f"value {format_money(old.value)} -> {format_money(new.value)}"))
     ability.sort(key=lambda item: abs(item[0]), reverse=True)
     return [change for _, change in ability], contracts, values
 
 
-def notable_transfers(pairs: list[tuple[Player, Player]], club: int) -> list[Change]:
+def notable_transfers(pairs: list[tuple[Player, Player]], club: int, view: View) -> list[Change]:
     moved = [
         (old, new)
         for old, new in pairs
@@ -131,21 +135,21 @@ def notable_transfers(pairs: list[tuple[Player, Player]], club: int) -> list[Cha
     ]
     moved.sort(key=lambda pair: pair[1].value or 0, reverse=True)
     return [
-        Change(summarize(new), f"{old.club_name or 'no club'} -> {new.club_name or 'no club'}")
+        Change(summarize(new, view), f"{old.club_name or 'no club'} -> {new.club_name or 'no club'}")
         for old, new in moved[:NOTABLE_TRANSFERS_SHOWN]
     ]
 
 
-def what_changed(current: Snapshot, previous: Snapshot | None) -> WhatChanged:
+def what_changed(current: Snapshot, previous: Snapshot | None, view: View) -> WhatChanged:
     if previous is None:
         return WhatChanged(None, NO_EARLIER_SNAPSHOT, [], [], [], [], [], [], 0, [], [])
     if previous.club_uid != current.club_uid:
         moved = f"You moved from {previous.club_name} to {current.club_name}, so the squads are not compared."
         return WhatChanged(previous.game_date.isoformat(), moved, [], [], [], [], [], [], 0, [], [])
     pairs = matched(previous, current)
-    joined, left = squad_moves(previous, current)
-    ability, contracts, values = own_changes(pairs, current.club_uid)
-    regens = regen_intake(current, previous, 0, False, REGENS_SHOWN)
+    joined, left = squad_moves(previous, current, view)
+    ability, contracts, values = own_changes(pairs, current.club_uid, view)
+    regens = regen_intake(current, previous, 0, False, REGENS_SHOWN, view)
     return WhatChanged(
         compared_with=previous.game_date.isoformat(),
         explanation=f"Changes between the snapshots of {previous.game_date.isoformat()} and "
@@ -158,5 +162,5 @@ def what_changed(current: Snapshot, previous: Snapshot | None) -> WhatChanged:
         values=values,
         new_regens=regens.total_new,
         best_new_regens=regens.regens,
-        notable_transfers=notable_transfers(pairs, current.club_uid),
+        notable_transfers=notable_transfers(pairs, current.club_uid, view),
     )

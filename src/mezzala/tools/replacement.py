@@ -7,6 +7,7 @@ from mezzala.core.profile import profile_similarity, strongest_attributes
 from mezzala.core.reach import within_reach
 from mezzala.core.squad import is_outside_club, leaves_within
 from mezzala.core.summary import PlayerSummary, summarize
+from mezzala.core.view import View, ability_text, potential_text, rating
 
 ABILITY_SHORTFALL_ALLOWED = 5
 GROWS_INTO_IT_MAX_AGE = 21
@@ -65,11 +66,11 @@ def ability_score(target: Player, candidate: Player) -> float:
     return min(max((candidate.current_ability - floor) / ABILITY_SCORE_SPAN, 0.0), 1.0)
 
 
-def reasons(snapshot: Snapshot, target: Player, candidate: Player, similarity: float) -> list[str]:
+def reasons(snapshot: Snapshot, target: Player, candidate: Player, similarity: float, view: View) -> list[str]:
     found = [
         f"profile {similarity:.0%} similar, strongest in {', '.join(strongest_attributes(candidate, SHOWN_STRENGTHS))}",
-        f"CA {candidate.current_ability} against {target.name}'s {target.current_ability}, "
-        f"PA {candidate.potential_ability}",
+        f"{ability_text(view, candidate.current_ability)} against {target.name}'s "
+        f"{rating(view, target.current_ability)}, {potential_text(view, candidate.potential_ability)}",
     ]
     if candidate.is_free_agent:
         found.append("free agent, no fee")
@@ -79,12 +80,14 @@ def reasons(snapshot: Snapshot, target: Player, candidate: Player, similarity: f
     if leaving is not None and not candidate.is_free_agent:
         found.append(f"contract ends {leaving.isoformat()}, so cheaper now or free on a pre-contract")
     if candidate.current_ability < target.current_ability - ABILITY_SHORTFALL_ALLOWED:
-        found.append(f"not there yet at {candidate.age}, but PA {candidate.potential_ability} covers it")
+        found.append(
+            f"not there yet at {candidate.age}, but {potential_text(view, candidate.potential_ability)} covers it"
+        )
     return found
 
 
 def find_replacements(
-    snapshot: Snapshot, target: Player, limits: Limits, limit: int, group: PositionGroup | None = None
+    snapshot: Snapshot, target: Player, limits: Limits, limit: int, view: View, group: PositionGroup | None = None
 ) -> Replacements:
     position = group or primary_group(target)
     ranked: list[Candidate] = []
@@ -98,9 +101,9 @@ def find_replacements(
         similarity = profile_similarity(target, candidate)
         score = SIMILARITY_WEIGHT * similarity + ABILITY_WEIGHT * ability_score(target, candidate)
         ranked.append(
-            Candidate(summarize(candidate), round(score, 3), round(similarity, 3),
-                      reasons(snapshot, target, candidate, similarity))
+            Candidate(summarize(candidate, view), round(score, 3), round(similarity, 3),
+                      reasons(snapshot, target, candidate, similarity, view))
         )  # fmt: skip
     ranked.sort(key=lambda candidate: candidate.score, reverse=True)
     fee_cap = "no limit" if limits.max_fee is None else format_money(limits.max_fee)
-    return Replacements(summarize(target), position.value, fee_cap, ranked[:limit])
+    return Replacements(summarize(target, view), position.value, fee_cap, ranked[:limit])

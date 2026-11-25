@@ -6,6 +6,7 @@ from mezzala.core.lineup import pick_lineup
 from mezzala.core.metrics import league_levels
 from mezzala.core.money import format_money
 from mezzala.core.players import Player, Snapshot, Vacancy
+from mezzala.core.view import Measure, View, measure
 
 
 @dataclass(frozen=True)
@@ -13,8 +14,8 @@ class JobOption:
     club: str
     club_reputation: int | None
     bigger_than_yours: bool
-    league_level: float | None
-    best_eleven_average: float | None
+    league_level: Measure | None
+    best_eleven_average: Measure | None
     balance: str
     transfer_budget: str
     advertised: str
@@ -49,25 +50,28 @@ def option(
     league: int | None,
     levels: dict[int, float],
     formation: Formation,
+    view: View,
 ) -> JobOption:
     return JobOption(
         club=vacancy.club_name,
         club_reputation=vacancy.club_reputation,
         bigger_than_yours=(vacancy.club_reputation or 0) > snapshot.club_reputation,
-        league_level=levels.get(league) if league is not None else None,
-        best_eleven_average=pick_lineup(squad, formation).average_ability() if squad else None,
+        league_level=measure(view, levels[league]) if league is not None and league in levels else None,
+        best_eleven_average=measure(view, pick_lineup(squad, formation).average_ability()) if squad else None,
         balance=format_money(vacancy.balance),
         transfer_budget=format_money(vacancy.transfer_budget),
         advertised=vacancy.advertised.isoformat() if vacancy.advertised else "unknown",
     )
 
 
-def next_job(snapshot: Snapshot, formation: Formation, bigger_only: bool, limit: int) -> NextJob:
+def next_job(snapshot: Snapshot, formation: Formation, bigger_only: bool, limit: int, view: View) -> NextJob:
     levels = league_levels(snapshot.players)
     by_club = squads(snapshot)
     leagues = club_leagues(snapshot.players)
     jobs = [
-        option(vacancy, snapshot, by_club.get(vacancy.club_uid, []), leagues.get(vacancy.club_uid), levels, formation)
+        option(
+            vacancy, snapshot, by_club.get(vacancy.club_uid, []), leagues.get(vacancy.club_uid), levels, formation, view
+        )
         for vacancy in snapshot.vacancies
         if not bigger_only or (vacancy.club_reputation or 0) > snapshot.club_reputation
     ]

@@ -5,6 +5,7 @@ from mezzala.core.money import format_money
 from mezzala.core.players import PastPlayers, Player, Snapshot, is_same_person
 from mezzala.core.positions import is_goalkeeper
 from mezzala.core.squad import leaves_within, owned_players
+from mezzala.core.view import Rating, View, ability_text, potential_text, rating, signed_amount_text
 
 PEAK_OUTFIELD_AGE = 29
 PEAK_GOALKEEPER_AGE = 32
@@ -22,8 +23,8 @@ VALUE_FALL_RATIO = 0.9
 class SaleCandidate:
     name: str
     age: int
-    current_ability: int
-    potential_ability: int
+    current_ability: Rating
+    potential_ability: Rating
     value: str
     signals: list[str]
 
@@ -34,13 +35,14 @@ class SellHigh:
     candidates: list[SaleCandidate]
 
 
-def present_signals(player: Player, snapshot: Snapshot, peer_median: float | None) -> list[str]:
+def present_signals(player: Player, snapshot: Snapshot, peer_median: float | None, view: View) -> list[str]:
     signals: list[str] = []
     peak_age = PEAK_GOALKEEPER_AGE if is_goalkeeper(player) else PEAK_OUTFIELD_AGE
     if player.age >= peak_age:
         signals.append(f"past peak age at {player.age}, value tends to fall from here")
     if player.headroom <= AT_CEILING_HEADROOM:
-        signals.append(f"at his ceiling: CA {player.current_ability} of PA {player.potential_ability}")
+        ceiling = f"{ability_text(view, player.current_ability)} of {potential_text(view, player.potential_ability)}"
+        signals.append(f"at his ceiling: {ceiling}")
     if (
         player.age >= PEER_MIN_AGE
         and peer_median is not None
@@ -56,7 +58,9 @@ def present_signals(player: Player, snapshot: Snapshot, peer_median: float | Non
     return signals
 
 
-def history_signals(player: Player, history: list[tuple[PastPlayers, Player]], current: Snapshot) -> list[str]:
+def history_signals(
+    player: Player, history: list[tuple[PastPlayers, Player]], current: Snapshot, view: View
+) -> list[str]:
     signals: list[str] = []
     values = [earlier.value for _, earlier in history if earlier.value]
     if player.value and values and player.value <= VALUE_FALL_RATIO * max(values):
@@ -71,7 +75,7 @@ def history_signals(player: Player, history: list[tuple[PastPlayers, Player]], c
         gain = player.current_ability - earlier.current_ability
         if gain <= STALLED_ABILITY_GAIN and earlier.value and player.value >= VALUE_RISE_RATIO * earlier.value:
             signals.append(
-                f"CA moved {gain:+d} since {snapshot.game_date.isoformat()} while value rose "
+                f"CA moved {signed_amount_text(view, gain, 0)} since {snapshot.game_date.isoformat()} while value rose "
                 f"from {format_money(earlier.value)}"
             )
     return signals
@@ -86,18 +90,18 @@ def earlier_selves(player: Player, earlier: list[PastPlayers]) -> list[tuple[Pas
     return found
 
 
-def sell_high(current: Snapshot, earlier: list[PastPlayers], limit: int) -> SellHigh:
+def sell_high(current: Snapshot, earlier: list[PastPlayers], limit: int, view: View) -> SellHigh:
     values = PeerMedians(current.players, transfer_value)
     candidates: list[SaleCandidate] = []
     for player in owned_players(current):
         if not player.value:
             continue
-        signals = present_signals(player, current, values.of(player))
-        signals += history_signals(player, earlier_selves(player, earlier), current)
+        signals = present_signals(player, current, values.of(player), view)
+        signals += history_signals(player, earlier_selves(player, earlier), current, view)
         if signals:
             candidates.append(
-                SaleCandidate(player.name, player.age, player.current_ability, player.potential_ability,
-                              format_money(player.value), signals)
+                SaleCandidate(player.name, player.age, rating(view, player.current_ability),
+                              rating(view, player.potential_ability), format_money(player.value), signals)
             )  # fmt: skip
     candidates.sort(key=lambda candidate: len(candidate.signals), reverse=True)
     compared_with = earlier[0].game_date.isoformat() if earlier else None

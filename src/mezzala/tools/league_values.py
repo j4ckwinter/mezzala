@@ -5,6 +5,7 @@ from mezzala.core.leagues import league_names
 from mezzala.core.metrics import PeerMedians, league_levels, transfer_value
 from mezzala.core.money import format_money
 from mezzala.core.players import Snapshot
+from mezzala.core.view import Measure, View, measure
 
 MIN_PRICED_PLAYERS = 30
 
@@ -12,7 +13,7 @@ MIN_PRICED_PLAYERS = 30
 @dataclass(frozen=True)
 class LeagueValue:
     league: str
-    level: float
+    level: Measure
     value_vs_similar_players: str
     median_value: str
     priced_players: int
@@ -32,7 +33,7 @@ EXPLANATION = (
 )
 
 
-def league_values(snapshot: Snapshot, limit: int) -> LeagueValues:
+def league_values(snapshot: Snapshot, limit: int, view: View) -> LeagueValues:
     levels = league_levels(snapshot.players)
     names = league_names(snapshot.players)
     peers = PeerMedians(snapshot.players, transfer_value)
@@ -52,7 +53,7 @@ def league_values(snapshot: Snapshot, limit: int) -> LeagueValues:
         key=lambda item: item[0],
     )
     rows = [
-        LeagueValue(names.get(league, "unknown"), levels[league], f"{ratio:.2f}x",
+        LeagueValue(names.get(league, "unknown"), measure(view, levels[league]), f"{ratio:.2f}x",
                     format_money(round(median(values[league]))), len(ratios[league]), league in yours)
         for ratio, league in ranked[:limit]
     ]  # fmt: skip

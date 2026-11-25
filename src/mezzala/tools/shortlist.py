@@ -11,6 +11,7 @@ from mezzala.core.positions import PositionGroup, covers
 from mezzala.core.reach import REPUTATION_REACH, within_reach
 from mezzala.core.squad import available_squad, is_outside_club
 from mezzala.core.summary import PlayerSummary, summarize
+from mezzala.core.view import View, rating
 from mezzala.tools.squad_gaps import LOOKAHEAD_SEASONS, ageing_age, squad_gaps
 
 ALTERNATIVES_PER_POSITION = 2
@@ -173,12 +174,16 @@ def candidates(
     )
 
 
-def describe_bar(bar: Player | None) -> str:
-    return "nobody (an empty place)" if bar is None else f"{bar.name} ({bar.current_ability})"
+def describe_bar(bar: Player | None, view: View) -> str:
+    return "nobody (an empty place)" if bar is None else f"{bar.name} ({rating(view, bar.current_ability)})"
 
 
 def shortlist(
-    snapshot: Snapshot, formation: Formation, transfer_budget: int | None, weekly_wage_budget: int | None
+    snapshot: Snapshot,
+    formation: Formation,
+    transfer_budget: int | None,
+    weekly_wage_budget: int | None,
+    view: View,
 ) -> Shortlist:
     bars = weakest_starters(available_squad(snapshot), formation)
     wages_of_peers = wage_guide(snapshot)
@@ -187,14 +192,16 @@ def shortlist(
     fees = 0
     wages = 0
     picks: list[ShortlistPick] = []
-    for position in squad_gaps(snapshot, formation).positions:
+    for position in squad_gaps(snapshot, formation, view).positions:
         if not position.issues:
             continue
         group = PositionGroup(position.group)
         bar = bars[group]
         options = candidates(snapshot, group, bar, age_limit(group), budget, taken, wages_of_peers)
         if not options:
-            picks.append(ShortlistPick(position.group, position.issues, None, describe_bar(bar), "none", "none", []))
+            picks.append(
+                ShortlistPick(position.group, position.issues, None, describe_bar(bar, view), "none", "none", [])
+            )
             continue
         target = options[0]
         fee = fee_for(target) or 0
@@ -208,11 +215,11 @@ def shortlist(
             ShortlistPick(
                 position.group,
                 position.issues,
-                summarize(target),
-                describe_bar(bar),
+                summarize(target, view),
+                describe_bar(bar, view),
                 format_money(fee),
                 describe_wage(estimate),
-                [summarize(player) for player in options[1 : 1 + ALTERNATIVES_PER_POSITION]],
+                [summarize(player, view) for player in options[1 : 1 + ALTERNATIVES_PER_POSITION]],
             )
         )
     return Shortlist(

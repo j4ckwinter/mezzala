@@ -6,6 +6,7 @@ from mezzala.core.money import format_money
 from mezzala.core.players import Player, Snapshot, WatchedPlayer
 from mezzala.core.squad import contract_ends_within
 from mezzala.core.summary import PlayerSummary, summarize
+from mezzala.core.view import View, ability_text, rating
 
 CHEAPER_SHARE = 0.9
 CONTRACT_SOON_MONTHS = 12
@@ -58,12 +59,12 @@ def find_watched(watched: WatchedPlayer, by_uid: dict[int, Player]) -> Player | 
     return player
 
 
-def changes_since(watched: WatchedPlayer, player: Player) -> list[str]:
+def changes_since(watched: WatchedPlayer, player: Player, view: View) -> list[str]:
     found: list[str] = []
     if player.club_name != watched.club_name:
         found.append(f"moved: {watched.club_name or 'no club'} -> {player.club_name or 'no club'}")
     if player.current_ability != watched.current_ability:
-        found.append(f"CA {watched.current_ability} -> {player.current_ability}")
+        found.append(f"{ability_text(view, watched.current_ability)} -> {rating(view, player.current_ability)}")
     if player.value != watched.value:
         found.append(f"value {format_money(watched.value)} -> {format_money(player.value)}")
     return found
@@ -84,7 +85,7 @@ def cheaper_because(watched: WatchedPlayer, player: Player, snapshot: Snapshot) 
     return reasons
 
 
-def watchlist(snapshot: Snapshot, entries: list[WatchedPlayer]) -> Watchlist:
+def watchlist(snapshot: Snapshot, entries: list[WatchedPlayer], view: View) -> Watchlist:
     by_uid = snapshot.by_uid()
     found: list[WatchedNow] = []
     for watched in entries:
@@ -94,8 +95,8 @@ def watchlist(snapshot: Snapshot, entries: list[WatchedPlayer]) -> Watchlist:
                                     ["no longer in the save (retired or removed)"], []))  # fmt: skip
             continue
         found.append(
-            WatchedNow(watched.name, watched.note, watched.added_on.isoformat(), summarize(player),
-                       changes_since(watched, player), cheaper_because(watched, player, snapshot))
+            WatchedNow(watched.name, watched.note, watched.added_on.isoformat(), summarize(player, view),
+                       changes_since(watched, player, view), cheaper_because(watched, player, snapshot))
         )  # fmt: skip
     found.sort(key=lambda entry: len(entry.cheaper_because), reverse=True)
     return Watchlist(found)

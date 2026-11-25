@@ -5,6 +5,17 @@ from mezzala.core.growth import expected_gain_over
 from mezzala.core.players import Player, Snapshot, is_same_person
 from mezzala.core.squad import YOUNG_PLAYER_MAX_AGE, belongs_to_club, plays_for_club
 from mezzala.core.summary import PlayerSummary, summarize
+from mezzala.core.view import (
+    Measure,
+    Rating,
+    View,
+    ability_text,
+    amount_text,
+    gain_text,
+    measure_change,
+    rating,
+    rating_change,
+)
 
 UNDERDEVELOPING_SHARE = 0.5
 MIN_EXPECTED_GAIN = 1.0
@@ -20,8 +31,8 @@ class CheckScope(StrEnum):
 @dataclass(frozen=True)
 class DevelopmentEntry:
     player: PlayerSummary
-    ability_change: int
-    expected_change: float | None
+    ability_change: Rating
+    expected_change: Measure | None
     detail: str
 
 
@@ -54,7 +65,7 @@ def in_scope(player: Player, club_uid: int, scope: CheckScope) -> bool:
 
 
 def development_check(
-    current: Snapshot, baseline: Snapshot | None, scope: CheckScope, min_pa: int, limit: int
+    current: Snapshot, baseline: Snapshot | None, scope: CheckScope, min_pa: int, limit: int, view: View
 ) -> DevelopmentCheck:
     reason = no_comparison(baseline, current)
     if baseline is None or reason is not None:
@@ -71,13 +82,21 @@ def development_check(
         if before.age <= YOUNG_PLAYER_MAX_AGE and before.potential_ability >= min_pa:
             expected = expected_gain_over(before, days)
             if expected >= MIN_EXPECTED_GAIN and change < UNDERDEVELOPING_SHARE * expected:
-                detail = f"gained {change} CA in {days} days, expected about {expected:.0f}"
-                behind.append(
-                    (expected - change, DevelopmentEntry(summarize(player), change, round(expected, 1), detail))
+                gained = f"gained {gain_text(view, change, 0)} in {days} days"
+                detail = f"{gained}, expected about {amount_text(view, expected, 0)}"
+                entry = DevelopmentEntry(
+                    summarize(player, view),
+                    rating_change(view, change),
+                    measure_change(view, round(expected, 1)),
+                    detail,
                 )
+                behind.append((expected - change, entry))
         if change <= -DECLINE_MIN_DROP:
-            detail = f"CA {before.current_ability} -> {player.current_ability} in {days} days at {player.age}"
-            declining.append((change, DevelopmentEntry(summarize(player), change, None, detail)))
+            moved = f"{ability_text(view, before.current_ability)} -> {rating(view, player.current_ability)}"
+            detail = f"{moved} in {days} days at {player.age}"
+            declining.append(
+                (change, DevelopmentEntry(summarize(player, view), rating_change(view, change), None, detail))
+            )
     behind.sort(key=lambda item: item[0], reverse=True)
     declining.sort(key=lambda item: item[0])
     return DevelopmentCheck(

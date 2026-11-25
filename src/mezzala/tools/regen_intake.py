@@ -3,6 +3,7 @@ from datetime import date
 
 from mezzala.core.players import Player, Snapshot, is_same_person
 from mezzala.core.summary import PlayerSummary, summarize
+from mezzala.core.view import Rating, View, rating
 
 REGEN_MAX_AGE = 17
 CLUBS_SHOWN = 10
@@ -12,7 +13,7 @@ CLUBS_SHOWN = 10
 class ClubRegens:
     club: str
     promising_regens: int
-    best_potential: int
+    best_potential: Rating
     best: str
 
 
@@ -35,18 +36,23 @@ def is_unsigned(player: Player) -> bool:
     return player.is_free_agent or player.youth_contract is True
 
 
-def clubs_producing(regens: list[Player], min_potential: int) -> list[ClubRegens]:
+def clubs_producing(regens: list[Player], min_potential: int, view: View) -> list[ClubRegens]:
     by_club: dict[str, list[Player]] = {}
     for player in regens:
         if player.club_name is not None and player.potential_ability >= min_potential:
             by_club.setdefault(player.club_name, []).append(player)
-    clubs = [
-        ClubRegens(club, len(found), best.potential_ability, best.name)
-        for club, found in by_club.items()
-        if (best := max(found, key=lambda player: player.potential_ability))
+    ranked = sorted(
+        (
+            (len(found), max(found, key=lambda player: player.potential_ability), club)
+            for club, found in by_club.items()
+        ),
+        key=lambda item: (item[0], item[1].potential_ability),
+        reverse=True,
+    )
+    return [
+        ClubRegens(club, count, rating(view, best.potential_ability), best.name)
+        for count, best, club in ranked[:CLUBS_SHOWN]
     ]
-    clubs.sort(key=lambda club: (club.promising_regens, club.best_potential), reverse=True)
-    return clubs[:CLUBS_SHOWN]
 
 
 def was_youth_at(player: Player, day: date) -> bool:
@@ -61,7 +67,7 @@ def was_youth_at(player: Player, day: date) -> bool:
 
 
 def regen_intake(
-    current: Snapshot, baseline: Snapshot | None, min_potential: int, unsigned_only: bool, limit: int
+    current: Snapshot, baseline: Snapshot | None, min_potential: int, unsigned_only: bool, limit: int, view: View
 ) -> RegenIntake:
     if baseline is None:
         return RegenIntake(None, NO_BASELINE, 0, [], [])
@@ -74,7 +80,7 @@ def regen_intake(
     ]
     new.sort(key=lambda player: (player.potential_ability, player.current_ability), reverse=True)
     shown = [
-        summarize(player)
+        summarize(player, view)
         for player in new
         if player.potential_ability >= min_potential and (not unsigned_only or is_unsigned(player))
     ][:limit]
@@ -84,5 +90,5 @@ def regen_intake(
         "does not record where a player came through)."
     )
     return RegenIntake(
-        baseline.game_date.isoformat(), explanation, len(new), shown, clubs_producing(new, min_potential)
+        baseline.game_date.isoformat(), explanation, len(new), shown, clubs_producing(new, min_potential, view)
     )

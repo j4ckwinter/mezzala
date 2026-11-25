@@ -14,6 +14,7 @@ from mezzala.core.squad import (
     squad_level,
     wage_paid_by_club,
 )
+from mezzala.core.view import Rating, View, rating
 
 OVERPAID_RATIO = 1.5
 
@@ -30,8 +31,8 @@ class Role(StrEnum):
 class WageEntry:
     name: str
     age: int
-    current_ability: int
-    potential_ability: int
+    current_ability: Rating
+    potential_ability: Rating
     role: str
     weekly_wage_paid: str
     wage_vs_similar_players: str
@@ -67,7 +68,7 @@ def roles(snapshot: Snapshot, formation: Formation) -> dict[int, Role]:
     return found
 
 
-def wage_review(snapshot: Snapshot, formation: Formation) -> WageReview:
+def wage_review(snapshot: Snapshot, formation: Formation, view: View) -> WageReview:
     peers = PeerMedians(snapshot.players, weekly_wage)
     role_of = roles(snapshot, formation)
     entries: list[tuple[Player, int | None, float | None]] = []
@@ -77,7 +78,8 @@ def wage_review(snapshot: Snapshot, formation: Formation) -> WageReview:
 
     def entry(player: Player, paid: int | None, ratio: float | None) -> WageEntry:
         return WageEntry(
-            player.name, player.age, player.current_ability, player.potential_ability, role_of[player.uid].value,
+            player.name, player.age, rating(view, player.current_ability), rating(view, player.potential_ability),
+            role_of[player.uid].value,
             format_weekly_wage(paid), "unknown" if ratio is None else f"{ratio:.2f}x",
             player.contract_end.isoformat() if player.contract_end else "none",
         )  # fmt: skip

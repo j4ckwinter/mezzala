@@ -6,6 +6,7 @@ from mezzala.core.assignment import BLOCKED, min_cost_assignment
 from mezzala.core.formations import STARTERS, Formation
 from mezzala.core.players import Player
 from mezzala.core.positions import Fit, PositionGroup, fit
+from mezzala.core.view import Rating, View, rating
 
 ACCOMPLISHED_PENALTY = 5
 
@@ -94,11 +95,11 @@ class StarterEntry:
     position: str
     name: str | None
     age: int | None
-    current_ability: int | None
+    current_ability: Rating | None
     fit: str | None
 
 
-def starter_entries(lineup: Lineup) -> list[StarterEntry]:
+def starter_entries(lineup: Lineup, view: View) -> list[StarterEntry]:
     entries: list[StarterEntry] = []
     for place in lineup.places:
         player = place.player
@@ -106,7 +107,7 @@ def starter_entries(lineup: Lineup) -> list[StarterEntry]:
             entries.append(StarterEntry(place.group.value, None, None, None, None))
         else:
             entries.append(
-                StarterEntry(place.group.value, player.name, player.age, player.current_ability,
+                StarterEntry(place.group.value, player.name, player.age, rating(view, player.current_ability),
                              fit(player, place.group).value)
             )  # fmt: skip
     return entries

@@ -6,6 +6,7 @@ from mezzala.core.money import format_money, format_weekly_wage
 from mezzala.core.players import Snapshot, is_same_person
 from mezzala.core.squad import available_squad, everyone_paid, owned_players, wage_paid_by_club
 from mezzala.core.summary import PlayerSummary, summarize
+from mezzala.core.view import Rating, View, rating_change, rating_text
 from mezzala.tools.league_comparison import league_comparison
 
 MOST_IMPROVED_SHOWN = 5
@@ -21,7 +22,7 @@ class Measure:
 @dataclass(frozen=True)
 class Improver:
     player: PlayerSummary
-    ability_change: int
+    ability_change: Rating
 
 
 @dataclass(frozen=True)
@@ -38,19 +39,19 @@ FIRST_SNAPSHOT_ONLY = (
 
 
 def rank_label(snapshot: Snapshot, formation: Formation) -> str:
-    comparison = league_comparison(snapshot, formation)
+    comparison = league_comparison(snapshot, formation, View.FULL)
     if comparison.your_rank is None:
         return "unknown"
     return f"{comparison.your_rank} of {len(comparison.clubs)}"
 
 
-def measures(snapshot: Snapshot, formation: Formation) -> dict[str, str]:
+def measures(snapshot: Snapshot, formation: Formation, view: View) -> dict[str, str]:
     squad = available_squad(snapshot)
     owned = owned_players(snapshot)
     ages = [player.age for player in squad]
     wages = sum(wage_paid_by_club(player, snapshot.club_uid) or 0 for player in everyone_paid(snapshot))
     return {
-        "best eleven average CA": f"{pick_lineup(squad, formation).average_ability():g}",
+        "best eleven average CA": rating_text(view, pick_lineup(squad, formation).average_ability()),
         "league rank by best eleven": rank_label(snapshot, formation),
         "players available": str(len(squad)),
         "average age": f"{sum(ages) / len(ages):.1f}" if ages else "unknown",
@@ -59,7 +60,7 @@ def measures(snapshot: Snapshot, formation: Formation) -> dict[str, str]:
     }
 
 
-def squad_progress(current: Snapshot, first: Snapshot | None, formation: Formation) -> SquadProgress:
+def squad_progress(current: Snapshot, first: Snapshot | None, formation: Formation, view: View) -> SquadProgress:
     if first is None:
         return SquadProgress(None, FIRST_SNAPSHOT_ONLY, [], [])
     if first.club_uid != current.club_uid:
@@ -68,16 +69,17 @@ def squad_progress(current: Snapshot, first: Snapshot | None, formation: Formati
             "so there is no squad to compare."
         )
         return SquadProgress(first.game_date.isoformat(), moved, [], [])
-    then = measures(first, formation)
-    now = measures(current, formation)
+    then = measures(first, formation, view)
+    now = measures(current, formation, view)
     earlier = first.by_uid()
-    improvers = [
-        Improver(summarize(player), player.current_ability - before.current_ability)
+    gains = [
+        (player.current_ability - before.current_ability, player)
         for player in owned_players(current)
         if (before := earlier.get(player.uid)) is not None and is_same_person(before, player)
         and player.current_ability > before.current_ability
     ]  # fmt: skip
-    improvers.sort(key=lambda improver: improver.ability_change, reverse=True)
+    gains.sort(key=lambda gain: gain[0], reverse=True)
+    improvers = [Improver(summarize(player, view), rating_change(view, gain)) for gain, player in gains]
     return SquadProgress(
         first.game_date.isoformat(),
         f"The squad on {current.game_date.isoformat()} against the first snapshot, {first.game_date.isoformat()}.",

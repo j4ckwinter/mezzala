@@ -44,6 +44,7 @@ Most players install the Claude Desktop extension, `mezzala.mcpb`, from the late
 | Which league a club is in, and how a league is named | `src/mezzala/core/leagues.py` |
 | Money units and formatting | `src/mezzala/core/money.py` |
 | How a player is shown in answers | `src/mezzala/core/summary.py` |
+| How ability is shown: CA and PA as numbers, or as stars in spoiler-free mode | `src/mezzala/core/view.py` |
 | Finding a player by name | `src/mezzala/core/lookup.py` |
 | Each tool's rules | `src/mezzala/tools/`, one module per tool |
 | Tool names, parameters, defaults and errors | `src/mezzala/server.py` |

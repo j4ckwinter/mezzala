@@ -8,13 +8,14 @@ from mezzala.core.money import format_money
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import PositionGroup
 from mezzala.core.squad import available_squad
+from mezzala.core.view import Measure, View, measure
 
 
 @dataclass(frozen=True)
 class ClubRow:
     rank: int
     club: str
-    eleven_average_ability: float
+    eleven_average_ability: Measure
     squad_value: str
     yours: bool
 
@@ -22,10 +23,10 @@ class ClubRow:
 @dataclass(frozen=True)
 class PositionRow:
     position: str
-    yours: float | None
-    league_median: float | None
+    yours: Measure | None
+    league_median: Measure | None
     best_club: str | None
-    best: float | None
+    best: Measure | None
 
 
 @dataclass(frozen=True)
@@ -63,7 +64,7 @@ def average_at(lineup: Lineup, group: PositionGroup) -> float | None:
 
 
 def position_rows(
-    lineups: dict[int, Lineup], names: dict[int, str], mine: int, formation: Formation
+    lineups: dict[int, Lineup], names: dict[int, str], mine: int, formation: Formation, view: View
 ) -> list[PositionRow]:
     rows: list[PositionRow] = []
     for group in STARTERS[formation]:
@@ -72,16 +73,16 @@ def position_rows(
         rows.append(
             PositionRow(
                 group.value,
-                levels.get(mine),
-                round(median(levels.values()), 1) if levels else None,
+                measure(view, levels[mine]) if mine in levels else None,
+                measure(view, round(median(levels.values()), 1)) if levels else None,
                 names[best_club] if best_club is not None else None,
-                levels[best_club] if best_club is not None else None,
+                measure(view, levels[best_club]) if best_club is not None else None,
             )
         )
     return rows
 
 
-def league_comparison(snapshot: Snapshot, formation: Formation) -> LeagueComparison:
+def league_comparison(snapshot: Snapshot, formation: Formation, view: View) -> LeagueComparison:
     league_id = club_league(snapshot)
     if league_id is None:
         return LeagueComparison(formation.value, NO_LEAGUE, None, [], [])
@@ -93,11 +94,15 @@ def league_comparison(snapshot: Snapshot, formation: Formation) -> LeagueCompari
     ordered = sorted(lineups, key=lambda club: lineups[club].average_ability(), reverse=True)
     averages = [lineups[club].average_ability() for club in ordered]
     clubs = [
-        ClubRow(averages.index(average) + 1, names[club], average, format_money(squad_value(squads[club])),
-                club == snapshot.club_uid)
+        ClubRow(averages.index(average) + 1, names[club], measure(view, average),
+                format_money(squad_value(squads[club])), club == snapshot.club_uid)
         for club, average in zip(ordered, averages, strict=True)
     ]  # fmt: skip
     your_rank = next(row.rank for row in clubs if row.yours)
     return LeagueComparison(
-        formation.value, EXPLANATION, your_rank, clubs, position_rows(lineups, names, snapshot.club_uid, formation)
+        formation.value,
+        EXPLANATION,
+        your_rank,
+        clubs,
+        position_rows(lineups, names, snapshot.club_uid, formation, view),
     )

@@ -7,6 +7,7 @@ from mezzala.core.positions import PositionGroup, covers
 from mezzala.core.reach import within_reach
 from mezzala.core.squad import available_squad, is_outside_club, leaves_within, owned_players
 from mezzala.core.summary import PlayerSummary, summarize
+from mezzala.core.view import View, rating
 
 KEY_PLAYER_MARGIN = 5
 
@@ -46,7 +47,9 @@ def own_advice(player: Player, snapshot: Snapshot, bars: dict[PositionGroup, Pla
     return "squad player: let him run down or sell for what you can get"
 
 
-def best_improvement(player: Player, bars: dict[PositionGroup, Player | None]) -> tuple[PositionGroup, str] | None:
+def best_improvement(
+    player: Player, bars: dict[PositionGroup, Player | None], view: View
+) -> tuple[PositionGroup, str] | None:
     options: list[tuple[int, PositionGroup, str]] = []
     for group, bar in bars.items():
         if not covers(player, group):
@@ -54,23 +57,29 @@ def best_improvement(player: Player, bars: dict[PositionGroup, Player | None]) -
         if bar is None:
             options.append((player.current_ability, group, "nobody (a gap)"))
         elif player.current_ability > bar.current_ability:
-            options.append((player.current_ability - bar.current_ability, group, f"{bar.name} ({bar.current_ability})"))
+            options.append(
+                (
+                    player.current_ability - bar.current_ability,
+                    group,
+                    f"{bar.name} ({rating(view, bar.current_ability)})",
+                )
+            )
     if not options:
         return None
     _, group, improves_on = max(options, key=lambda option: option[0])
     return group, improves_on
 
 
-def target(player: Player, bars: dict[PositionGroup, Player | None], why: str) -> Target | None:
-    improvement = best_improvement(player, bars)
+def target(player: Player, bars: dict[PositionGroup, Player | None], why: str, view: View) -> Target | None:
+    improvement = best_improvement(player, bars, view)
     if improvement is None:
         return None
     group, improves_on = improvement
-    return Target(summarize(player), group.value, improves_on, why)
+    return Target(summarize(player, view), group.value, improves_on, why)
 
 
-def target_ability(entry: Target) -> int:
-    return entry.player.current_ability
+def best_first(found: list[tuple[int, Target]], limit: int) -> list[Target]:
+    return [entry for _, entry in sorted(found, key=lambda item: item[0], reverse=True)[:limit]]
 
 
 def contract_watch(
@@ -80,13 +89,14 @@ def contract_watch(
     max_age: int | None,
     reachable_only: bool,
     limit: int,
+    view: View,
 ) -> ContractWatch:
     bars = weakest_starters(available_squad(snapshot), formation)
-    free: list[Target] = []
-    pre_contract: list[Target] = []
+    free: list[tuple[int, Target]] = []
+    pre_contract: list[tuple[int, Target]] = []
     loaned_in = [player for player in available_squad(snapshot) if player.on_loan]
     own = [
-        ExpiringOwnPlayer(summarize(player), leaving.isoformat(), own_advice(player, snapshot, bars))
+        ExpiringOwnPlayer(summarize(player, view), leaving.isoformat(), own_advice(player, snapshot, bars))
         for player in sorted([*owned_players(snapshot), *loaned_in], key=lambda p: p.current_ability, reverse=True)
         if (leaving := leaves_within(player, snapshot.club_uid, snapshot.game_date, within_months)) is not None
     ]
@@ -96,17 +106,16 @@ def contract_watch(
         if reachable_only and not within_reach(player, snapshot):
             continue
         if player.is_free_agent:
-            found = target(player, bars, "free agent: wages only, no fee")
+            found = target(player, bars, "free agent: wages only, no fee", view)
             if found is not None:
-                free.append(found)
+                free.append((player.current_ability, found))
             continue
         if not is_outside_club(player, snapshot.club_uid) or player.on_loan:
             continue
         leaving = leaves_within(player, snapshot.club_uid, snapshot.game_date, within_months)
         if leaving is not None:
-            found = target(player, bars, f"contract ends {leaving.isoformat()}: pre-contract or a cut-price fee")
+            why = f"contract ends {leaving.isoformat()}: pre-contract or a cut-price fee"
+            found = target(player, bars, why, view)
             if found is not None:
-                pre_contract.append(found)
-    free.sort(key=target_ability, reverse=True)
-    pre_contract.sort(key=target_ability, reverse=True)
-    return ContractWatch(within_months, own[:limit], free[:limit], pre_contract[:limit])
+                pre_contract.append((player.current_ability, found))
+    return ContractWatch(within_months, own[:limit], best_first(free, limit), best_first(pre_contract, limit))

@@ -8,6 +8,14 @@ from mezzala.core.positions import PositionGroup, covers
 from mezzala.core.reach import within_reach
 from mezzala.core.squad import belongs_to_club, is_outside_club
 from mezzala.core.summary import PlayerSummary, summarize
+from mezzala.core.view import (
+    Measure,
+    View,
+    gain_text,
+    measure_change,
+    rating,
+    signed_amount_text,
+)
 
 
 class RiserScope(StrEnum):
@@ -30,7 +38,7 @@ class RiserFilters:
 @dataclass(frozen=True)
 class Riser:
     player: PlayerSummary
-    ability_gain: float
+    ability_gain: Measure
     value_change: str
     reason: str
 
@@ -82,16 +90,18 @@ def describe_change(growth: Growth) -> str:
     return f"{sign}{format_money(abs(growth.value_change))}"
 
 
-def reason(player: Player, growth: Growth) -> str:
+def reason(player: Player, growth: Growth, view: View) -> str:
     if growth.basis is GrowthBasis.OBSERVED:
         return (
-            f"gained {growth.ability_gain:.0f} CA in {growth.days} days, "
-            f"now {player.current_ability} of {player.potential_ability}"
+            f"gained {gain_text(view, growth.ability_gain, 0)} in {growth.days} days, "
+            f"now {rating(view, player.current_ability)} of {rating(view, player.potential_ability)}"
         )
-    return f"{player.headroom} CA of headroom at {player.age}, projected +{growth.ability_gain:.1f} next season"
+    headroom = gain_text(view, player.headroom, 0)
+    projected = signed_amount_text(view, growth.ability_gain, 1)
+    return f"{headroom} of headroom at {player.age}, projected {projected} next season"
 
 
-def find_risers(current: Snapshot, earlier: Snapshot | None, filters: RiserFilters, limit: int) -> Risers:
+def find_risers(current: Snapshot, earlier: Snapshot | None, filters: RiserFilters, limit: int, view: View) -> Risers:
     earlier_by_uid = earlier.by_uid() if earlier is not None else {}
     found: list[tuple[Growth, Player]] = []
     for player in current.players:
@@ -113,5 +123,8 @@ def find_risers(current: Snapshot, earlier: Snapshot | None, filters: RiserFilte
         basis=(GrowthBasis.PROJECTED if earlier is None else GrowthBasis.OBSERVED).value,
         compared_with=earlier.game_date.isoformat() if earlier is not None else None,
         explanation=PROJECTED_EXPLANATION if earlier is None else OBSERVED_EXPLANATION,
-        risers=[Riser(summarize(p), g.ability_gain, describe_change(g), reason(p, g)) for g, p in found[:limit]],
+        risers=[
+            Riser(summarize(p, view), measure_change(view, g.ability_gain), describe_change(g), reason(p, g, view))
+            for g, p in found[:limit]
+        ],
     )

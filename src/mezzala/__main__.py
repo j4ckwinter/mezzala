@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 
+from mezzala.core.view import View
 from mezzala.save.career import Career
 from mezzala.save.reader import read_snapshot
 from mezzala.save.saves import newest_save
@@ -21,7 +22,7 @@ def main() -> None:
     pinned: Path | None = arguments.save
     locate = (lambda: pinned) if pinned is not None else (lambda: newest_save(Path.home()))
     career = Career(locate, SnapshotStore(arguments.database), read_snapshot)
-    create_server(career, WatchlistStore(arguments.database)).run()
+    create_server(career, WatchlistStore(arguments.database), View.FULL).run()
 
 
 if __name__ == "__main__":

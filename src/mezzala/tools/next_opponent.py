@@ -7,6 +7,7 @@ from mezzala.core.players import Match, Player, Snapshot
 from mezzala.core.profile import outfield_profile
 from mezzala.core.squad import available_squad
 from mezzala.core.summary import PlayerSummary, summarize
+from mezzala.core.view import View
 from mezzala.tools.compare_formations import SCORE_TIE_MARGIN, score
 
 KEY_PLAYERS_SHOWN = 3
@@ -112,7 +113,7 @@ def compare(mine: dict[str, float], theirs: dict[str, float]) -> list[GroupCompa
     ]
 
 
-def next_opponent(snapshot: Snapshot, formation: Formation) -> NextOpponent:
+def next_opponent(snapshot: Snapshot, formation: Formation, view: View) -> NextOpponent:
     match = next_match(snapshot)
     if match is None:
         return NextOpponent(NO_FIXTURE, None, None, None, None, [], [], [], [], [])
@@ -136,9 +137,9 @@ def next_opponent(snapshot: Snapshot, formation: Formation) -> NextOpponent:
         competition=competition_label(match, snapshot),
         venue=venue(match, home),
         their_likely_formations=[shape.formation.value for shape in shapes],
-        their_eleven=starter_entries(their_lineup) if their_lineup else [],
+        their_eleven=starter_entries(their_lineup, view) if their_lineup else [],
         their_key_players=[
-            summarize(p) for p in sorted(squad, key=lambda p: p.current_ability, reverse=True)[:KEY_PLAYERS_SHOWN]
+            summarize(p, view) for p in sorted(squad, key=lambda p: p.current_ability, reverse=True)[:KEY_PLAYERS_SHOWN]
         ],
         attributes=compare(mine, theirs),
         their_recent_results=[result_line(m, opponent_uid) for m in played[:RECENT_RESULTS_SHOWN]],
