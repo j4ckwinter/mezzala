@@ -2,7 +2,7 @@ from datetime import date
 from itertools import count
 from typing import Any
 
-from mezzala.core.players import ATTRIBUTE_NAMES, POSITION_CODES, Budget, Player, Snapshot
+from mezzala.core.players import ATTRIBUTE_NAMES, POSITION_CODES, Budget, Player, Snapshot, Vacancy
 
 MY_CLUB = 1
 MY_CLUB_NAME = "Paisley"
@@ -65,6 +65,7 @@ def snapshot(
     game_date: date = SEASON_START,
     transfer_budget: int = 1_000_000,
     club_reputation: int = 5_000,
+    vacancies: tuple[Vacancy, ...] = (),
 ) -> Snapshot:
     return Snapshot(
         game_date=game_date,
@@ -74,6 +75,7 @@ def snapshot(
         club_nation_id=MY_NATION,
         budget=Budget(transfer_budget, 60_000, 55_000),
         players=tuple(players),
+        vacancies=tuple(vacancies),
     )
 
 

@@ -2,12 +2,13 @@ from datetime import date
 from types import SimpleNamespace
 from typing import cast
 
-from fmsave import ClauseKind, Contract, ContractType, Fixture, TransferValueState
+from fmsave import ClauseKind, Contract, ContractType, Fixture, JobVacancy, StaffJob, TransferValueState
 from fmsave import Player as FmPlayer
 
 from mezzala.core.players import ReleaseClause, ReleaseScope
 from mezzala.save.reader import (
     first_team_leagues,
+    is_manager_job,
     known_value,
     loan_wage,
     release_clauses,
@@ -106,3 +107,10 @@ def test_a_domestic_release_clause_expires_the_given_days_after_the_contract_sta
     assert release_clauses(cast(Contract, contract)) == (
         ReleaseClause(ReleaseScope.DOMESTIC, 900_000, date(2026, 7, 1)),
     )
+
+
+def test_only_first_team_manager_jobs_count_as_vacancies():
+    manager = SimpleNamespace(team_slot=0, unknown={"role": StaffJob.MANAGER.value})
+    scout = SimpleNamespace(team_slot=0, unknown={"role": StaffJob.SCOUT.value})
+    reserve_manager = SimpleNamespace(team_slot=1, unknown={"role": StaffJob.MANAGER.value})
+    assert [is_manager_job(cast(JobVacancy, job)) for job in (manager, scout, reserve_manager)] == [True, False, False]

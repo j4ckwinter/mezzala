@@ -14,6 +14,7 @@ from mezzala.core.players import (
     ReleaseClause,
     ReleaseScope,
     Snapshot,
+    Vacancy,
 )
 
 SCHEMA = """
@@ -28,6 +29,7 @@ CREATE TABLE IF NOT EXISTS snapshots (
     club_reputation INTEGER NOT NULL,
     club_nation_id INTEGER,
     format INTEGER NOT NULL DEFAULT 1,
+    vacancies TEXT,
     budget TEXT NOT NULL,
     players BLOB NOT NULL,
     UNIQUE (career, game_date)
@@ -49,6 +51,18 @@ def optional_text(day: date | None) -> str | None:
     return day.isoformat() if day else None
 
 
+def encode_vacancy(vacancy: Vacancy) -> list[Any]:
+    return [
+        vacancy.club_uid, vacancy.club_name, vacancy.club_reputation, optional_text(vacancy.advertised),
+        vacancy.balance, vacancy.transfer_budget,
+    ]  # fmt: skip
+
+
+def decode_vacancy(stored: list[Any]) -> Vacancy:
+    club_uid, club_name, reputation, advertised, balance, transfer_budget = stored
+    return Vacancy(club_uid, club_name, reputation, optional_date(advertised), balance, transfer_budget)
+
+
 def encode_clause(clause: ReleaseClause) -> list[Any]:
     return [clause.scope.value, clause.fee, optional_text(clause.expires)]
 
@@ -68,8 +82,8 @@ def encode_player(player: Player) -> list[Any]:
 
 ORIGINAL_FIELDS = 19
 FACTS_ADDED_LATER: list[Any] = [None, None, None, None, None, [], None]
-CURRENT_FORMAT = 4
-COLUMNS_ADDED_LATER = {"club_nation_id": "INTEGER", "format": "INTEGER NOT NULL DEFAULT 1"}
+CURRENT_FORMAT = 5
+COLUMNS_ADDED_LATER = {"club_nation_id": "INTEGER", "format": "INTEGER NOT NULL DEFAULT 1", "vacancies": "TEXT"}
 
 
 def add_column(db: sqlite3.Connection, name: str, definition: str) -> None:
@@ -164,7 +178,8 @@ class SnapshotStore:
             )
             self._db.execute(
                 "INSERT INTO snapshots (career, game_date, file_mtime_ns, file_size, club_uid, club_name, "
-                "club_reputation, club_nation_id, format, budget, players) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "club_reputation, club_nation_id, format, budget, players, vacancies) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     career, snapshot.game_date.isoformat(), stamp.mtime_ns, stamp.size, snapshot.club_uid,
                     snapshot.club_name,
@@ -173,6 +188,7 @@ class SnapshotStore:
                     CURRENT_FORMAT,
                     json.dumps([budget.transfer_remaining, budget.wage_budget_weekly, budget.wage_payroll_weekly]),
                     encode_players(snapshot.players),
+                    json.dumps([encode_vacancy(vacancy) for vacancy in snapshot.vacancies]),
                 ),
             )  # fmt: skip
 
@@ -190,13 +206,20 @@ class SnapshotStore:
 
     def load(self, career: str, game_date: date) -> Snapshot:
         row = self._db.execute(
-            "SELECT club_uid, club_name, club_reputation, club_nation_id, budget, players FROM snapshots "
+            "SELECT club_uid, club_name, club_reputation, club_nation_id, budget, players, vacancies FROM snapshots "
             "WHERE career = ? AND game_date = ?",
             (career, game_date.isoformat()),
         ).fetchone()
         if row is None:
             raise KeyError(f"No snapshot of {career} on {game_date.isoformat()}")
-        club_uid, club_name, reputation, nation_id, budget, players = row
+        club_uid, club_name, reputation, nation_id, budget, players, vacancies = row
         return Snapshot(
-            game_date, club_uid, club_name, reputation, nation_id, Budget(*json.loads(budget)), decode_players(players)
+            game_date,
+            club_uid,
+            club_name,
+            reputation,
+            nation_id,
+            Budget(*json.loads(budget)),
+            decode_players(players),
+            tuple(decode_vacancy(vacancy) for vacancy in json.loads(vacancies or "[]")),
         )

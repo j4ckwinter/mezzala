@@ -7,7 +7,7 @@ from pathlib import Path
 
 import fmsave
 
-from mezzala.core.players import Budget, Player, ReleaseClause, ReleaseScope, Snapshot
+from mezzala.core.players import Budget, Player, ReleaseClause, ReleaseScope, Snapshot, Vacancy
 
 
 class UnreadableSave(RuntimeError):
@@ -61,6 +61,7 @@ def youth_contract(contract: fmsave.Contract | None) -> bool | None:
 
 
 LEAGUE_NATION_SHARE = 0.9
+VACANCY_ROLE_FIELD = "role"
 
 
 def first_team_fixtures(fixtures: Iterable[fmsave.Fixture]) -> Counter[tuple[int, int]]:
@@ -151,6 +152,42 @@ def budget(save: fmsave.Save, club_uid: int) -> Budget:
     return Budget(latest.transfer_budget_remaining, latest.wage_budget_weekly, latest.wage_payroll_weekly)
 
 
+def latest_finances(save: fmsave.Save) -> dict[int, fmsave.FinanceMonth]:
+    latest: dict[int, fmsave.FinanceMonth] = {}
+    for month in save.finances():
+        known = latest.get(month.club_uid)
+        if known is None or month.month > known.month:
+            latest[month.club_uid] = month
+    return latest
+
+
+def is_manager_job(job: fmsave.JobVacancy) -> bool:
+    return job.team_slot == 0 and job.unknown.get(VACANCY_ROLE_FIELD) == fmsave.StaffJob.MANAGER.value
+
+
+def vacancies(save: fmsave.Save, managed_club_uid: int) -> tuple[Vacancy, ...]:
+    clubs = save.clubs()
+    finances = latest_finances(save)
+    found: list[Vacancy] = []
+    seen: set[int] = set()
+    for job in save.job_vacancies():
+        if not is_manager_job(job) or job.club_uid is None or job.club_uid in seen | {managed_club_uid}:
+            continue
+        seen.add(job.club_uid)
+        money = finances.get(job.club_uid)
+        found.append(
+            Vacancy(
+                job.club_uid,
+                job.club_name or "unknown",
+                clubs.by_uid(job.club_uid).reputation,
+                job.advertised_date,
+                money.balance if money else None,
+                money.transfer_budget_remaining if money else None,
+            )
+        )
+    return tuple(found)
+
+
 def read_snapshot(path: Path) -> Snapshot:
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", fmsave.FmsaveWarning)
@@ -177,4 +214,5 @@ def read_snapshot(path: Path) -> Snapshot:
                 managed.nation_id,
                 budget(save, club.club_uid),
                 players,
+                vacancies(save, club.club_uid),
             )

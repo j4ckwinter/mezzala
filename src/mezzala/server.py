@@ -23,6 +23,7 @@ from mezzala.tools.development_check import CheckScope, DevelopmentCheck, develo
 from mezzala.tools.development_plan import DevelopmentPlan, development_plan
 from mezzala.tools.find_players import FoundPlayers, PlayerSearch, SearchScope, SortBy, find_players
 from mezzala.tools.league_comparison import LeagueComparison, league_comparison
+from mezzala.tools.next_job import NextJob, next_job
 from mezzala.tools.regen_intake import RegenIntake, regen_intake
 from mezzala.tools.replacement import Limits, Replacements, find_replacements
 from mezzala.tools.risers import RiserFilters, Risers, RiserScope, find_risers
@@ -133,6 +134,12 @@ class DevelopmentCheckReport:
 class SquadProgressReport:
     context: SaveContext
     result: SquadProgress
+
+
+@dataclass(frozen=True)
+class NextJobReport:
+    context: SaveContext
+    result: NextJob
 
 
 @dataclass(frozen=True)
@@ -385,6 +392,15 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         current = read_current(career)
         first = career.baseline(current, None)
         return SquadProgressReport(save_context(current), squad_progress(current.snapshot, first, formation))
+
+    @server.tool(name="next_job")
+    def next_job_tool(
+        formation: FormationChoice = DEFAULT_FORMATION, bigger_only: bool = False, limit: int = DEFAULT_LIMIT
+    ) -> NextJobReport:
+        """Open first-team manager jobs in the save, biggest club first: each club's reputation against yours,
+        its league level, the strength of its best eleven, and its money where the save has finances."""
+        current = read_current(career)
+        return NextJobReport(save_context(current), next_job(current.snapshot, formation, bigger_only, limit))
 
     @server.tool(name="compare_formations")
     def compare_formations_tool(formations: FormationChoices = None) -> FormationReport:
