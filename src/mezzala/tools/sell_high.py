@@ -1,6 +1,6 @@
 from dataclasses import dataclass
-from statistics import median
 
+from mezzala.core.metrics import PeerMedians, transfer_value
 from mezzala.core.money import format_money
 from mezzala.core.players import PastPlayers, Player, Snapshot, is_same_person
 from mezzala.core.positions import is_goalkeeper
@@ -10,9 +10,6 @@ PEAK_OUTFIELD_AGE = 29
 PEAK_GOALKEEPER_AGE = 32
 AT_CEILING_HEADROOM = 3
 PEER_MIN_AGE = 24
-PEER_ABILITY_BAND = 3
-PEER_AGE_BAND = 2
-MIN_PEERS = 20
 OVERVALUED_RATIO = 1.3
 CONTRACT_RUNNING_DOWN_MONTHS = 12
 STALLED_ABILITY_GAIN = 1
@@ -35,24 +32,6 @@ class SaleCandidate:
 class SellHigh:
     compared_with: str | None
     candidates: list[SaleCandidate]
-
-
-def peer_median_values(snapshot: Snapshot) -> dict[tuple[int, int], float]:
-    priced: dict[tuple[int, int], list[int]] = {}
-    for player in snapshot.players:
-        if player.value:
-            priced.setdefault((player.current_ability, player.age), []).append(player.value)
-    medians: dict[tuple[int, int], float] = {}
-    for ability, age in {(p.current_ability, p.age) for p in owned_players(snapshot)}:
-        peers = [
-            value
-            for peer_ability in range(ability - PEER_ABILITY_BAND, ability + PEER_ABILITY_BAND + 1)
-            for peer_age in range(age - PEER_AGE_BAND, age + PEER_AGE_BAND + 1)
-            for value in priced.get((peer_ability, peer_age), [])
-        ]
-        if len(peers) >= MIN_PEERS:
-            medians[(ability, age)] = median(peers)
-    return medians
 
 
 def present_signals(player: Player, snapshot: Snapshot, peer_median: float | None) -> list[str]:
@@ -108,12 +87,12 @@ def earlier_selves(player: Player, earlier: list[PastPlayers]) -> list[tuple[Pas
 
 
 def sell_high(current: Snapshot, earlier: list[PastPlayers], limit: int) -> SellHigh:
-    medians = peer_median_values(current)
+    values = PeerMedians(current.players, transfer_value)
     candidates: list[SaleCandidate] = []
     for player in owned_players(current):
         if not player.value:
             continue
-        signals = present_signals(player, current, medians.get((player.current_ability, player.age)))
+        signals = present_signals(player, current, values.of(player))
         signals += history_signals(player, earlier_selves(player, earlier), current)
         if signals:
             candidates.append(
