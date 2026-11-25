@@ -26,6 +26,7 @@ from mezzala.tools.sell_high import SellHigh, sell_high
 from mezzala.tools.shortlist import Shortlist, shortlist
 from mezzala.tools.squad_gaps import SquadGaps, squad_gaps
 from mezzala.tools.squad_list import SquadList, squad_list
+from mezzala.tools.wage_review import WageReview, wage_review
 
 DEFAULT_FORMATION = Formation.FOUR_THREE_THREE
 DEFAULT_LIMIT = 10
@@ -79,6 +80,12 @@ class FoundPlayersReport:
 class ShortlistReport:
     context: SaveContext
     result: Shortlist
+
+
+@dataclass(frozen=True)
+class WageReviewReport:
+    context: SaveContext
+    result: WageReview
 
 
 @dataclass(frozen=True)
@@ -250,6 +257,14 @@ def create_server(career: Career) -> MCPServer:
         fees = optional_stored(transfer_budget) if transfer_budget is not None else budget.transfer_remaining
         wages = optional_stored(weekly_wage_budget) if weekly_wage_budget is not None else budget.wage_headroom_weekly
         return ShortlistReport(save_context(current), shortlist(current.snapshot, formation, fees, wages))
+
+    @server.tool(name="wage_review")
+    def wage_review_tool(formation: FormationChoice = DEFAULT_FORMATION) -> WageReviewReport:
+        """Everyone the club pays, at what it actually pays them: the wage bill, players paid well above others
+        of similar CA, age and potential, and surplus players (not in the best eleven and not needed for cover
+        anywhere in the formation, and not a young prospect) with the weekly saving if they all went."""
+        current = read_current(career)
+        return WageReviewReport(save_context(current), wage_review(current.snapshot, formation))
 
     @server.tool(name="compare_formations")
     def compare_formations_tool(formations: FormationChoices = None) -> FormationReport:
