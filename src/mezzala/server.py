@@ -29,6 +29,7 @@ from mezzala.tools.league_comparison import LeagueComparison, league_comparison
 from mezzala.tools.league_values import LeagueValues, league_values
 from mezzala.tools.next_job import NextJob, next_job
 from mezzala.tools.next_opponent import NextOpponent, next_opponent
+from mezzala.tools.performance import Performance, PerformanceScope, PerformanceSearch, PerformanceSort, performance
 from mezzala.tools.player_profile import PlayerProfiles, player_profiles
 from mezzala.tools.positional_fit import PositionalFit, positional_fit
 from mezzala.tools.regen_intake import RegenIntake, regen_intake
@@ -51,6 +52,7 @@ DEFAULT_LIMIT = 10
 RISER_CA_BELOW_SQUAD_LEVEL = 20
 RISER_TARGET_MAX_AGE = 23
 RELEGATION_LOOKBACK_DAYS = 300
+PERFORMANCE_MIN_MINUTES = 450
 
 INSTRUCTIONS = f"""\
 mezzala reads the manager's Football Manager 27 save and answers squad, formation and transfer questions about it.
@@ -68,6 +70,7 @@ relegated_clubs cover managerial vacancies, the best-value leagues and clubs tha
 player_profile shows one player in full, or two side by side. training_plan suggests one of the club's players'
 position, attribute focus, intensity, traits and mentors. dressing_room ranks captains and flags troublemakers.
 fitness lists injuries, bans, injury risks, condition and sharpness. staff_review rates the backroom staff.
+performance ranks season stats: who plays above or below their ability, finishing against xG, output per 90.
 squad_profile, positional_fit and next_opponent support tactics and match preparation; the save stores formations
 but not roles or instructions, so suggest tactics from the attributes they report.
 Positions are natural (FM rating {NATURAL_POSITION_RATING}+) or accomplished
@@ -270,6 +273,12 @@ class StaffReviewReport:
 
 
 @dataclass(frozen=True)
+class PerformanceReport:
+    context: SaveContext
+    result: Performance
+
+
+@dataclass(frozen=True)
 class RegenIntakeReport:
     context: SaveContext
     result: RegenIntake
@@ -339,6 +348,8 @@ ScopeChoice = Annotated[RiserScope, Field(description=one_of(RiserScope))]
 SearchScopeChoice = Annotated[SearchScope, Field(description=one_of(SearchScope))]
 SortChoice = Annotated[SortBy, Field(description=one_of(SortBy))]
 CheckScopeChoice = Annotated[CheckScope, Field(description=one_of(CheckScope))]
+PerformanceScopeChoice = Annotated[PerformanceScope, Field(description=one_of(PerformanceScope))]
+PerformanceSortChoice = Annotated[PerformanceSort, Field(description=one_of(PerformanceSort))]
 
 
 def create_server(career: Career, watched: WatchlistStore, view: View = View.FULL) -> MCPServer:
@@ -723,5 +734,22 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
         ability and potential, physio and sports science, and which coaching areas are weak enough to hire for."""
         current = read_current(career)
         return StaffReviewReport(save_context(current), staff_review(current.snapshot))
+
+    @server.tool(name="performance")
+    def performance_tool(
+        sort_by: PerformanceSortChoice = PerformanceSort.ABOVE_HIS_LEVEL,
+        scope: PerformanceScopeChoice = PerformanceScope.OWN,
+        min_minutes: int = PERFORMANCE_MIN_MINUTES,
+        position: PositionChoice = None,
+        within_reach: bool = True,
+        limit: int = DEFAULT_LIMIT,
+    ) -> PerformanceReport:
+        """Rank players on this season's stats: average rating against players of similar ability (who is
+        playing above or below his level), goals against expected goals (clinical or wasteful finishers), and
+        goals, assists, key passes or tackles and interceptions per 90. scope "own" is your club, "elsewhere"
+        scouts other clubs (within_reach keeps realistic targets). Leagues between seasons have no stats yet."""
+        current = read_current(career)
+        search = PerformanceSearch(scope, sort_by, min_minutes, position, within_reach, limit)
+        return PerformanceReport(save_context(current), performance(current.snapshot, search, view))
 
     return server
