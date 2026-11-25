@@ -1,4 +1,3 @@
-from collections import Counter
 from dataclasses import dataclass
 from statistics import median
 
@@ -7,7 +6,7 @@ from mezzala.core.lineup import Lineup, pick_lineup
 from mezzala.core.money import format_money
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import PositionGroup
-from mezzala.core.squad import available_squad
+from mezzala.core.squad import available_squad, club_league
 
 
 @dataclass(frozen=True)
@@ -42,11 +41,6 @@ EXPLANATION = (
     "Each club's best eleven for the formation, ranked by its average CA, with the first team's total "
     "transfer value. Positions compare the average CA of each club's starters there."
 )
-
-
-def club_league(snapshot: Snapshot) -> int | None:
-    leagues = Counter(player.league_id for player in available_squad(snapshot) if player.league_id is not None)
-    return leagues.most_common(1)[0][0] if leagues else None
 
 
 def squads_in(snapshot: Snapshot, league_id: int) -> dict[int, list[Player]]:
