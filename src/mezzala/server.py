@@ -19,6 +19,7 @@ from mezzala.save.reader import UnreadableSave
 from mezzala.save.watchlist import WatchlistStore
 from mezzala.tools.compare_formations import FormationComparison, compare_formations
 from mezzala.tools.contract_watch import ContractWatch, contract_watch
+from mezzala.tools.development_check import CheckScope, DevelopmentCheck, development_check
 from mezzala.tools.development_plan import DevelopmentPlan, development_plan
 from mezzala.tools.find_players import FoundPlayers, PlayerSearch, SearchScope, SortBy, find_players
 from mezzala.tools.league_comparison import LeagueComparison, league_comparison
@@ -120,6 +121,12 @@ class WatchlistReport:
 
 
 @dataclass(frozen=True)
+class DevelopmentCheckReport:
+    context: SaveContext
+    result: DevelopmentCheck
+
+
+@dataclass(frozen=True)
 class FormationReport:
     context: SaveContext
     result: FormationComparison
@@ -213,6 +220,7 @@ PositionChoice = Annotated[PositionGroup | None, Field(description=one_of(Positi
 ScopeChoice = Annotated[RiserScope, Field(description=one_of(RiserScope))]
 SearchScopeChoice = Annotated[SearchScope, Field(description=one_of(SearchScope))]
 SortChoice = Annotated[SortBy, Field(description=one_of(SortBy))]
+CheckScopeChoice = Annotated[CheckScope, Field(description=one_of(CheckScope))]
 
 
 def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
@@ -346,6 +354,20 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         cheaper (value down, contract ending within a year, now a free agent, or a release clause that applies)."""
         current = read_current(career)
         return WatchlistReport(save_context(current), watchlist(current.snapshot, watched.entries(current.career)))
+
+    @server.tool(name="development_check")
+    def development_check_tool(
+        scope: CheckScopeChoice = CheckScope.OWN,
+        since: date | None = None,
+        min_pa: int = 150,
+        limit: int = DEFAULT_LIMIT,
+    ) -> DevelopmentCheckReport:
+        """Against an earlier snapshot (since is an in-game date; defaults to the oldest): players aged 21 or under
+        with potential of at least min_pa who are gaining less than half the CA projected for them, and players
+        who have lost 3 or more CA. scope "own" is the club's players, "everyone" the whole save."""
+        current = read_current(career)
+        result = development_check(current.snapshot, career.baseline(current, since), scope, min_pa, limit)
+        return DevelopmentCheckReport(save_context(current), result)
 
     @server.tool(name="compare_formations")
     def compare_formations_tool(formations: FormationChoices = None) -> FormationReport:
