@@ -40,3 +40,10 @@ def test_find_players_states_the_reach_rule_with_its_number():
             return tools["find_players"].description or ""
 
     assert "at most your club's plus 750" in asyncio.run(run())
+
+
+def test_every_club_parameter_explains_it_is_only_for_telling_players_apart():
+    for tool, parameter in (("find_replacement", "club"), ("player_profile", "compare_club"), ("training_plan", "club"),
+                            ("watch_player", "club")):  # fmt: skip
+        description = schemas()[tool]["properties"][parameter]["description"]
+        assert description.startswith("The club the player is at now, to tell apart players who share a name")

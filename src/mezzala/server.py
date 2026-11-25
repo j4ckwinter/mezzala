@@ -401,6 +401,13 @@ FORMATION_DEFAULT = f"Defaults to the saved first-team tactic's shape, else {DEF
 FormationChoice = Annotated[Formation | None, Field(description=f"{FORMATION_DEFAULT} {one_of(Formation)}")]
 FormationChoices = Annotated[list[Formation] | None, Field(description=f"Defaults to all. {one_of(Formation)}")]
 PositionChoice = Annotated[PositionGroup | None, Field(description=one_of(PositionGroup))]
+ClubChoice = Annotated[
+    str | None,
+    Field(
+        description="The club the player is at now, to tell apart players who share a name. Leave it out "
+        "unless an answer says the name is ambiguous."
+    ),
+]
 ScopeChoice = Annotated[RiserScope, Field(description=one_of(RiserScope))]
 SearchScopeChoice = Annotated[SearchScope, Field(description=one_of(SearchScope))]
 SortChoice = Annotated[SortBy, Field(description=one_of(SortBy))]
@@ -545,7 +552,7 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
         return WhatChangedReport(save_context(current), what_changed(current.snapshot, career.previous(current), view))
 
     @server.tool(name="watch_player")
-    def watch_player_tool(player: str, club: str | None = None, note: str = "") -> WatchlistReport:
+    def watch_player_tool(player: str, club: ClubChoice = None, note: str = "") -> WatchlistReport:
         """Add a player to mezzala's watchlist (FM's own shortlist is not readable from the save). His value, CA and
         club are recorded so later calls can show how he has changed and whether he has become cheaper. club
         narrows the search when players share a name. Watching a player again keeps his baseline and only
@@ -558,7 +565,7 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
         )
 
     @server.tool(name="unwatch_player")
-    def unwatch_player_tool(player: str, club: str | None = None) -> WatchlistReport:
+    def unwatch_player_tool(player: str, club: ClubChoice = None) -> WatchlistReport:
         """Remove a player from mezzala's watchlist. club narrows the match when watched players share a name."""
         current = read_current(career)
         try:
@@ -676,7 +683,7 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
     @server.tool()
     def find_replacement(
         player: str,
-        club: str | None = None,
+        club: ClubChoice = None,
         max_fee: float | None = None,
         max_age: int | None = None,
         max_wage: float | None = None,
@@ -684,7 +691,8 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
         within_reach: bool = True,
         limit: int = DEFAULT_LIMIT,
     ) -> ReplacementReport:
-        """Players outside the club with a similar attribute profile who could replace `player`.
+        """Players outside the club with a similar attribute profile who could replace `player`, usually one
+        of yours who is leaving or not good enough (he can be anyone in the save).
 
         max_fee and max_wage (weekly) are in pounds. max_fee defaults to the club's remaining transfer budget;
         free agents always qualify. position defaults to the player's main position. within_reach keeps
@@ -768,7 +776,7 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
 
     @server.tool(name="player_profile")
     def player_profile_tool(
-        player: str, club: str | None = None, compare_with: str | None = None, compare_club: str | None = None
+        player: str, club: ClubChoice = None, compare_with: str | None = None, compare_club: ClubChoice = None
     ) -> PlayerProfileReport:
         """One player's full profile, or two side by side with compare_with: attributes grouped as FM groups
         them, hidden attributes and personality (left out under fog of war), feet, height, traits, the positions
@@ -782,7 +790,7 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
         return PlayerProfileReport(save_context(current), result)
 
     @server.tool(name="training_plan")
-    def training_plan_tool(player: str, club: str | None = None, position: PositionChoice = None) -> TrainingPlanReport:
+    def training_plan_tool(player: str, club: ClubChoice = None, position: PositionChoice = None) -> TrainingPlanReport:
         """A training plan for one of the club's players: the position to train him for (his best fit unless
         position is given), the key attributes to set as his additional focus, whether to lower his intensity,
         traits to learn or unlearn, his mentoring group and senior players who would make good mentors."""
