@@ -43,7 +43,7 @@ Run all four checks before committing.
 - Money is kept in the unit the save stores it in. `money.py` is the only place that converts it to pounds, in both directions.
 - CA and PA are FM's hidden current and potential ability, from 1 to 200. Attributes run from 1 to 20.
 - `uid` identifies a person within one save. FM can give a deleted person's `uid` to someone new, so matching across snapshots also checks the birth date (`is_same_person`).
-- Stored snapshots encode each player as a positional list (`save/store.py`). Snapshots are history that cannot be rebuilt from the save, so a change to that encoding must keep existing rows readable.
+- Stored snapshots encode each player as a positional list (`save/store.py`). Snapshots are history that cannot be rebuilt from the save, so a change to that encoding must keep existing rows readable: append new facts, add their defaults to `FACTS_ADDED_LATER`, and raise `CURRENT_FORMAT` so a snapshot in an older format is read again from the save.
 - `core/` holds the football rules every tool shares, `tools/` one module per tool, and `save/` everything that reads saves or stores snapshots. `core/` and `tools/` take snapshots and return results; only `save/` and `server.py` touch fmsave, files, SQLite or MCP, and `core/` never imports from `tools/` or `save/`.
 - Tests go through the MCP client (`tests/conftest.py`) with a fake save, so they pin behaviour, not internals.
 

@@ -3,7 +3,7 @@ from datetime import date
 from pathlib import Path
 
 import fmsave
-from factory import eleven, snapshot
+from factory import eleven, player, snapshot
 
 
 def test_first_call_stores_the_save_as_a_snapshot(mezzala):
@@ -150,16 +150,15 @@ def test_a_budget_just_under_a_million_reads_as_a_million(mezzala):
     assert context["transfer_budget"] == "£1.0m"
 
 
-def test_a_snapshot_stored_in_the_original_format_still_loads(mezzala, tmp_path):
+def store_original_format_snapshot(database_path, players):
     import json
     import sqlite3
     import zlib
 
     from mezzala.save.store import ORIGINAL_FIELDS, encode_player
 
-    squad = eleven()
-    original_rows = [encode_player(player)[:ORIGINAL_FIELDS] for player in squad]
-    database = sqlite3.connect(tmp_path / "snapshots.db")
+    original_rows = [encode_player(player)[:ORIGINAL_FIELDS] for player in players]
+    database = sqlite3.connect(database_path)
     database.execute(
         "CREATE TABLE snapshots (id INTEGER PRIMARY KEY AUTOINCREMENT, career TEXT NOT NULL, "
         "game_date TEXT NOT NULL, file_mtime_ns INTEGER NOT NULL, file_size INTEGER NOT NULL, "
@@ -173,7 +172,31 @@ def test_a_snapshot_stored_in_the_original_format_still_loads(mezzala, tmp_path)
     )
     database.commit()
     database.close()
+
+
+def test_an_unchanged_save_is_read_again_when_its_snapshot_is_in_an_older_format(mezzala, tmp_path):
+    squad = [*eleven(), player("Youth Deal", youth_contract=True)]
+    store_original_format_snapshot(tmp_path / "snapshots.db", squad)
     app = mezzala(snapshot(squad))
-    players = app.result("squad")["available"]
-    assert len(players) == 11
-    assert app.save.reads == 0
+    found = app.result("find_players", youth_contract_only=True)["players"]
+    assert app.save.reads == 1
+    assert [f["player"]["name"] for f in found] == ["Youth Deal"]
+
+
+def test_a_snapshot_in_an_older_format_still_loads_when_the_save_cannot_be_read(mezzala, tmp_path):
+    store_original_format_snapshot(tmp_path / "snapshots.db", eleven())
+    app = mezzala(snapshot(eleven()))
+    app.save.failing = fmsave.CorruptSaveError("half written")
+    report = app.call("squad").data
+    assert len(report["result"]["available"]) == 11
+    assert "using the snapshot from 2026-06-29" in report["context"]["notes"][0]
+
+
+def test_adding_a_column_another_server_already_added_is_harmless():
+    import sqlite3
+
+    from mezzala.save.store import SCHEMA, add_column
+
+    database = sqlite3.connect(":memory:")
+    database.execute(SCHEMA)
+    add_column(database, "format", "INTEGER NOT NULL DEFAULT 1")

@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS snapshots (
     club_uid INTEGER NOT NULL,
     club_name TEXT NOT NULL,
     club_reputation INTEGER NOT NULL,
+    club_nation_id INTEGER,
+    format INTEGER NOT NULL DEFAULT 1,
     budget TEXT NOT NULL,
     players BLOB NOT NULL,
     UNIQUE (career, game_date)
@@ -61,11 +63,20 @@ def encode_player(player: Player) -> list[Any]:
 
 ORIGINAL_FIELDS = 19
 FACTS_ADDED_LATER: list[Any] = [None, None, None, None, None, []]
+CURRENT_FORMAT = 2
+COLUMNS_ADDED_LATER = {"club_nation_id": "INTEGER", "format": "INTEGER NOT NULL DEFAULT 1"}
+
+
+def add_column(db: sqlite3.Connection, name: str, definition: str) -> None:
+    try:
+        db.execute(f"ALTER TABLE snapshots ADD COLUMN {name} {definition}")
+    except sqlite3.OperationalError as error:
+        if "duplicate column" not in str(error):
+            raise
 
 
 def decode_player(row: list[Any]) -> Player:
-    if len(row) == ORIGINAL_FIELDS:
-        row = [*row, *FACTS_ADDED_LATER]
+    row = [*row, *FACTS_ADDED_LATER[len(row) - ORIGINAL_FIELDS :]]
     (uid, name, age, birth_date, club_uid, club_name, ratings, current, potential, value, wage, contract_end,
      on_loan, loan_parent, loan_end, attributes, reputation, professionalism, ambition, first_team,
      club_reputation, club_nation_id, league_id, youth_contract, clauses) = row  # fmt: skip
@@ -112,17 +123,21 @@ class SnapshotStore:
         self._db = sqlite3.connect(path, check_same_thread=False)
         self._db.execute(SCHEMA)
         columns = {row[1] for row in self._db.execute("PRAGMA table_info(snapshots)")}
-        if "club_nation_id" not in columns:
-            self._db.execute("ALTER TABLE snapshots ADD COLUMN club_nation_id INTEGER")
+        for name, definition in COLUMNS_ADDED_LATER.items():
+            if name not in columns:
+                add_column(self._db, name, definition)
 
     def close(self) -> None:
         self._db.close()
 
     def latest_stamp(self, career: str) -> FileStamp | None:
         row = self._db.execute(
-            "SELECT file_mtime_ns, file_size FROM snapshots WHERE career = ? ORDER BY id DESC LIMIT 1", (career,)
+            "SELECT file_mtime_ns, file_size, format FROM snapshots WHERE career = ? ORDER BY id DESC LIMIT 1",
+            (career,),
         ).fetchone()
-        return FileStamp(row[0], row[1]) if row else None
+        if row is None or row[2] != CURRENT_FORMAT:
+            return None
+        return FileStamp(row[0], row[1])
 
     def latest_date(self, career: str) -> date | None:
         row = self._db.execute(
@@ -138,12 +153,13 @@ class SnapshotStore:
             )
             self._db.execute(
                 "INSERT INTO snapshots (career, game_date, file_mtime_ns, file_size, club_uid, club_name, "
-                "club_reputation, club_nation_id, budget, players) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "club_reputation, club_nation_id, format, budget, players) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     career, snapshot.game_date.isoformat(), stamp.mtime_ns, stamp.size, snapshot.club_uid,
                     snapshot.club_name,
                     snapshot.club_reputation,
                     snapshot.club_nation_id,
+                    CURRENT_FORMAT,
                     json.dumps([budget.transfer_remaining, budget.wage_budget_weekly, budget.wage_payroll_weekly]),
                     encode_players(snapshot.players),
                 ),
