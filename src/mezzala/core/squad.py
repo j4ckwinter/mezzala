@@ -1,4 +1,3 @@
-from collections import Counter
 from datetime import date
 from statistics import median
 
@@ -74,11 +73,6 @@ YOUNG_PLAYER_MAX_AGE = 21
 def squad_level(snapshot: Snapshot) -> float:
     best = sorted((player.current_ability for player in available_squad(snapshot)), reverse=True)[:FIRST_ELEVEN]
     return median(best) if best else 0.0
-
-
-def club_league(snapshot: Snapshot) -> int | None:
-    leagues = Counter(player.league_id for player in available_squad(snapshot) if player.league_id is not None)
-    return leagues.most_common(1)[0][0] if leagues else None
 
 
 def everyone_paid(snapshot: Snapshot) -> list[Player]:

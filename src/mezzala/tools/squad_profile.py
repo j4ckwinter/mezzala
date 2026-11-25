@@ -2,10 +2,11 @@ from dataclasses import dataclass
 from statistics import median
 
 from mezzala.core.formations import Formation
+from mezzala.core.leagues import club_league
 from mezzala.core.lineup import pick_lineup
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.profile import outfield_profile
-from mezzala.core.squad import available_squad, club_league
+from mezzala.core.squad import available_squad
 
 NOTABLE_DIFFERENCE = 0.5
 

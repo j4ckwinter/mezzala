@@ -2,11 +2,12 @@ from dataclasses import dataclass
 from statistics import median
 
 from mezzala.core.formations import STARTERS, Formation
+from mezzala.core.leagues import club_league
 from mezzala.core.lineup import Lineup, pick_lineup
 from mezzala.core.money import format_money
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import PositionGroup
-from mezzala.core.squad import available_squad, club_league
+from mezzala.core.squad import available_squad
 
 
 @dataclass(frozen=True)

@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 
 from mezzala.core.formations import Formation
+from mezzala.core.leagues import club_league
 from mezzala.core.lineup import Lineup, StarterEntry, pick_lineup, starter_entries
 from mezzala.core.players import Match, Player, Snapshot
 from mezzala.core.profile import outfield_profile
-from mezzala.core.squad import available_squad, club_league
+from mezzala.core.squad import available_squad
 from mezzala.core.summary import PlayerSummary, summarize
 from mezzala.tools.compare_formations import SCORE_TIE_MARGIN, score
 
