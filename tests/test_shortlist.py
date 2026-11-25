@@ -48,7 +48,7 @@ def test_a_target_is_expected_to_want_the_going_rate_at_clubs_like_yours(mezzala
               player("Underpaid Striker", positions=("stc",), ca=119, age=27, value=50_000, wage=300)]  # fmt: skip
     app = mezzala(snapshot(squad))
     striker = picks(app, weekly_wage_budget=5_000)["striker"]
-    assert striker["weekly_wage"] == "about £4,000 p/w (the going rate for his ability at clubs like yours)"
+    assert striker["weekly_wage"] == "about £4,000 p/w (the going rate at clubs like yours in your country)"
     assert picks(app, weekly_wage_budget=3_000)["striker"]["target"] is None
 
 
@@ -113,3 +113,47 @@ def test_each_picks_wage_comes_off_the_wage_room(mezzala):
               player("Striker", positions=("stc",), ca=120, value=50_000, wage=3_000)]  # fmt: skip
     result = mezzala(snapshot(squad)).result("shortlist", weekly_wage_budget=5_000)
     assert len([pick for pick in result["picks"] if pick["target"]]) == 1
+
+
+def test_among_near_equals_the_one_lighter_on_the_tighter_budget_wins(mezzala):
+    squad = [*without("stc"), mine("Weak Striker", positions=("stc",), ca=70)]
+    squad += [player("Cheap Fee Big Wage", positions=("stc",), ca=120, value=10_000, wage=4_800),
+              player("Dear Fee Small Wage", positions=("stc",), ca=119, value=50_000, wage=1_000)]  # fmt: skip
+    striker = picks(mezzala(snapshot(squad, transfer_budget=1_000_000)), weekly_wage_budget=5_000)["striker"]
+    assert striker["target"]["name"] == "Dear Fee Small Wage"
+
+
+def test_the_going_rate_comes_from_clubs_in_your_country_first(mezzala):
+    home = [player(f"Home {n}", positions=("gk",), ca=120, age=27, wage=3_000) for n in range(6)]
+    abroad = [player(f"Abroad {n}", positions=("gk",), ca=120, age=27, wage=9_000, club_nation_id=139)
+              for n in range(10)]  # fmt: skip
+    squad = [*without("stc"), mine("Weak Striker", positions=("stc",), ca=70), *home, *abroad]
+    squad.append(player("Free Striker", positions=("stc",), ca=120, age=27, club=None, value=None, wage=None))
+    striker = picks(mezzala(snapshot(squad)), weekly_wage_budget=5_000)["striker"]
+    assert striker["weekly_wage"] == "about £3,000 p/w (the going rate at clubs like yours in your country)"
+
+
+def test_a_worldwide_estimate_is_labelled_as_one(mezzala):
+    peers = [player(f"Peer {n}", positions=("gk",), ca=120, age=27, wage=2_000, club_reputation=9_000)
+             for n in range(25)]  # fmt: skip
+    squad = [*without("stc"), mine("Weak Striker", positions=("stc",), ca=70), *peers]
+    squad.append(player("Free Striker", positions=("stc",), ca=120, age=27, club=None, value=None, wage=None))
+    striker = picks(mezzala(snapshot(squad)), weekly_wage_budget=5_000)["striker"]
+    assert striker["weekly_wage"] == "about £2,000 p/w (similar players worldwide)"
+
+
+def test_no_target_is_old_enough_to_be_ageing_within_two_seasons(mezzala):
+    squad = [*without("stc"), mine("Weak Striker", positions=("stc",), ca=70)]
+    squad += [player("Twenty Eight", positions=("stc",), age=28, ca=125, value=50_000),
+              player("Twenty Seven", positions=("stc",), age=27, ca=115, value=50_000)]  # fmt: skip
+    assert picks(mezzala(snapshot(squad, transfer_budget=1_000_000)))["striker"]["target"]["name"] == "Twenty Seven"
+
+
+def test_reserve_team_wages_do_not_set_the_going_rate(mezzala):
+    first_team = [player(f"Regular {n}", positions=("gk",), ca=120, age=27, wage=3_000) for n in range(6)]
+    reserves = [player(f"Reserve {n}", positions=("gk",), ca=120, age=27, wage=9_000, first_team=False)
+                for n in range(10)]  # fmt: skip
+    squad = [*without("stc"), mine("Weak Striker", positions=("stc",), ca=70), *first_team, *reserves]
+    squad.append(player("Free Striker", positions=("stc",), ca=120, age=27, club=None, value=None, wage=None))
+    striker = picks(mezzala(snapshot(squad)), weekly_wage_budget=5_000)["striker"]
+    assert striker["weekly_wage"].startswith("about £3,000 p/w")

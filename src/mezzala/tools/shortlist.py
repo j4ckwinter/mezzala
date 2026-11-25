@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from enum import StrEnum
 from statistics import median
 
 from mezzala.core.formations import Formation
@@ -10,7 +11,7 @@ from mezzala.core.positions import PositionGroup, covers
 from mezzala.core.reach import REPUTATION_REACH, within_reach
 from mezzala.core.squad import available_squad, is_outside_club
 from mezzala.core.summary import PlayerSummary, summarize
-from mezzala.tools.squad_gaps import LOOKAHEAD_SEASONS, IssueKind, ageing_age, squad_gaps
+from mezzala.tools.squad_gaps import LOOKAHEAD_SEASONS, ageing_age, squad_gaps
 
 ALTERNATIVES_PER_POSITION = 2
 GOING_RATE_ABILITY_BAND = 5
@@ -49,6 +50,11 @@ class SpendingRoom:
         wage_fits = self.wages is None or (wage is not None and wage <= self.wages)
         return fee_fits and wage_fits
 
+    def share_used(self, fee: int, wage: int | None) -> float:
+        fee_share = fee / self.fees if self.fees else 0.0
+        wage_share = (wage or 0) / self.wages if self.wages else 0.0
+        return max(fee_share, wage_share)
+
     def spend(self, fee: int, wage: int | None) -> None:
         if self.fees is not None:
             self.fees -= fee
@@ -56,25 +62,40 @@ class SpendingRoom:
             self.wages -= wage
 
 
+class WageSource(StrEnum):
+    CURRENT = "his current wage"
+    DOMESTIC = "the going rate at clubs like yours in your country"
+    SIMILAR_CLUBS = "the going rate at clubs like yours"
+    WORLDWIDE = "similar players worldwide"
+
+
+@dataclass(frozen=True)
+class WageEstimate:
+    amount: int
+    source: WageSource
+
+
 @dataclass(frozen=True)
 class WageGuide:
-    level_wages: list[tuple[int, int]]
+    domestic: list[tuple[int, int]]
+    similar_clubs: list[tuple[int, int]]
     peers: PeerMedians
 
-    def going_rate(self, player: Player) -> int | None:
-        nearby = [
-            wage
-            for ability, wage in self.level_wages
-            if abs(ability - player.current_ability) <= GOING_RATE_ABILITY_BAND
-        ]
-        if len(nearby) >= MIN_GOING_RATE_PLAYERS:
-            return round(median(nearby))
+    def going_rate(self, player: Player) -> WageEstimate | None:
+        for wages, source in ((self.domestic, WageSource.DOMESTIC), (self.similar_clubs, WageSource.SIMILAR_CLUBS)):
+            nearby = [
+                wage for ability, wage in wages if abs(ability - player.current_ability) <= GOING_RATE_ABILITY_BAND
+            ]
+            if len(nearby) >= MIN_GOING_RATE_PLAYERS:
+                return WageEstimate(round(median(nearby)), source)
         estimate = self.peers.of(player)
-        return None if estimate is None else round(estimate)
+        return None if estimate is None else WageEstimate(round(estimate), WageSource.WORLDWIDE)
 
-    def expected(self, player: Player) -> int | None:
-        known = [wage for wage in (player.wage, self.going_rate(player)) if wage]
-        return max(known) if known else None
+    def expected(self, player: Player) -> WageEstimate | None:
+        rate = self.going_rate(player)
+        if player.wage and (rate is None or player.wage >= rate.amount):
+            return WageEstimate(player.wage, WageSource.CURRENT)
+        return rate
 
 
 def at_similar_club(player: Player, snapshot: Snapshot) -> bool:
@@ -84,31 +105,34 @@ def at_similar_club(player: Player, snapshot: Snapshot) -> bool:
 
 
 def wage_guide(snapshot: Snapshot) -> WageGuide:
-    level_wages = [
-        (player.current_ability, player.wage)
-        for player in snapshot.players
-        if player.first_team and player.wage and at_similar_club(player, snapshot)
+    similar = [
+        player for player in snapshot.players if player.first_team and player.wage and at_similar_club(player, snapshot)
     ]
-    return WageGuide(level_wages, PeerMedians(snapshot.players, weekly_wage))
+    return WageGuide(
+        [(p.current_ability, p.wage or 0) for p in similar if p.club_nation_id == snapshot.club_nation_id],
+        [(p.current_ability, p.wage or 0) for p in similar],
+        PeerMedians(snapshot.players, weekly_wage),
+    )
 
 
-def describe_wage(player: Player, wage: int | None) -> str:
-    if wage is None:
+def describe_wage(estimate: WageEstimate | None) -> str:
+    if estimate is None:
         return "unknown"
-    if wage != player.wage:
-        return f"about {format_weekly_wage(wage)} (the going rate for his ability at clubs like yours)"
-    return format_weekly_wage(wage)
+    if estimate.source is WageSource.CURRENT:
+        return format_weekly_wage(estimate.amount)
+    return f"about {format_weekly_wage(estimate.amount)} ({estimate.source.value})"
+
+
+def amount(estimate: WageEstimate | None) -> int | None:
+    return None if estimate is None else estimate.amount
 
 
 def fee_for(player: Player) -> int | None:
     return 0 if player.costs_no_fee else player.value
 
 
-def age_limit(group: PositionGroup, kinds: list[str]) -> int:
-    limit = ageing_age(group) - 1
-    if IssueKind.AGEING.value in kinds or IssueKind.NO_SUCCESSOR.value in kinds:
-        return limit - LOOKAHEAD_SEASONS
-    return limit
+def age_limit(group: PositionGroup) -> int:
+    return ageing_age(group) - LOOKAHEAD_SEASONS - 1
 
 
 def candidates(
@@ -130,7 +154,7 @@ def candidates(
         and within_reach(player, snapshot)
         and (bar is None or player.current_ability > bar.current_ability)
         and (fee := fee_for(player)) is not None
-        and budget.affords(fee, wages.expected(player))
+        and budget.affords(fee, amount(wages.expected(player)))
     ]
     if not found:
         return []
@@ -139,7 +163,7 @@ def candidates(
         found,
         key=lambda player: (
             player.current_ability < best - CLOSE_ENOUGH_ABILITY,
-            fee_for(player) or 0,
+            budget.share_used(fee_for(player) or 0, amount(wages.expected(player))),
             -player.current_ability,
         ),
     )
@@ -164,15 +188,14 @@ def shortlist(
             continue
         group = PositionGroup(position.group)
         bar = bars[group]
-        options = candidates(
-            snapshot, group, bar, age_limit(group, position.issue_kinds), budget, taken, wages_of_peers
-        )
+        options = candidates(snapshot, group, bar, age_limit(group), budget, taken, wages_of_peers)
         if not options:
             picks.append(ShortlistPick(position.group, position.issues, None, describe_bar(bar), "none", "none", []))
             continue
         target = options[0]
         fee = fee_for(target) or 0
-        wage = wages_of_peers.expected(target)
+        estimate = wages_of_peers.expected(target)
+        wage = amount(estimate)
         budget.spend(fee, wage)
         taken.add(target.uid)
         fees += fee
@@ -184,7 +207,7 @@ def shortlist(
                 summarize(target),
                 describe_bar(bar),
                 format_money(fee),
-                describe_wage(target, wage),
+                describe_wage(estimate),
                 [summarize(player) for player in options[1 : 1 + ALTERNATIVES_PER_POSITION]],
             )
         )
