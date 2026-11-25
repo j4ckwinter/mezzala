@@ -22,6 +22,7 @@ from mezzala.tools.compare_formations import FormationComparison, compare_format
 from mezzala.tools.contract_watch import ContractWatch, contract_watch
 from mezzala.tools.development_check import CheckScope, DevelopmentCheck, development_check
 from mezzala.tools.development_plan import DevelopmentPlan, development_plan
+from mezzala.tools.dressing_room import DressingRoom, dressing_room
 from mezzala.tools.find_players import FoundPlayers, PlayerSearch, SearchScope, SortBy, find_players
 from mezzala.tools.league_comparison import LeagueComparison, league_comparison
 from mezzala.tools.league_values import LeagueValues, league_values
@@ -63,7 +64,7 @@ what_changed, development_check, squad_progress and the watchlist tools (watch_p
 watchlist) work from history and say so when there is only one snapshot. next_job, league_values and
 relegated_clubs cover managerial vacancies, the best-value leagues and clubs that dropped a league.
 player_profile shows one player in full, or two side by side. training_plan suggests one of the club's players'
-position, attribute focus, intensity, traits and mentors.
+position, attribute focus, intensity, traits and mentors. dressing_room ranks captains and flags troublemakers.
 squad_profile, positional_fit and next_opponent support tactics and match preparation; the save stores formations
 but not roles or instructions, so suggest tactics from the attributes they report.
 Positions are natural (FM rating {NATURAL_POSITION_RATING}+) or accomplished
@@ -245,6 +246,12 @@ class PlayerProfileReport:
 class TrainingPlanReport:
     context: SaveContext
     result: TrainingPlan
+
+
+@dataclass(frozen=True)
+class DressingRoomReport:
+    context: SaveContext
+    result: DressingRoom
 
 
 @dataclass(frozen=True)
@@ -679,5 +686,12 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
                 f"{target.name} is not at {current.snapshot.club_name}; training plans are for your players."
             )
         return TrainingPlanReport(save_context(current), training_plan(target, current.snapshot, position, view))
+
+    @server.tool(name="dressing_room")
+    def dressing_room_tool() -> DressingRoomReport:
+        """Who should captain the club, from leadership, determination and personality, and which players could
+        unsettle the dressing room: volatile, hot-headed, unprofessional, or ambitious enough to push for a move."""
+        current = read_current(career)
+        return DressingRoomReport(save_context(current), dressing_room(current.snapshot))
 
     return server

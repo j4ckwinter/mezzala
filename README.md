@@ -21,6 +21,7 @@ so i made an mcp server that reads my save and does the scouting for me. i ask c
 | `wage_review` | your wage bill, who's overpaid, and who could go without weakening the squad |
 | `development_plan` | which youngsters are ready, who to loan out, and who to focus on |
 | `training_plan` | one of your players' position to train for, additional focus, intensity, traits to learn or unlearn, and who should mentor him |
+| `dressing_room` | who should captain the club, and who could unsettle the squad or push for a move |
 | `league_comparison` | where your squad ranks in your league, overall and position by position |
 | `what_changed` | what's changed since your last save: squad, budget, contracts, values, new regens, big transfers |
 | `watch_player`, `watchlist` | mezzala's own shortlist, flagging targets that got cheaper |
