@@ -14,12 +14,16 @@ so i made an mcp server that reads my save and does the scouting for me. i ask c
 | `wage_review` | your wage bill, who's overpaid, and who could go without weakening the squad |
 | `development_plan` | which youngsters are ready, who to loan out, and who to focus on |
 | `league_comparison` | where your squad ranks in your league, overall and position by position |
+| `what_changed` | what's changed since your last save: squad, budget, contracts, values, new regens, big transfers |
+| `watch_player`, `watchlist` | mezzala's own shortlist, flagging targets that got cheaper |
+| `development_check` | wonderkids who aren't developing as expected, and players in decline |
+| `squad_progress` | your squad now against when you started using mezzala |
 | `squad_gaps` | your eleven for a formation, plus where you're thin, ageing, losing players, weak, or have no young successor coming through |
 | `find_replacement` | who plays like a player you're losing, fits your budget, and would actually sign |
 | `risers` | who's improving fastest: transfer targets, your own players, or ones you sold too early |
 | `sell_high` | which of your players to cash in on before their value drops |
 | `contract_watch` | your contracts and loans running out, plus free agents and pre-contract targets who'd start for you |
-| `regen_intake` | new regens since an earlier snapshot, best potential first |
+| `regen_intake` | new regens since an earlier snapshot, best potential first, and which clubs produce them |
 | `snapshot` | reads the save now and lists the dates it has history for |
 
 so you can ask things like:
