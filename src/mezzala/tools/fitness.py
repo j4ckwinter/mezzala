@@ -2,7 +2,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from mezzala.core.availability import absence, possible_ban
-from mezzala.core.formations import Formation
+from mezzala.core.formations import Shape
 from mezzala.core.lineup import pick_lineup
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.squad import available_squad
@@ -65,12 +65,12 @@ def below(players: list[Player], measure: Callable[[Player], int | None], limit:
     return [FitnessEntry(player.name, f"{value}%") for value, player in sorted(found, key=lambda item: item[0])]
 
 
-def fitness(snapshot: Snapshot, formation: Formation, view: View) -> FitnessReport:
+def fitness(snapshot: Snapshot, shape: Shape, view: View) -> FitnessReport:
     squad = available_squad(snapshot)
-    starters = pick_lineup(squad, formation).starters
+    starters = pick_lineup(squad, shape).starters
     risks = [FitnessEntry(player.name, risk) for player in starters if (risk := injury_risk(player, view)) is not None]
     return FitnessReport(
-        formation.value,
+        shape.name,
         explanation(view),
         [missing for player in squad if (missing := absence(player, snapshot.game_date)) is not None],
         [ban for player in squad if (ban := possible_ban(player)) is not None],

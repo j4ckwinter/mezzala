@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from mezzala.core.formations import Formation
+from mezzala.core.formations import Formation, shape_for
 from mezzala.core.lineup import (
     ACCOMPLISHED_PENALTY,
     Lineup,
@@ -64,7 +64,7 @@ def weakest_place(lineup: Lineup, view: View) -> str:
 def formation_fit(lineup: Lineup, rank: int, best: float, view: View) -> FormationFit:
     accomplished = [p for p in lineup.places if p.player is not None and fit(p.player, p.group) is Fit.ACCOMPLISHED]
     return FormationFit(
-        formation=lineup.formation.value,
+        formation=lineup.shape.name,
         rank=rank,
         score=measure(view, score(lineup)),
         tied_with_best=round(best - score(lineup), 1) <= SCORE_TIE_MARGIN,
@@ -78,7 +78,7 @@ def formation_fit(lineup: Lineup, rank: int, best: float, view: View) -> Formati
 
 def compare_formations(snapshot: Snapshot, formations: list[Formation], view: View) -> FormationComparison:
     squad = available_squad(snapshot)
-    lineups = sorted((pick_lineup(squad, f) for f in formations), key=score, reverse=True)
+    lineups = sorted((pick_lineup(squad, shape_for(f)) for f in formations), key=score, reverse=True)
     best = score(lineups[0]) if lineups else 0.0
     return FormationComparison(
         EXPLANATION, [formation_fit(lineup, rank, best, view) for rank, lineup in enumerate(lineups, start=1)]

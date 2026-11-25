@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from mezzala.core.formations import Formation
+from mezzala.core.formations import Shape
 from mezzala.core.leagues import club_leagues
 from mezzala.core.lineup import pick_lineup
 from mezzala.core.metrics import league_levels
@@ -49,7 +49,7 @@ def option(
     squad: list[Player],
     league: int | None,
     levels: dict[int, float],
-    formation: Formation,
+    shape: Shape,
     view: View,
 ) -> JobOption:
     return JobOption(
@@ -57,21 +57,19 @@ def option(
         club_reputation=vacancy.club_reputation,
         bigger_than_yours=(vacancy.club_reputation or 0) > snapshot.club_reputation,
         league_level=measure(view, levels[league]) if league is not None and league in levels else None,
-        best_eleven_average=measure(view, pick_lineup(squad, formation).average_ability()) if squad else None,
+        best_eleven_average=measure(view, pick_lineup(squad, shape).average_ability()) if squad else None,
         balance=format_money(vacancy.balance),
         transfer_budget=format_money(vacancy.transfer_budget),
         advertised=vacancy.advertised.isoformat() if vacancy.advertised else "unknown",
     )
 
 
-def next_job(snapshot: Snapshot, formation: Formation, bigger_only: bool, limit: int, view: View) -> NextJob:
+def next_job(snapshot: Snapshot, shape: Shape, bigger_only: bool, limit: int, view: View) -> NextJob:
     levels = league_levels(snapshot.players)
     by_club = squads(snapshot)
     leagues = club_leagues(snapshot.players)
     jobs = [
-        option(
-            vacancy, snapshot, by_club.get(vacancy.club_uid, []), leagues.get(vacancy.club_uid), levels, formation, view
-        )
+        option(vacancy, snapshot, by_club.get(vacancy.club_uid, []), leagues.get(vacancy.club_uid), levels, shape, view)
         for vacancy in snapshot.vacancies
         if not bigger_only or (vacancy.club_reputation or 0) > snapshot.club_reputation
     ]

@@ -1,5 +1,6 @@
 from collections import Counter
 from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
 from enum import StrEnum
 
 from mezzala.core.players import Tactic
@@ -44,6 +45,17 @@ STARTERS: dict[Formation, dict[G, int]] = {
 }  # fmt: skip
 
 PLAYERS_PER_STARTING_PLACE = 2
+
+
+@dataclass(frozen=True)
+class Shape:
+    name: str
+    starters: Mapping[G, int]
+
+
+def shape_for(formation: Formation) -> Shape:
+    return Shape(formation.value, STARTERS[formation])
+
 
 DEFAULT_FORMATION = Formation.FOUR_THREE_THREE
 GROUP_OF_POSITION = {code: group for group, codes in GROUP_POSITION_CODES.items() for code in codes}

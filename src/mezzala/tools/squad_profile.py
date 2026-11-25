@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from statistics import median
 
-from mezzala.core.formations import Formation
+from mezzala.core.formations import Shape
 from mezzala.core.leagues import club_league
 from mezzala.core.lineup import pick_lineup
 from mezzala.core.players import Player, Snapshot
@@ -55,11 +55,11 @@ def compare_profiles(mine: dict[str, float], others: list[dict[str, float]]) -> 
     return groups
 
 
-def squad_profile(snapshot: Snapshot, formation: Formation) -> SquadProfile:
-    mine = outfield_profile(pick_lineup(available_squad(snapshot), formation).starters)
-    others = [outfield_profile(pick_lineup(squad, formation).starters) for squad in league_rivals(snapshot).values()]
+def squad_profile(snapshot: Snapshot, shape: Shape) -> SquadProfile:
+    mine = outfield_profile(pick_lineup(available_squad(snapshot), shape).starters)
+    others = [outfield_profile(pick_lineup(squad, shape).starters) for squad in league_rivals(snapshot).values()]
     groups = compare_profiles(mine, others)
     ranked = sorted((g for g in groups if g.difference is not None), key=lambda g: g.difference or 0.0, reverse=True)
     strengths = [g.group for g in ranked if (g.difference or 0.0) >= NOTABLE_DIFFERENCE]
     weaknesses = [g.group for g in reversed(ranked) if (g.difference or 0.0) <= -NOTABLE_DIFFERENCE]
-    return SquadProfile(formation.value, EXPLANATION, groups, strengths, weaknesses)
+    return SquadProfile(shape.name, EXPLANATION, groups, strengths, weaknesses)

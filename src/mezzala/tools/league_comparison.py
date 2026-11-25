@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from statistics import median
 
-from mezzala.core.formations import STARTERS, Formation
+from mezzala.core.formations import Shape
 from mezzala.core.leagues import club_league
 from mezzala.core.lineup import Lineup, pick_lineup
 from mezzala.core.money import format_money
@@ -64,10 +64,10 @@ def average_at(lineup: Lineup, group: PositionGroup) -> float | None:
 
 
 def position_rows(
-    lineups: dict[int, Lineup], names: dict[int, str], mine: int, formation: Formation, view: View
+    lineups: dict[int, Lineup], names: dict[int, str], mine: int, shape: Shape, view: View
 ) -> list[PositionRow]:
     rows: list[PositionRow] = []
-    for group in STARTERS[formation]:
+    for group in shape.starters:
         levels = {club: level for club, lineup in lineups.items() if (level := average_at(lineup, group)) is not None}
         best_club = max(levels, key=lambda club: levels[club], default=None)
         rows.append(
@@ -82,15 +82,15 @@ def position_rows(
     return rows
 
 
-def league_comparison(snapshot: Snapshot, formation: Formation, view: View) -> LeagueComparison:
+def league_comparison(snapshot: Snapshot, shape: Shape, view: View) -> LeagueComparison:
     league_id = club_league(snapshot)
     if league_id is None:
-        return LeagueComparison(formation.value, NO_LEAGUE, None, [], [])
+        return LeagueComparison(shape.name, NO_LEAGUE, None, [], [])
     squads = squads_in(snapshot, league_id)
     squads[snapshot.club_uid] = available_squad(snapshot)
     names = {club: next((p.club_name for p in squad if p.club_name), "unknown") for club, squad in squads.items()}
     names[snapshot.club_uid] = snapshot.club_name
-    lineups = {club: pick_lineup(squad, formation) for club, squad in squads.items()}
+    lineups = {club: pick_lineup(squad, shape) for club, squad in squads.items()}
     ordered = sorted(lineups, key=lambda club: lineups[club].average_ability(), reverse=True)
     averages = [lineups[club].average_ability() for club in ordered]
     clubs = [
@@ -100,9 +100,9 @@ def league_comparison(snapshot: Snapshot, formation: Formation, view: View) -> L
     ]  # fmt: skip
     your_rank = next(row.rank for row in clubs if row.yours)
     return LeagueComparison(
-        formation.value,
+        shape.name,
         EXPLANATION,
         your_rank,
         clubs,
-        position_rows(lineups, names, snapshot.club_uid, formation, view),
+        position_rows(lineups, names, snapshot.club_uid, shape, view),
     )

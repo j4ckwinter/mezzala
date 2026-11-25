@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import StrEnum
 
-from mezzala.core.formations import Formation
+from mezzala.core.formations import Shape
 from mezzala.core.lineup import backup_lineup, pick_lineup
 from mezzala.core.metrics import PeerMedians, weekly_wage
 from mezzala.core.money import format_weekly_wage
@@ -48,10 +48,10 @@ class WageReview:
     weekly_saving_without_surplus: str
 
 
-def roles(snapshot: Snapshot, formation: Formation) -> dict[int, Role]:
+def roles(snapshot: Snapshot, shape: Shape) -> dict[int, Role]:
     squad = available_squad(snapshot)
-    starters = {player.uid for player in pick_lineup(squad, formation).starters}
-    backups = {player.uid for player in backup_lineup(squad, formation).starters}
+    starters = {player.uid for player in pick_lineup(squad, shape).starters}
+    backups = {player.uid for player in backup_lineup(squad, shape).starters}
     level = squad_level(snapshot)
     found: dict[int, Role] = {}
     for player in everyone_paid(snapshot):
@@ -68,9 +68,9 @@ def roles(snapshot: Snapshot, formation: Formation) -> dict[int, Role]:
     return found
 
 
-def wage_review(snapshot: Snapshot, formation: Formation, view: View) -> WageReview:
+def wage_review(snapshot: Snapshot, shape: Shape, view: View) -> WageReview:
     peers = PeerMedians(snapshot.players, weekly_wage)
-    role_of = roles(snapshot, formation)
+    role_of = roles(snapshot, shape)
     entries: list[tuple[Player, int | None, float | None]] = []
     for player in everyone_paid(snapshot):
         paid = wage_paid_by_club(player, snapshot.club_uid)
@@ -91,7 +91,7 @@ def wage_review(snapshot: Snapshot, formation: Formation, view: View) -> WageRev
     )
     surplus = sorted((item for item in entries if role_of[item[0].uid] is Role.SURPLUS), key=lambda i: -(i[1] or 0))
     return WageReview(
-        formation=formation.value,
+        formation=shape.name,
         weekly_wage_bill=format_weekly_wage(sum(paid or 0 for _, paid, _ in entries)),
         overpaid=[entry(*item) for item in overpaid],
         surplus=[entry(*item) for item in surplus],

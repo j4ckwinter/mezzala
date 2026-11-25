@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from mezzala.core.formations import Formation
+from mezzala.core.formations import Shape
 from mezzala.core.lineup import Bar, describe_bar, level_in, weakest_starters
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import PositionGroup, covers
@@ -80,14 +80,14 @@ def best_first(found: list[tuple[int, Target]], limit: int) -> list[Target]:
 
 def contract_watch(
     snapshot: Snapshot,
-    formation: Formation,
+    shape: Shape,
     within_months: int,
     max_age: int | None,
     reachable_only: bool,
     limit: int,
     view: View,
 ) -> ContractWatch:
-    bars = weakest_starters(available_squad(snapshot), formation)
+    bars = weakest_starters(available_squad(snapshot), shape)
     wages = wage_guide(snapshot)
     free: list[tuple[int, Target]] = []
     pre_contract: list[tuple[int, Target]] = []

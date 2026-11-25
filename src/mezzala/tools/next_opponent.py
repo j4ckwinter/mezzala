@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from mezzala.core.availability import absence, injured_on, possible_ban
-from mezzala.core.formations import Formation
+from mezzala.core.formations import Formation, Shape, shape_for
 from mezzala.core.leagues import club_league
 from mezzala.core.lineup import Lineup, StarterEntry, pick_lineup, starter_entries
 from mezzala.core.players import Match, Player, Snapshot
@@ -63,7 +63,7 @@ def next_match(snapshot: Snapshot) -> Match | None:
 
 
 def likely_shapes(squad: list[Player]) -> list[Lineup]:
-    lineups = sorted((pick_lineup(squad, formation) for formation in Formation), key=score, reverse=True)
+    lineups = sorted((pick_lineup(squad, shape_for(formation)) for formation in Formation), key=score, reverse=True)
     best = score(lineups[0])
     return [lineup for lineup in lineups if round(best - score(lineup), 1) <= SCORE_TIE_MARGIN]
 
@@ -124,7 +124,7 @@ def missing(players: list[Player], day: date) -> list[str]:
     return injured + [found for player in players if (found := possible_ban(player)) is not None]
 
 
-def next_opponent(snapshot: Snapshot, formation: Formation, view: View) -> NextOpponent:
+def next_opponent(snapshot: Snapshot, shape: Shape, view: View) -> NextOpponent:
     match = next_match(snapshot)
     if match is None:
         return NextOpponent(NO_FIXTURE, None, None, None, None, [], [], [], [], [], [], [])
@@ -136,7 +136,7 @@ def next_opponent(snapshot: Snapshot, formation: Formation, view: View) -> NextO
     yours = available_squad(snapshot)
     shapes = likely_shapes(fit_squad) if fit_squad else []
     their_lineup = shapes[0] if shapes else None
-    mine = outfield_profile(pick_lineup([p for p in yours if not injured_on(p, match.day)], formation).starters)
+    mine = outfield_profile(pick_lineup([p for p in yours if not injured_on(p, match.day)], shape).starters)
     theirs = outfield_profile(their_lineup.starters) if their_lineup else {}
     played = sorted(
         (m for m in snapshot.matches if m.played and same_side(m, opponent_uid, side)),
@@ -149,7 +149,7 @@ def next_opponent(snapshot: Snapshot, formation: Formation, view: View) -> NextO
         opponent=(match.away_club_name if home else match.home_club_name) + side_label(side),
         competition=competition_label(match, snapshot),
         venue=venue(match, home),
-        their_likely_formations=[shape.formation.value for shape in shapes],
+        their_likely_formations=[lineup.shape.name for lineup in shapes],
         their_eleven=starter_entries(their_lineup, view) if their_lineup else [],
         their_key_players=[
             summarize(p, view)

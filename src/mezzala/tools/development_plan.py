@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from mezzala.core.formations import Formation
+from mezzala.core.formations import Shape
 from mezzala.core.growth import projected_growth
 from mezzala.core.lineup import Bar, backup_lineup, level_in, pick_lineup, weakest_starters
 from mezzala.core.players import Player, Snapshot
@@ -52,11 +52,11 @@ def young_player(player: Player, bars: dict[PositionGroup, Bar | None], view: Vi
     )  # fmt: skip
 
 
-def development_plan(snapshot: Snapshot, formation: Formation, view: View) -> DevelopmentPlan:
+def development_plan(snapshot: Snapshot, shape: Shape, view: View) -> DevelopmentPlan:
     squad = available_squad(snapshot)
-    starters = {player.uid for player in pick_lineup(squad, formation).starters}
-    backups = {player.uid for player in backup_lineup(squad, formation).starters}
-    bars = weakest_starters(squad, formation)
+    starters = {player.uid for player in pick_lineup(squad, shape).starters}
+    backups = {player.uid for player in backup_lineup(squad, shape).starters}
+    bars = weakest_starters(squad, shape)
     youngsters = [player for player in owned_players(snapshot) if player.age <= YOUNG_PLAYER_MAX_AGE]
     ready: list[YoungPlayer] = []
     loan_out: list[YoungPlayer] = []
@@ -79,4 +79,4 @@ def development_plan(snapshot: Snapshot, formation: Formation, view: View) -> De
         reverse=True,
     )
     shown = [young_player(player, bars, view) for player in focus[:FOCUS_LIMIT]]
-    return DevelopmentPlan(formation.value, ready, loan_out, on_loan, shown)
+    return DevelopmentPlan(shape.name, ready, loan_out, on_loan, shown)

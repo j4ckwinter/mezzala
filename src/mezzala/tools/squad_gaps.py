@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import StrEnum
 
-from mezzala.core.formations import PLAYERS_PER_STARTING_PLACE, STARTERS, Formation
+from mezzala.core.formations import PLAYERS_PER_STARTING_PLACE, Shape
 from mezzala.core.lineup import ACCOMPLISHED_PENALTY, StarterEntry, pick_lineup, starter_entries
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import Fit, PositionGroup, fit
@@ -117,12 +117,12 @@ def group_issues(
     return issues
 
 
-def squad_gaps(snapshot: Snapshot, formation: Formation, view: View) -> SquadGaps:
+def squad_gaps(snapshot: Snapshot, shape: Shape, view: View) -> SquadGaps:
     squad = available_squad(snapshot)
-    lineup = pick_lineup(squad, formation)
+    lineup = pick_lineup(squad, shape)
     eleven_median = lineup.median_ability()
     positions: list[PositionReport] = []
-    for group, needed in STARTERS[formation].items():
+    for group, needed in shape.starters.items():
         chart = depth_chart(squad, group)
         starters = lineup.at(group)
         issues = group_issues(snapshot, group, chart, starters, needed, eleven_median, view)
@@ -131,4 +131,4 @@ def squad_gaps(snapshot: Snapshot, formation: Formation, view: View) -> SquadGap
         kinds = [kind.value for kind, _ in issues]
         positions.append(PositionReport(group.value, needed, needed * PLAYERS_PER_STARTING_PLACE, depth, texts, kinds))
     positions.sort(key=lambda position: len(position.issues), reverse=True)
-    return SquadGaps(formation.value, measure(view, eleven_median), starter_entries(lineup, view), positions)
+    return SquadGaps(shape.name, measure(view, eleven_median), starter_entries(lineup, view), positions)

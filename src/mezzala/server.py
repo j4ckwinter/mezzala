@@ -8,7 +8,7 @@ from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field
 
-from mezzala.core.formations import DEFAULT_FORMATION, Formation, saved_formation
+from mezzala.core.formations import DEFAULT_FORMATION, Formation, Shape, saved_formation, shape_for
 from mezzala.core.lookup import AmbiguousPlayer, PlayerNotFound, find_player
 from mezzala.core.money import format_money, format_weekly_wage, stored_from_pounds
 from mezzala.core.players import Player, Snapshot
@@ -393,20 +393,22 @@ def refuse_hidden_filters(view: View, filters: dict[str, bool]) -> None:
         raise ToolError(f"Fog of war is on, so {', '.join(used)} cannot be used: it filters on hidden ability.")
 
 
-def with_formation(current: Current, asked: Formation | None) -> tuple[Formation, SaveContext]:
+def with_formation(current: Current, asked: Formation | None) -> tuple[Shape, SaveContext]:
     if asked is not None:
-        return asked, save_context(current)
+        return shape_for(asked), save_context(current)
     saved = saved_formation(current.snapshot.tactics)
     if saved is None and current.snapshot.tactics:
         unmatched = (
             f"Your saved tactic '{current.snapshot.tactics[0].name}' has a shape mezzala does not model, so "
             f"{DEFAULT_FORMATION.value} is used; say which formation you play for a closer answer."
         )
-        return DEFAULT_FORMATION, save_context(current, [unmatched])
+        return shape_for(DEFAULT_FORMATION), save_context(current, [unmatched])
     if saved is None:
-        return DEFAULT_FORMATION, save_context(current)
+        return shape_for(DEFAULT_FORMATION), save_context(current)
     formation, tactic = saved
-    return formation, save_context(current, [f"Formation {formation.value}, from your saved tactic '{tactic.name}'."])
+    return shape_for(formation), save_context(
+        current, [f"Formation {formation.value}, from your saved tactic '{tactic.name}'."]
+    )
 
 
 def riser_defaults(
@@ -555,11 +557,11 @@ def create_server(
         seasons, and among targets within a few CA of the best the one using the smallest share of the tighter
         budget wins."""
         current = read_current(career)
-        formation, context = with_formation(current, formation)
+        shape, context = with_formation(current, formation)
         budget = current.snapshot.budget
         fees = optional_stored(transfer_budget) if transfer_budget is not None else budget.transfer_remaining
         wages = optional_stored(weekly_wage_budget) if weekly_wage_budget is not None else budget.wage_headroom_weekly
-        return ShortlistReport(context, shortlist(recruitable(current), formation, fees, wages, view))
+        return ShortlistReport(context, shortlist(recruitable(current), shape, fees, wages, view))
 
     @server.tool(name="wage_review")
     def wage_review_tool(formation: FormationChoice = None) -> WageReviewReport:
@@ -567,8 +569,8 @@ def create_server(
         of similar CA, age and potential, and surplus players (not in the best eleven and not needed for cover
         anywhere in the formation, and not a young prospect) with the weekly saving if they all went."""
         current = read_current(career)
-        formation, context = with_formation(current, formation)
-        return WageReviewReport(context, wage_review(current.snapshot, formation, view))
+        shape, context = with_formation(current, formation)
+        return WageReviewReport(context, wage_review(current.snapshot, shape, view))
 
     @server.tool(name="development_plan")
     def development_plan_tool(formation: FormationChoice = None) -> DevelopmentPlanReport:
@@ -577,8 +579,8 @@ def create_server(
         who is already on loan, and the five to focus on: potential that reaches the first eleven's level, ranked
         by potential then projected growth."""
         current = read_current(career)
-        formation, context = with_formation(current, formation)
-        return DevelopmentPlanReport(context, development_plan(current.snapshot, formation, view))
+        shape, context = with_formation(current, formation)
+        return DevelopmentPlanReport(context, development_plan(current.snapshot, shape, view))
 
     @server.tool(name="league_comparison")
     def league_comparison_tool(formation: FormationChoice = None) -> LeagueComparisonReport:
@@ -586,8 +588,8 @@ def create_server(
         best eleven for the formation, with first-team value, and position by position the club's starters
         against the league median and the best club there."""
         current = read_current(career)
-        formation, context = with_formation(current, formation)
-        return LeagueComparisonReport(context, league_comparison(current.snapshot, formation, view))
+        shape, context = with_formation(current, formation)
+        return LeagueComparisonReport(context, league_comparison(current.snapshot, shape, view))
 
     @server.tool(name="what_changed")
     def what_changed_tool() -> WhatChangedReport:
@@ -651,9 +653,9 @@ def create_server(
         """How the squad has changed since the first snapshot of the save (usually when mezzala was first used):
         best eleven, league rank, size, age, value and wage bill then and now, and the most improved players."""
         current = read_current(career)
-        formation, context = with_formation(current, formation)
+        shape, context = with_formation(current, formation)
         first = career.baseline(current, None)
-        return SquadProgressReport(context, squad_progress(current.snapshot, first, formation, view))
+        return SquadProgressReport(context, squad_progress(current.snapshot, first, shape, view))
 
     @server.tool(name="next_job")
     def next_job_tool(
@@ -662,8 +664,8 @@ def create_server(
         """Open first-team manager jobs in the save, biggest club first: each club's reputation against yours,
         its league level, the strength of its best eleven, and its money where the save has finances."""
         current = read_current(career)
-        formation, context = with_formation(current, formation)
-        return NextJobReport(context, next_job(current.snapshot, formation, bigger_only, limit, view))
+        shape, context = with_formation(current, formation)
+        return NextJobReport(context, next_job(current.snapshot, shape, bigger_only, limit, view))
 
     @server.tool(name="league_values")
     def league_values_tool(limit: int = DEFAULT_LIMIT) -> LeagueValuesReport:
@@ -689,16 +691,16 @@ def create_server(
         creativity, finishing, work rate, wide play, decision making) against the other clubs' best elevens in
         your league. Use it to suggest tactics; the save's tactic itself cannot be read."""
         current = read_current(career)
-        formation, context = with_formation(current, formation)
-        return SquadProfileReport(context, squad_profile(current.snapshot, formation))
+        shape, context = with_formation(current, formation)
+        return SquadProfileReport(context, squad_profile(current.snapshot, shape))
 
     @server.tool(name="positional_fit")
     def positional_fit_tool(formation: FormationChoice = None) -> PositionalFitReport:
         """Whether the best eleven's players suit the positions they are picked in: each starter's key-attribute
         score there, and starters whose attributes suit another position they can play noticeably better."""
         current = read_current(career)
-        formation, context = with_formation(current, formation)
-        return PositionalFitReport(context, positional_fit(current.snapshot, formation))
+        shape, context = with_formation(current, formation)
+        return PositionalFitReport(context, positional_fit(current.snapshot, shape))
 
     @server.tool(name="next_opponent")
     def next_opponent_tool(formation: FormationChoice = None) -> NextOpponentReport:
@@ -706,8 +708,8 @@ def create_server(
         eleven, key players, how their outfield attributes compare with your eleven's, and their recent results.
         Use it to suggest tactical adjustments."""
         current = read_current(career)
-        formation, context = with_formation(current, formation)
-        return NextOpponentReport(context, next_opponent(current.snapshot, formation, view))
+        shape, context = with_formation(current, formation)
+        return NextOpponentReport(context, next_opponent(current.snapshot, shape, view))
 
     @server.tool(name="compare_formations")
     def compare_formations_tool(formations: FormationChoices = None) -> FormationReport:
@@ -722,8 +724,8 @@ def create_server(
     def squad_gaps_tool(formation: FormationChoice = None) -> SquadGapsReport:
         """Where the squad is thin, ageing, leaving, weak or has no young successor, by position for a formation."""
         current = read_current(career)
-        formation, context = with_formation(current, formation)
-        return SquadGapsReport(context, squad_gaps(current.snapshot, formation, view))
+        shape, context = with_formation(current, formation)
+        return SquadGapsReport(context, squad_gaps(current.snapshot, shape, view))
 
     @server.tool()
     def find_replacement(
@@ -797,8 +799,8 @@ def create_server(
         """Your contracts and loans ending soon, plus free agents and players elsewhere with expiring contracts
         who would beat your current starter somewhere in the formation."""
         current = read_current(career)
-        formation, context = with_formation(current, formation)
-        result = contract_watch(recruitable(current), formation, within_months, max_age, within_reach, limit, view)
+        shape, context = with_formation(current, formation)
+        result = contract_watch(recruitable(current), shape, within_months, max_age, within_reach, limit, view)
         return ContractWatchReport(context, result)
 
     @server.tool(name="regen_intake")
@@ -861,8 +863,8 @@ def create_server(
         """Who is injured or banned, which starters in the best eleven are injury risks, and who is low on
         condition or match sharpness."""
         current = read_current(career)
-        formation, context = with_formation(current, formation)
-        return FitnessToolReport(context, fitness(current.snapshot, formation, view))
+        shape, context = with_formation(current, formation)
+        return FitnessToolReport(context, fitness(current.snapshot, shape, view))
 
     @server.tool(name="staff_review")
     def staff_review_tool() -> StaffReviewReport:

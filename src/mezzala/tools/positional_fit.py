@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from mezzala.core.formations import Formation
+from mezzala.core.formations import Shape
 from mezzala.core.lineup import pick_lineup
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import PositionGroup, covers, fit
@@ -54,8 +54,8 @@ def starter_fit(player: Player, group: PositionGroup) -> StarterFit:
     )  # fmt: skip
 
 
-def positional_fit(snapshot: Snapshot, formation: Formation) -> PositionalFit:
-    lineup = pick_lineup(available_squad(snapshot), formation)
+def positional_fit(snapshot: Snapshot, shape: Shape) -> PositionalFit:
+    lineup = pick_lineup(available_squad(snapshot), shape)
     starters = [starter_fit(place.player, place.group) for place in lineup.places if place.player is not None]
     misplaced = [
         f"{s.name}: picked at {s.position} ({s.attribute_score:g}) but better suited to {s.better_suited_to} "
@@ -63,4 +63,4 @@ def positional_fit(snapshot: Snapshot, formation: Formation) -> PositionalFit:
         for s in starters
         if s.better_suited_to is not None
     ]
-    return PositionalFit(formation.value, EXPLANATION, starters, misplaced)
+    return PositionalFit(shape.name, EXPLANATION, starters, misplaced)

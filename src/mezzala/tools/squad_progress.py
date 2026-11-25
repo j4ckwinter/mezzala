@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from mezzala.core.formations import Formation
+from mezzala.core.formations import Shape
 from mezzala.core.lineup import pick_lineup
 from mezzala.core.money import format_money, format_weekly_wage
 from mezzala.core.players import Snapshot, is_same_person
@@ -38,21 +38,21 @@ FIRST_SNAPSHOT_ONLY = (
 )
 
 
-def rank_label(snapshot: Snapshot, formation: Formation) -> str:
-    comparison = league_comparison(snapshot, formation, View.FULL)
+def rank_label(snapshot: Snapshot, shape: Shape) -> str:
+    comparison = league_comparison(snapshot, shape, View.FULL)
     if comparison.your_rank is None:
         return "unknown"
     return f"{comparison.your_rank} of {len(comparison.clubs)}"
 
 
-def measures(snapshot: Snapshot, formation: Formation, view: View) -> dict[str, str]:
+def measures(snapshot: Snapshot, shape: Shape, view: View) -> dict[str, str]:
     squad = available_squad(snapshot)
     owned = owned_players(snapshot)
     ages = [player.age for player in squad]
     wages = sum(wage_paid_by_club(player, snapshot.club_uid) or 0 for player in everyone_paid(snapshot))
     return {
-        "best eleven average CA": rating_text(view, pick_lineup(squad, formation).average_ability()),
-        "league rank by best eleven": rank_label(snapshot, formation),
+        "best eleven average CA": rating_text(view, pick_lineup(squad, shape).average_ability()),
+        "league rank by best eleven": rank_label(snapshot, shape),
         "players available": str(len(squad)),
         "average age": f"{sum(ages) / len(ages):.1f}" if ages else "unknown",
         "value of the club's players": format_money(sum(player.value or 0 for player in owned)),
@@ -60,7 +60,7 @@ def measures(snapshot: Snapshot, formation: Formation, view: View) -> dict[str, 
     }
 
 
-def squad_progress(current: Snapshot, first: Snapshot | None, formation: Formation, view: View) -> SquadProgress:
+def squad_progress(current: Snapshot, first: Snapshot | None, shape: Shape, view: View) -> SquadProgress:
     if first is None:
         return SquadProgress(None, FIRST_SNAPSHOT_ONLY, [], [])
     if first.club_uid != current.club_uid:
@@ -69,8 +69,8 @@ def squad_progress(current: Snapshot, first: Snapshot | None, formation: Formati
             "so there is no squad to compare."
         )
         return SquadProgress(first.game_date.isoformat(), moved, [], [])
-    then = measures(first, formation, view)
-    now = measures(current, formation, view)
+    then = measures(first, shape, view)
+    now = measures(current, shape, view)
     earlier = first.by_uid()
     gains = [
         (player.current_ability - before.current_ability, player)

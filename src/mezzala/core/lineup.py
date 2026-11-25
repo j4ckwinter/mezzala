@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from statistics import median
 
 from mezzala.core.assignment import BLOCKED, min_cost_assignment
-from mezzala.core.formations import STARTERS, Formation
+from mezzala.core.formations import Shape
 from mezzala.core.players import Player
 from mezzala.core.positions import Fit, PositionGroup, fit
 from mezzala.core.view import Rating, View, rating
@@ -50,7 +50,7 @@ class Place:
 
 @dataclass(frozen=True)
 class Lineup:
-    formation: Formation
+    shape: Shape
     places: tuple[Place, ...]
 
     @property
@@ -70,15 +70,15 @@ class Lineup:
         return median(player.current_ability for player in starters) if starters else 0.0
 
 
-def pick_lineup(squad: list[Player], formation: Formation) -> Lineup:
-    places = STARTERS[formation]
+def pick_lineup(squad: list[Player], shape: Shape) -> Lineup:
+    places = shape.starters
     assigned = assign_starters(squad, places)
     chosen: list[Place] = []
     for group, needed in places.items():
         starters: list[Player | None] = [*assigned[group]]
         starters += [None] * (needed - len(starters))
         chosen.extend(Place(group, player) for player in starters)
-    return Lineup(formation, tuple(chosen))
+    return Lineup(shape, tuple(chosen))
 
 
 @dataclass(frozen=True)
@@ -93,10 +93,10 @@ def level_in(player: Player, group: PositionGroup) -> int:
     return 0 if ability is None else ability
 
 
-def weakest_starters(squad: list[Player], formation: Formation) -> dict[PositionGroup, Bar | None]:
-    lineup = pick_lineup(squad, formation)
+def weakest_starters(squad: list[Player], shape: Shape) -> dict[PositionGroup, Bar | None]:
+    lineup = pick_lineup(squad, shape)
     weakest: dict[PositionGroup, Bar | None] = {}
-    for group, needed in STARTERS[formation].items():
+    for group, needed in shape.starters.items():
         starters = lineup.at(group)
         if len(starters) < needed:
             weakest[group] = None
@@ -134,6 +134,6 @@ def starter_entries(lineup: Lineup, view: View) -> list[StarterEntry]:
     return entries
 
 
-def backup_lineup(squad: list[Player], formation: Formation) -> Lineup:
-    starters = {player.uid for player in pick_lineup(squad, formation).starters}
-    return pick_lineup([player for player in squad if player.uid not in starters], formation)
+def backup_lineup(squad: list[Player], shape: Shape) -> Lineup:
+    starters = {player.uid for player in pick_lineup(squad, shape).starters}
+    return pick_lineup([player for player in squad if player.uid not in starters], shape)

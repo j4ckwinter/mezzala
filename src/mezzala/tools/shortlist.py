@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from mezzala.core.formations import Formation
+from mezzala.core.formations import Shape
 from mezzala.core.lineup import Bar, describe_bar, level_in, weakest_starters
 from mezzala.core.money import format_money, format_weekly_wage
 from mezzala.core.players import Player, Snapshot
@@ -107,19 +107,19 @@ def improves_on(bar: Bar | None, view: View) -> str:
 
 def shortlist(
     snapshot: Snapshot,
-    formation: Formation,
+    shape: Shape,
     transfer_budget: int | None,
     weekly_wage_budget: int | None,
     view: View,
 ) -> Shortlist:
-    bars = weakest_starters(available_squad(snapshot), formation)
+    bars = weakest_starters(available_squad(snapshot), shape)
     wages_of_peers = wage_guide(snapshot)
     budget = SpendingRoom(transfer_budget, weekly_wage_budget)
     taken: set[int] = set()
     fees = 0
     wages = 0
     picks: list[ShortlistPick] = []
-    for position in squad_gaps(snapshot, formation, view).positions:
+    for position in squad_gaps(snapshot, shape, view).positions:
         if not position.issues:
             continue
         group = PositionGroup(position.group)
@@ -150,7 +150,7 @@ def shortlist(
             )
         )
     return Shortlist(
-        formation.value,
+        shape.name,
         "no limit" if transfer_budget is None else format_money(transfer_budget),
         "no limit" if weekly_wage_budget is None else format_weekly_wage(weekly_wage_budget),
         format_money(fees),
