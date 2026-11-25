@@ -13,6 +13,7 @@ from mezzala.core.metrics import (
     weekly_wage,
 )
 from mezzala.core.money import format_money
+from mezzala.core.nationality import holds_nationality, needs_no_work_permit
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import PositionGroup, covers, primary_group
 from mezzala.core.profile import position_score
@@ -63,6 +64,8 @@ class PlayerSearch:
     contract_ending_within_months: int | None
     max_release_clause: int | None
     youth_contract_only: bool
+    nationality: str | None
+    work_permit_free_only: bool
     reserves_only: bool
     bigger_clubs_only: bool
     within_reach: bool
@@ -80,6 +83,7 @@ class FoundPlayer:
     position: str
     position_attribute_score: float
     release_clause: str
+    needs_no_work_permit: bool
 
 
 @dataclass(frozen=True)
@@ -132,6 +136,8 @@ def matches_profile(player: Player, search: PlayerSearch) -> bool:
         and at_least(player.current_ability, search.min_ca)
         and at_most(player.current_ability, search.max_ca)
         and at_least(player.potential_ability, search.min_pa)
+        and (search.nationality is None or holds_nationality(player, search.nationality))
+        and (not search.work_permit_free_only or needs_no_work_permit(player))
     )
 
 
@@ -231,6 +237,7 @@ def found(player: Player, search: PlayerSearch, measures: Measures, view: View) 
         position=group.value,
         position_attribute_score=position_score(player, group),
         release_clause="none" if clause is None else format_money(clause),
+        needs_no_work_permit=needs_no_work_permit(player),
     )
 
 

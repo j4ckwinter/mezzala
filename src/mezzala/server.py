@@ -400,6 +400,8 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
         contract_ending_within_months: int | None = None,
         max_release_clause: float | None = None,
         youth_contract_only: bool = False,
+        nationality: str | None = None,
+        work_permit_free: bool = False,
         reserves_only: bool = False,
         bigger_clubs_only: bool = False,
         within_reach: bool = True,
@@ -414,16 +416,20 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
         ranks wages against similar players. reserves_only keeps players outside their club's first team;
         bigger_clubs_only keeps clubs with a higher reputation than yours. within_reach keeps players whose
         reputation makes a move realistic; set it false for questions like the best players in the world.
-        scope "own" searches your club, "everyone" the whole save."""
+        scope "own" searches your club, "everyone" the whole save. nationality keeps players holding that
+        nationality (first or second, for example "Republic of Ireland"); work_permit_free keeps British and Irish
+        players, who need no UK work permit."""
         current = read_current(career)
         refuse_hidden_filters(
             view, {"min_ca": min_ca is not None, "max_ca": max_ca is not None, "min_pa": min_pa is not None}
         )
         search = PlayerSearch(
-            scope, position, min_age, max_age, min_ca, max_ca, min_pa, optional_stored(max_fee),
-            optional_stored(max_wage), free_agents_only, contract_ending_within_months,
-            optional_stored(max_release_clause), youth_contract_only, reserves_only, bigger_clubs_only,
-            within_reach, sort_by, limit,
+            scope=scope, position=position, min_age=min_age, max_age=max_age, min_ca=min_ca, max_ca=max_ca,
+            min_pa=min_pa, max_fee=optional_stored(max_fee), max_wage=optional_stored(max_wage),
+            free_agents_only=free_agents_only, contract_ending_within_months=contract_ending_within_months,
+            max_release_clause=optional_stored(max_release_clause), youth_contract_only=youth_contract_only,
+            nationality=nationality, work_permit_free_only=work_permit_free, reserves_only=reserves_only,
+            bigger_clubs_only=bigger_clubs_only, within_reach=within_reach, sort_by=sort_by, limit=limit,
         )  # fmt: skip
         return FoundPlayersReport(save_context(current), find_players(current.snapshot, search, view))
 

@@ -152,7 +152,7 @@ def encode_player(player: Player) -> list[Any]:
         player.temperament, player.controversy, player.left_foot, player.right_foot, player.height_cm,
         list(player.traits), player.condition, player.match_sharpness, list(player.banned_from), player.injury,
         optional_text(player.injured_until), [encode_injury(injury) for injury in player.injuries],
-        encode_season(player.season),
+        encode_season(player.season), list(player.nationalities), player.club_country,
     ]  # fmt: skip
 
 
@@ -174,8 +174,10 @@ FACTS_ADDED_LATER: list[Any] = [
     None,
     [],
     None,
+    [],
+    None,
 ]
-CURRENT_FORMAT = 9
+CURRENT_FORMAT = 10
 MATCH_FACTS_ADDED_LATER: list[Any] = [False, 0, 0]
 COLUMNS_ADDED_LATER = {
     "club_nation_id": "INTEGER",
@@ -207,7 +209,8 @@ def decode_player(row: list[Any]) -> Player:
      on_loan, loan_parent, loan_end, attributes, reputation, professionalism, ambition, first_team,
      club_reputation, club_nation_id, league_id, youth_contract, clauses, loan_wage, adaptability, loyalty,
      pressure, sportsmanship, temperament, controversy, left_foot, right_foot, height_cm, traits, condition,
-     match_sharpness, banned_from, injury, injured_until, injuries, season) = row  # fmt: skip
+     match_sharpness, banned_from, injury, injured_until, injuries, season, nationalities,
+     club_country) = row  # fmt: skip
     return Player(
         uid=uid,
         name=name,
@@ -252,6 +255,8 @@ def decode_player(row: list[Any]) -> Player:
         injured_until=optional_date(injured_until),
         injuries=tuple(decode_injury(stored) for stored in injuries),
         season=decode_season(season),
+        nationalities=tuple(nationalities),
+        club_country=club_country,
     )
 
 

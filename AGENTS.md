@@ -31,6 +31,7 @@ Most players install the Claude Desktop extension, `mezzala.mcpb`, from the late
 | Reading the managed club's staff, first-team tactics and mentoring groups | `src/mezzala/save/own_club.py` |
 | Reading each player's injury history, current injury and season stats | `src/mezzala/save/player_records.py` |
 | Turning fmsave enum names into plain words | `src/mezzala/save/labels.py` |
+| Nation names for FM's nation database ids. The save stores none, so `src/mezzala/data/nations.csv` names each id from the clubs the save lists for that nation | `src/mezzala/save/nations.py` |
 | Which save sections may fail to read without failing the snapshot | `src/mezzala/save/sections.py` |
 | Where FM27 keeps saves, and which one is used by default | `src/mezzala/save/saves.py` |
 | When a new snapshot is taken, and which earlier snapshot a tool compares with | `src/mezzala/save/career.py` |
@@ -41,6 +42,7 @@ Most players install the Claude Desktop extension, `mezzala.mcpb`, from the late
 | Who belongs to the club, who plays for it, what it pays them, depth, leaving dates, squad level | `src/mezzala/core/squad.py` |
 | Choosing a starting eleven and its cover (a second eleven) for a formation | `src/mezzala/core/lineup.py` |
 | Who is injured or banned on a given day | `src/mezzala/core/availability.py` |
+| Nationality, and who needs no UK work permit | `src/mezzala/core/nationality.py` |
 | The assignment algorithm the eleven uses (Hungarian, minimum cost) | `src/mezzala/core/assignment.py` |
 | Which players a club can realistically sign | `src/mezzala/core/reach.py` |
 | Attribute profiles, how alike two players are, and the key attributes for each position | `src/mezzala/core/profile.py` |

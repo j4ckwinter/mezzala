@@ -34,6 +34,7 @@ from mezzala.save.reader import (
     loan_wage,
     matches_kept,
     named_traits,
+    nationalities,
     open_manager_jobs,
     percent,
     release_clauses,
@@ -274,3 +275,8 @@ def test_of_two_current_injuries_the_one_lasting_longer_is_kept():
                injury(InjuryRecordKind.TYPED, 7, date(2026, 7, 2), type_name="Knock")]  # fmt: skip
     _, current = injury_records(cast(list[InjuryRecord], records), date(2026, 6, 29))
     assert current == {7: CurrentInjury("Broken Toe", date(2026, 8, 20))}
+
+
+def test_a_players_nationalities_come_first_then_second_without_repeats():
+    fake = cast(FmPlayer, SimpleNamespace(nation_id=1, second_nation_ids=(2, 1, 9)))
+    assert nationalities(fake, {1: "Jamaica", 2: "England"}) == ("Jamaica", "England")

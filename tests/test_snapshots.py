@@ -226,6 +226,7 @@ def test_the_new_player_and_club_facts_survive_a_restart(mezzala):
         left_foot=8, right_foot=20, height_cm=188, traits=("shoots from distance",), condition=96, match_sharpness=71,
         banned_from=("Scottish Cup",), injury="Twisted Ankle", injured_until=date(2026, 7, 10),
         injuries=(Injury(date(2026, 4, 25), "major", "in training"),), season=season,
+        nationalities=("Scotland", "Ghana"), club_country="Scotland",
     )  # fmt: skip
     first = replace(
         snapshot([starter, *eleven()[1:]]),

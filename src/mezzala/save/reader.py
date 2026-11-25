@@ -9,6 +9,7 @@ import fmsave
 
 from mezzala.core.players import Budget, Match, Player, ReleaseClause, ReleaseScope, Snapshot, Vacancy
 from mezzala.save.labels import label
+from mezzala.save.nations import nation_name
 from mezzala.save.own_club import club_staff, first_team_tactics, mentoring_groups
 from mezzala.save.player_records import PlayerRecords, player_records
 
@@ -139,7 +140,14 @@ def percent(raw: int) -> int:
     return round(raw / RAW_PERCENT_SCALE)
 
 
-def to_player(player: fmsave.Player, leagues: dict[int, int], records: PlayerRecords) -> Player | None:
+def nationalities(player: fmsave.Player, nations: dict[int, str]) -> tuple[str, ...]:
+    ids = [player.nation_id, *player.second_nation_ids]
+    return tuple(dict.fromkeys(nations[uid] for uid in ids if uid is not None and uid in nations))
+
+
+def to_player(
+    player: fmsave.Player, leagues: dict[int, int], records: PlayerRecords, nations: dict[int, str]
+) -> Player | None:
     contract = player.contract
     personality = player.personality
     if player.name is None or player.age is None or player.ability.potential is None or personality is None:
@@ -188,6 +196,8 @@ def to_player(player: fmsave.Player, leagues: dict[int, int], records: PlayerRec
         injured_until=current.back_on if current else None,
         injuries=records.injuries.get(player.uid, ()),
         season=records.seasons.get(player.uid),
+        nationalities=nationalities(player, nations),
+        club_country=nations.get(player.club_nation_id) if player.club_nation_id is not None else None,
     )
 
 
@@ -304,7 +314,8 @@ def read_snapshot(path: Path) -> Snapshot:
                 raise UnreadableSave(f"{path.name} has no in-game date.")
             leagues = first_team_leagues(save.fixtures(), {c.uid: c.nation_id for c in save.clubs()})
             records = player_records(save, game_date)
-            converted = (to_player(player, leagues, records) for player in save.players())
+            nations = {nation.nation_id: nation_name(nation.database_id) for nation in save.nations()}
+            converted = (to_player(player, leagues, records, nations) for player in save.players())
             players = tuple(player for player in converted if player is not None)
             managed = save.clubs().by_uid(club.club_uid)
             reputation = managed.reputation
