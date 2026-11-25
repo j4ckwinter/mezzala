@@ -75,7 +75,13 @@ snapshots live in `~/.mezzala/snapshots.db`. delete that folder to start mezzala
 
 ### using claude code instead
 
-you need [uv](https://docs.astral.sh/uv/getting-started/installation/), which brings its own python. get it from homebrew on a mac (`brew install uv`) or winget on windows (`winget install --id=astral-sh.uv -e`). then:
+the easy way: ask claude code to do it.
+
+> install the latest version of this mcp: https://github.com/j4ckwinter/mezzala
+
+it'll read this readme and run the steps below, asking before each one. the desktop app's chat can't install things, so this only works in claude code.
+
+or do it yourself. you need [uv](https://docs.astral.sh/uv/getting-started/installation/), which brings its own python. get it from homebrew on a mac (`brew install uv`) or winget on windows (`winget install --id=astral-sh.uv -e`). then:
 
 ```sh
 uv tool install git+https://github.com/j4ckwinter/mezzala
