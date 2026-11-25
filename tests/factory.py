@@ -7,6 +7,8 @@ from mezzala.core.players import ATTRIBUTE_NAMES, POSITION_CODES, Budget, Player
 MY_CLUB = 1
 MY_CLUB_NAME = "Paisley"
 OTHER_CLUB = 2
+MY_NATION = 167
+MY_LEAGUE = 33
 SEASON_START = date(2026, 6, 29)
 _uids = count(1000)
 
@@ -46,6 +48,12 @@ def player(
         "reputation": 5_000,
         "professionalism": 10,
         "ambition": 10,
+        "first_team": club is not None,
+        "club_reputation": None if club is None else 5_000,
+        "club_nation_id": None if club is None else MY_NATION,
+        "league_id": None if club is None else MY_LEAGUE,
+        "youth_contract": None if club is None else False,
+        "release_clauses": (),
     }
     return Player(**(fields | overrides))
 
@@ -62,6 +70,7 @@ def snapshot(
         club_uid=MY_CLUB,
         club_name=MY_CLUB_NAME,
         club_reputation=club_reputation,
+        club_nation_id=MY_NATION,
         budget=Budget(transfer_budget, 60_000, 55_000),
         players=tuple(players),
     )

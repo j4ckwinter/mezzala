@@ -6,7 +6,15 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from mezzala.core.players import ATTRIBUTE_NAMES, POSITION_CODES, Budget, Player, Snapshot
+from mezzala.core.players import (
+    ATTRIBUTE_NAMES,
+    POSITION_CODES,
+    Budget,
+    Player,
+    ReleaseClause,
+    ReleaseScope,
+    Snapshot,
+)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS snapshots (
@@ -46,13 +54,21 @@ def encode_player(player: Player) -> list[Any]:
         player.potential_ability, player.value, player.wage, optional_text(player.contract_end), player.on_loan,
         player.loan_parent_club_uid, optional_text(player.loan_end),
         [player.attributes[name] for name in ATTRIBUTE_NAMES], player.reputation, player.professionalism,
-        player.ambition,
+        player.ambition, player.first_team, player.club_reputation, player.club_nation_id, player.league_id,
+        player.youth_contract, [[clause.scope.value, clause.fee] for clause in player.release_clauses],
     ]  # fmt: skip
 
 
+ORIGINAL_FIELDS = 19
+FACTS_ADDED_LATER: list[Any] = [None, None, None, None, None, []]
+
+
 def decode_player(row: list[Any]) -> Player:
+    if len(row) == ORIGINAL_FIELDS:
+        row = [*row, *FACTS_ADDED_LATER]
     (uid, name, age, birth_date, club_uid, club_name, ratings, current, potential, value, wage, contract_end,
-     on_loan, loan_parent, loan_end, attributes, reputation, professionalism, ambition) = row  # fmt: skip
+     on_loan, loan_parent, loan_end, attributes, reputation, professionalism, ambition, first_team,
+     club_reputation, club_nation_id, league_id, youth_contract, clauses) = row  # fmt: skip
     return Player(
         uid=uid,
         name=name,
@@ -73,6 +89,12 @@ def decode_player(row: list[Any]) -> Player:
         reputation=reputation,
         professionalism=professionalism,
         ambition=ambition,
+        first_team=first_team,
+        club_reputation=club_reputation,
+        club_nation_id=club_nation_id,
+        league_id=league_id,
+        youth_contract=youth_contract,
+        release_clauses=tuple(ReleaseClause(ReleaseScope(scope), fee) for scope, fee in clauses),
     )
 
 
@@ -89,6 +111,9 @@ class SnapshotStore:
         path.parent.mkdir(parents=True, exist_ok=True)
         self._db = sqlite3.connect(path, check_same_thread=False)
         self._db.execute(SCHEMA)
+        columns = {row[1] for row in self._db.execute("PRAGMA table_info(snapshots)")}
+        if "club_nation_id" not in columns:
+            self._db.execute("ALTER TABLE snapshots ADD COLUMN club_nation_id INTEGER")
 
     def close(self) -> None:
         self._db.close()
@@ -113,11 +138,12 @@ class SnapshotStore:
             )
             self._db.execute(
                 "INSERT INTO snapshots (career, game_date, file_mtime_ns, file_size, club_uid, club_name, "
-                "club_reputation, budget, players) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "club_reputation, club_nation_id, budget, players) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     career, snapshot.game_date.isoformat(), stamp.mtime_ns, stamp.size, snapshot.club_uid,
                     snapshot.club_name,
                     snapshot.club_reputation,
+                    snapshot.club_nation_id,
                     json.dumps([budget.transfer_remaining, budget.wage_budget_weekly, budget.wage_payroll_weekly]),
                     encode_players(snapshot.players),
                 ),
@@ -137,13 +163,13 @@ class SnapshotStore:
 
     def load(self, career: str, game_date: date) -> Snapshot:
         row = self._db.execute(
-            "SELECT club_uid, club_name, club_reputation, budget, players FROM snapshots "
+            "SELECT club_uid, club_name, club_reputation, club_nation_id, budget, players FROM snapshots "
             "WHERE career = ? AND game_date = ?",
             (career, game_date.isoformat()),
         ).fetchone()
         if row is None:
             raise KeyError(f"No snapshot of {career} on {game_date.isoformat()}")
-        club_uid, club_name, reputation, budget, players = row
+        club_uid, club_name, reputation, nation_id, budget, players = row
         return Snapshot(
-            game_date, club_uid, club_name, reputation, Budget(*json.loads(budget)), decode_players(players)
+            game_date, club_uid, club_name, reputation, nation_id, Budget(*json.loads(budget)), decode_players(players)
         )

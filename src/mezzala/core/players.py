@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date
+from enum import StrEnum
 
 ATTRIBUTE_NAMES: tuple[str, ...] = (
     "crossing", "dribbling", "finishing", "heading", "long_shots", "marking", "off_the_ball", "passing",
@@ -16,6 +17,18 @@ ATTRIBUTE_NAMES: tuple[str, ...] = (
 POSITION_CODES: tuple[str, ...] = (
     "gk", "sw", "dl", "dc", "dr", "wbl", "wbr", "dm", "ml", "mc", "mr", "aml", "amc", "amr", "stc",
 )  # fmt: skip
+
+
+class ReleaseScope(StrEnum):
+    ANY = "any"
+    DOMESTIC = "domestic"
+    FOREIGN = "foreign"
+
+
+@dataclass(frozen=True)
+class ReleaseClause:
+    scope: ReleaseScope
+    fee: int
 
 
 @dataclass(frozen=True)
@@ -39,6 +52,12 @@ class Player:
     reputation: int
     professionalism: int
     ambition: int
+    first_team: bool | None
+    club_reputation: int | None
+    club_nation_id: int | None
+    league_id: int | None
+    youth_contract: bool | None
+    release_clauses: tuple[ReleaseClause, ...]
 
     @property
     def headroom(self) -> int:
@@ -72,6 +91,7 @@ class Snapshot:
     club_uid: int
     club_name: str
     club_reputation: int
+    club_nation_id: int | None
     budget: Budget
     players: tuple[Player, ...]
 

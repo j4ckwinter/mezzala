@@ -1,10 +1,12 @@
 import dataclasses
 import warnings
+from collections import Counter
+from collections.abc import Iterable
 from pathlib import Path
 
 import fmsave
 
-from mezzala.core.players import Budget, Player, Snapshot
+from mezzala.core.players import Budget, Player, ReleaseClause, ReleaseScope, Snapshot
 
 
 class UnreadableSave(RuntimeError):
@@ -21,7 +23,52 @@ def known_value(state: fmsave.TransferValueState, value: int | None) -> int | No
             return None
 
 
-def to_player(player: fmsave.Player) -> Player | None:
+RELEASE_SCOPES = {
+    fmsave.ClauseKind.MINIMUM_FEE_RELEASE: ReleaseScope.ANY,
+    fmsave.ClauseKind.MINIMUM_FEE_RELEASE_DOMESTIC: ReleaseScope.DOMESTIC,
+    fmsave.ClauseKind.MINIMUM_FEE_RELEASE_FOREIGN: ReleaseScope.FOREIGN,
+}
+
+
+def release_clauses(contract: fmsave.Contract | None) -> tuple[ReleaseClause, ...]:
+    if contract is None:
+        return ()
+    found: list[ReleaseClause] = []
+    for clause in contract.clauses:
+        scope = RELEASE_SCOPES.get(clause.kind.label)
+        if scope is not None and clause.value is not None:
+            found.append(ReleaseClause(scope, clause.value))
+    return tuple(found)
+
+
+def youth_contract(contract: fmsave.Contract | None) -> bool | None:
+    if contract is None or contract.kind is None:
+        return None
+    match contract.kind.label:
+        case fmsave.ContractType.YOUTH:
+            return True
+        case fmsave.ContractType.FULL_TIME:
+            return False
+        case fmsave.ContractType.UNKNOWN:
+            return None
+
+
+def first_team_leagues(fixtures: Iterable[fmsave.Fixture]) -> dict[int, int]:
+    played: Counter[tuple[int, int]] = Counter()
+    for fixture in fixtures:
+        for club_uid, slot in (
+            (fixture.home_club_uid, fixture.home_team_slot),
+            (fixture.away_club_uid, fixture.away_team_slot),
+        ):
+            if club_uid is not None and slot == 0 and fixture.competition_id is not None:
+                played[(club_uid, fixture.competition_id)] += 1
+    leagues: dict[int, int] = {}
+    for (club_uid, competition_id), _ in played.most_common():
+        leagues.setdefault(club_uid, competition_id)
+    return leagues
+
+
+def to_player(player: fmsave.Player, leagues: dict[int, int]) -> Player | None:
     contract = player.contract
     personality = player.personality
     if player.name is None or player.age is None or player.ability.potential is None or personality is None:
@@ -46,6 +93,12 @@ def to_player(player: fmsave.Player) -> Player | None:
         reputation=player.reputation.current,
         professionalism=personality.professionalism,
         ambition=personality.ambition,
+        first_team=None if player.team_slot is None else player.team_slot == 0,
+        club_reputation=player.club_reputation,
+        club_nation_id=player.club_nation_id,
+        league_id=leagues.get(player.club_uid) if player.club_uid is not None else None,
+        youth_contract=youth_contract(contract),
+        release_clauses=release_clauses(contract),
     )
 
 
@@ -65,12 +118,22 @@ def read_snapshot(path: Path) -> Snapshot:
             if not clubs:
                 raise UnreadableSave(f"{path.name} has no managed club; mezzala needs a manager in a job.")
             club = clubs[0]
-            converted = (to_player(player) for player in save.players())
+            leagues = first_team_leagues(save.fixtures())
+            converted = (to_player(player, leagues) for player in save.players())
             players = tuple(player for player in converted if player is not None)
             game_date = save.info.game_date
             if game_date is None:
                 raise UnreadableSave(f"{path.name} has no in-game date.")
-            reputation = save.clubs().by_uid(club.club_uid).reputation
+            managed = save.clubs().by_uid(club.club_uid)
+            reputation = managed.reputation
             if reputation is None:
                 raise UnreadableSave(f"{path.name} has no reputation for {club.club_name}.")
-            return Snapshot(game_date, club.club_uid, club.club_name, reputation, budget(save, club.club_uid), players)
+            return Snapshot(
+                game_date,
+                club.club_uid,
+                club.club_name,
+                reputation,
+                managed.nation_id,
+                budget(save, club.club_uid),
+                players,
+            )

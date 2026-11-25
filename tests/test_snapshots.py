@@ -148,3 +148,32 @@ def test_a_wage_bill_over_budget_reads_as_negative_headroom(mezzala):
 def test_a_budget_just_under_a_million_reads_as_a_million(mezzala):
     context = mezzala(snapshot(eleven(), transfer_budget=999_999)).call("snapshot").data["context"]
     assert context["transfer_budget"] == "£1.0m"
+
+
+def test_a_snapshot_stored_in_the_original_format_still_loads(mezzala, tmp_path):
+    import json
+    import sqlite3
+    import zlib
+
+    from mezzala.save.store import ORIGINAL_FIELDS, encode_player
+
+    squad = eleven()
+    original_rows = [encode_player(player)[:ORIGINAL_FIELDS] for player in squad]
+    database = sqlite3.connect(tmp_path / "snapshots.db")
+    database.execute(
+        "CREATE TABLE snapshots (id INTEGER PRIMARY KEY AUTOINCREMENT, career TEXT NOT NULL, "
+        "game_date TEXT NOT NULL, file_mtime_ns INTEGER NOT NULL, file_size INTEGER NOT NULL, "
+        "club_uid INTEGER NOT NULL, club_name TEXT NOT NULL, club_reputation INTEGER NOT NULL, "
+        "budget TEXT NOT NULL, players BLOB NOT NULL, UNIQUE (career, game_date))"
+    )
+    database.execute(
+        "INSERT INTO snapshots (career, game_date, file_mtime_ns, file_size, club_uid, club_name, club_reputation, "
+        "budget, players) VALUES (?, '2026-06-29', 1, 1, 1, 'Paisley', 5000, '[100000, 60000, 55000]', ?)",
+        (str(Path("career.fm").resolve()), zlib.compress(json.dumps(original_rows).encode())),
+    )
+    database.commit()
+    database.close()
+    app = mezzala(snapshot(squad))
+    players = app.result("squad")["available"]
+    assert len(players) == 11
+    assert app.save.reads == 0
