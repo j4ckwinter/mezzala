@@ -90,3 +90,11 @@ def test_a_player_valued_at_zero_still_fits_an_overspent_budget(mezzala):
     amateur = player("Amateur", positions=("dc",), ca=118, value=0)
     app = mezzala(snapshot([target, amateur], transfer_budget=-500_000))
     assert names(app, player="Captain") == ["Amateur"]
+
+
+def test_a_namesake_is_picked_out_by_club(mezzala):
+    ours = mine("John Smith", positions=("dc",), ca=120)
+    theirs = player("John Smith", positions=("stc",), ca=120, club=OTHER_CLUB)
+    alike = player("Lookalike Striker", positions=("stc",), ca=120)
+    report = mezzala(snapshot([ours, theirs, alike])).result("find_replacement", player="John Smith", club="Club 2")
+    assert report["position"] == "striker"

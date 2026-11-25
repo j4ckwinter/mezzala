@@ -42,3 +42,8 @@ def test_small_differences_are_neither_strengths_nor_weaknesses(mezzala):
     result = mezzala(snapshot([*ours, *rival(2, {})])).result("squad_profile")
     assert {g["group"]: g["difference"] for g in result["groups"]}["physical"] == 0.2
     assert "physical" not in result["strengths"]
+
+
+def test_wide_play_and_decision_making_are_profiled(mezzala):
+    groups = [g["group"] for g in mezzala(snapshot(eleven())).result("squad_profile")["groups"]]
+    assert {"wide play", "decision making"} <= set(groups)

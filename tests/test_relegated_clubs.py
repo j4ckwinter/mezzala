@@ -62,3 +62,15 @@ def test_an_earlier_snapshot_without_leagues_is_explained(mezzala):
     app.play_to(snapshot(squad, game_date=date(2027, 7, 1)))
     result = app.result("relegated_clubs")
     assert result["clubs"] == [] and "before mezzala recorded leagues" in result["explanation"]
+
+
+def test_by_default_relegation_is_measured_against_a_season_earlier_not_the_oldest_snapshot(mezzala):
+    top = league_of("Top", TOP, 1_000_000, ca=130)
+    second = league_of("Second", SECOND, 300_000, ca=100)
+    yoyo = [player(f"Yoyo {n}", club=997, club_name="Yoyo FC", league_id=SECOND, ca=120) for n in range(3)]
+    app = mezzala(snapshot([*eleven(), *top, *second, *yoyo], game_date=date(2025, 6, 1)))
+    app.call("snapshot")
+    up = [replace(p, league_id=TOP) for p in yoyo]
+    app.play_to(snapshot([*eleven(), *top, *second, *up], game_date=date(2026, 6, 29)))
+    app.play_to(snapshot([*eleven(), *top, *second, *yoyo], game_date=date(2027, 7, 15)))
+    assert [club["club"] for club in app.result("relegated_clubs")["clubs"]] == ["Yoyo FC"]
