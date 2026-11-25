@@ -83,3 +83,29 @@ KEY_ATTRIBUTES: dict[PositionGroup, tuple[str, ...]] = {
 def position_score(player: Player, group: PositionGroup) -> float:
     names = KEY_ATTRIBUTES[group]
     return round(sum(player.attributes[name] for name in names) / len(names), 1)
+
+
+ATTRIBUTE_GROUPS: dict[str, tuple[str, ...]] = {
+    "pace": ("pace", "acceleration"),
+    "physical": ("strength", "stamina", "natural_fitness", "balance"),
+    "aerial": ("heading", "jumping_reach"),
+    "defending": ("tackling", "marking", "positioning", "anticipation"),
+    "passing": ("passing", "vision", "first_touch", "technique"),
+    "creativity": ("vision", "flair", "dribbling", "off_the_ball"),
+    "finishing": ("finishing", "composure", "long_shots"),
+    "work rate": ("work_rate", "teamwork", "determination", "bravery"),
+}
+
+
+def group_score(player: Player, names: tuple[str, ...]) -> float:
+    return sum(player.attributes[name] for name in names) / len(names)
+
+
+def outfield_profile(players: list[Player]) -> dict[str, float]:
+    outfield = [player for player in players if not is_goalkeeper(player)]
+    if not outfield:
+        return {}
+    return {
+        group: round(sum(group_score(player, names) for player in outfield) / len(outfield), 1)
+        for group, names in ATTRIBUTE_GROUPS.items()
+    }

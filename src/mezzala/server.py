@@ -33,6 +33,7 @@ from mezzala.tools.sell_high import SellHigh, sell_high
 from mezzala.tools.shortlist import Shortlist, shortlist
 from mezzala.tools.squad_gaps import SquadGaps, squad_gaps
 from mezzala.tools.squad_list import SquadList, squad_list
+from mezzala.tools.squad_profile import SquadProfile, squad_profile
 from mezzala.tools.squad_progress import SquadProgress, squad_progress
 from mezzala.tools.wage_review import WageReview, wage_review
 from mezzala.tools.watchlist import NotWatched, Watchlist, find_watched_entry, watched_record, watchlist
@@ -155,6 +156,12 @@ class LeagueValuesReport:
 class RelegatedClubsReport:
     context: SaveContext
     result: RelegatedClubs
+
+
+@dataclass(frozen=True)
+class SquadProfileReport:
+    context: SaveContext
+    result: SquadProfile
 
 
 @dataclass(frozen=True)
@@ -437,6 +444,14 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         return RelegatedClubsReport(
             save_context(current), relegated_clubs(current.snapshot, career.baseline(current, since))
         )
+
+    @server.tool(name="squad_profile")
+    def squad_profile_tool(formation: FormationChoice = DEFAULT_FORMATION) -> SquadProfileReport:
+        """The best eleven's attribute strengths and weaknesses (pace, physical, aerial, defending, passing,
+        creativity, finishing, work rate) against the other clubs' best elevens in your league. Use it to suggest
+        tactics; the save's tactic itself cannot be read."""
+        current = read_current(career)
+        return SquadProfileReport(save_context(current), squad_profile(current.snapshot, formation))
 
     @server.tool(name="compare_formations")
     def compare_formations_tool(formations: FormationChoices = None) -> FormationReport:
