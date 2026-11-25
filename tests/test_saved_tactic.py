@@ -26,10 +26,24 @@ def test_a_formation_asked_for_beats_the_saved_tactic(mezzala):
     assert not any("saved tactic" in note for note in outcome.data["context"]["notes"])
 
 
-def test_a_tactic_with_positions_fmsave_cannot_name_falls_back_to_the_default(mezzala):
+def test_a_tactic_with_positions_fmsave_cannot_name_falls_back_to_the_default_and_says_so(mezzala):
     outcome = mezzala(squad_with(Tactic("Wing Backs", "positive", WITH_WING_BACKS))).call("squad_gaps")
     assert outcome.data["result"]["formation"] == "4-3-3"
-    assert not any("saved tactic" in note for note in outcome.data["context"]["notes"])
+    assert outcome.data["context"]["notes"] == [
+        "Your saved tactic 'Wing Backs' has a shape mezzala does not model, so 4-3-3 is used; say which formation "
+        "you play for a closer answer."
+    ]
+
+
+def test_a_four_two_three_one_with_two_central_midfielders_is_recognised(mezzala):
+    double_pivot = ("gk", "dl", "dc", "dc", "dr", "mc", "mc", "aml", "amc", "amr", "stc")
+    outcome = mezzala(squad_with(Tactic("Double Pivot", "balanced", double_pivot))).call("squad_gaps")
+    assert outcome.data["result"]["formation"] == "4-2-3-1"
+
+
+def test_a_three_man_midfield_with_two_holders_is_still_four_three_three(mezzala):
+    two_holders = ("gk", "dl", "dc", "dc", "dr", "dm", "dm", "mc", "aml", "amr", "stc")
+    assert mezzala(squad_with(Tactic("Holders", "cautious", two_holders))).result("squad_gaps")["formation"] == "4-3-3"
 
 
 def test_the_first_readable_saved_tactic_is_used(mezzala):

@@ -1,5 +1,5 @@
 from collections import Counter
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from enum import StrEnum
 
 from mezzala.core.players import Tactic
@@ -49,9 +49,26 @@ DEFAULT_FORMATION = Formation.FOUR_THREE_THREE
 GROUP_OF_POSITION = {code: group for group, codes in GROUP_POSITION_CODES.items() for code in codes}
 
 
+CENTRAL_MIDFIELD_GROUPS = frozenset({G.DEFENSIVE_MIDFIELD, G.CENTRAL_MIDFIELD})
+
+
+def merge_central_midfield(counts: Mapping[G | None, int] | Mapping[G, int]) -> Counter[G | None]:
+    merged: Counter[G | None] = Counter()
+    for group, count in counts.items():
+        merged[G.CENTRAL_MIDFIELD if group in CENTRAL_MIDFIELD_GROUPS else group] += count
+    return merged
+
+
 def shape_of(positions: Iterable[str | None]) -> Formation | None:
     counts = Counter(GROUP_OF_POSITION.get(code) if code is not None else None for code in positions)
-    return next((formation for formation, starters in STARTERS.items() if counts == Counter(starters)), None)
+    exact = next((formation for formation, starters in STARTERS.items() if counts == Counter(starters)), None)
+    if exact is not None:
+        return exact
+    merged = merge_central_midfield(counts)
+    return next(
+        (formation for formation, starters in STARTERS.items() if merged == merge_central_midfield(Counter(starters))),
+        None,
+    )
 
 
 def saved_formation(tactics: Iterable[Tactic]) -> tuple[Formation, Tactic] | None:

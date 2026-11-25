@@ -328,6 +328,12 @@ def with_formation(current: Current, asked: Formation | None) -> tuple[Formation
     if asked is not None:
         return asked, save_context(current)
     saved = saved_formation(current.snapshot.tactics)
+    if saved is None and current.snapshot.tactics:
+        unmatched = (
+            f"Your saved tactic '{current.snapshot.tactics[0].name}' has a shape mezzala does not model, so "
+            f"{DEFAULT_FORMATION.value} is used; say which formation you play for a closer answer."
+        )
+        return DEFAULT_FORMATION, save_context(current, [unmatched])
     if saved is None:
         return DEFAULT_FORMATION, save_context(current)
     formation, tactic = saved
