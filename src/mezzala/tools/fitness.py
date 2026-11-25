@@ -31,13 +31,24 @@ class FitnessReport:
     low_match_sharpness: list[FitnessEntry]
 
 
-EXPLANATION = (
+CONDITION_NOTE = (
     f"Condition below {LOW_CONDITION_BELOW}% raises the chance of injury; match sharpness below "
-    f"{LOW_SHARPNESS_BELOW}% means a player needs games. Injury risks are starters in the best eleven who are prone "
-    f"to injury or have had {RECENT_INJURIES_FOR_RISK} or more injuries in the save's last two years. The save "
-    "keeps bans the game has stopped showing and does not name their competitions, so bans are only possible: "
-    "check them in the game."
+    f"{LOW_SHARPNESS_BELOW}% means a player needs games. "
 )
+RISK_FROM_HISTORY = f"{RECENT_INJURIES_FOR_RISK} or more injuries in the save's last two years"
+BAN_NOTE = (
+    " The save keeps bans the game has stopped showing and does not name their competitions, so bans are only "
+    "possible: check them in the game."
+)
+
+
+def explanation(view: View) -> str:
+    who = (
+        f"prone to injury or have had {RISK_FROM_HISTORY}"
+        if shows_hidden_information(view)
+        else f"have had {RISK_FROM_HISTORY}"
+    )
+    return f"{CONDITION_NOTE}Injury risks are starters in the best eleven who {who}.{BAN_NOTE}"
 
 
 def injury_risk(player: Player, view: View) -> str | None:
@@ -60,7 +71,7 @@ def fitness(snapshot: Snapshot, formation: Formation, view: View) -> FitnessRepo
     risks = [FitnessEntry(player.name, risk) for player in starters if (risk := injury_risk(player, view)) is not None]
     return FitnessReport(
         formation.value,
-        EXPLANATION,
+        explanation(view),
         [missing for player in squad if (missing := absence(player, snapshot.game_date)) is not None],
         [ban for player in squad if (ban := possible_ban(player)) is not None],
         risks,

@@ -132,7 +132,8 @@ def test_fog_of_war_judges_injury_risk_only_on_injuries_the_game_shows(mezzala):
     squad[1] = replace(squad[1], attributes={**squad[1].attributes, "injury_proneness": 18})
     kid = mine("Prone Kid", age=19, attributes={"injury_proneness": 18, "natural_fitness": 15})
     fogged = mezzala(snapshot([*squad, kid]), view=View.SPOILER_FREE)
-    assert fogged.result("fitness")["injury_risks_in_the_eleven"] == []
+    fitness = fogged.result("fitness")
+    assert fitness["injury_risks_in_the_eleven"] == [] and "prone" not in fitness["explanation"]
     assert fogged.result("training_plan", player="Prone Kid")["why_this_intensity"] == []
     assert mezzala(snapshot(squad)).result("fitness")["injury_risks_in_the_eleven"] != []
 
