@@ -1,5 +1,9 @@
+from collections import Counter
+from collections.abc import Iterable
 from enum import StrEnum
 
+from mezzala.core.players import Tactic
+from mezzala.core.positions import GROUP_POSITION_CODES
 from mezzala.core.positions import PositionGroup as G
 
 
@@ -40,3 +44,19 @@ STARTERS: dict[Formation, dict[G, int]] = {
 }  # fmt: skip
 
 PLAYERS_PER_STARTING_PLACE = 2
+
+DEFAULT_FORMATION = Formation.FOUR_THREE_THREE
+GROUP_OF_POSITION = {code: group for group, codes in GROUP_POSITION_CODES.items() for code in codes}
+
+
+def shape_of(positions: Iterable[str | None]) -> Formation | None:
+    counts = Counter(GROUP_OF_POSITION.get(code) if code is not None else None for code in positions)
+    return next((formation for formation, starters in STARTERS.items() if counts == Counter(starters)), None)
+
+
+def saved_formation(tactics: Iterable[Tactic]) -> tuple[Formation, Tactic] | None:
+    for tactic in tactics:
+        formation = shape_of(tactic.positions)
+        if formation is not None:
+            return formation, tactic
+    return None

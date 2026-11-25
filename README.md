@@ -91,8 +91,7 @@ on windows, the second line ends in `\mezzala.exe` instead of `/mezzala`. to sti
 ## what it can't do
 
 - fees are fm's transfer values. asking prices aren't in the save.
-- it can't read your tactic or roles, so tactical advice comes from your players' attributes.
-- it doesn't know your formation. tell claude your formation (4-3-3, 4-2-3-1, 4-4-2, 4-4-2 diamond, 3-5-2 or 3-4-3) and it'll pass it along. the default is 4-3-3.
+- it reads the shape of the first-team tactic you've saved, but not your roles or instructions, so tactical advice comes from your players' attributes. fm only stores a tactic once you've set one up, and wing-back positions can't be read yet, so without a readable tactic it uses 4-3-3. you can always tell claude your formation (4-3-3, 4-2-3-1, 4-4-2, 4-4-2 diamond, 3-5-2 or 3-4-3).
 - `compare_formations` ranks shapes by how well your players fit them, not by how the match engine rates them. it treats wingers and wide midfielders as the same position, and full backs and wing backs too, so 4-1-4-1 and 5-3-2 would tie with 4-3-3 and 3-5-2.
 - it sees everything, including hidden ca and pa, unless you switch fog of war on. even then it can't know which players your scouts have actually seen.
 - the save doesn't name leagues, and leagues that aren't loaded in your save don't count, so "above league level" only covers players in loaded leagues.
