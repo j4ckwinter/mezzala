@@ -389,6 +389,7 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
         sort_by: SortChoice = SortBy.CURRENT_ABILITY,
         scope: SearchScopeChoice = SearchScope.ELSEWHERE,
         position: PositionChoice = None,
+        natural_only: bool = False,
         min_age: int | None = None,
         max_age: int | None = None,
         min_ca: int | None = None,
@@ -413,26 +414,32 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
     ) -> FoundPlayersReport:
         """Search every player in the save with filters and a sort. Money is in pounds (max_wage weekly).
 
-        Sorts: "value for money" puts players valued lowest against others of similar CA, age and potential first
-        (undervalued, cheap to flip); "above league level" puts players furthest above their league's
-        first-team median CA first (too good for their division); "position attributes" ranks the key
-        attributes for the position (combine with max_ca to find attributes ahead of ability); "most overpaid"
-        ranks wages against similar players. reserves_only keeps players outside their club's first team;
+        Sorts: "value for money" puts players valued lowest against similar players first; "above league level"
+        puts players furthest above their league's first-team median CA first; "position attributes" ranks the
+        key attributes for the position (combine with max_ca to find attributes ahead of ability); "most
+        overpaid" ranks wages against similar players.
+
+        Who: scope "elsewhere" (default) searches other clubs and free agents, "own" your club, "everyone" the
+        whole save. position matches players natural or accomplished there (FM rating 15 or more); natural_only
+        keeps naturals (18 or more). nationality matches a first or second nationality, such as "Republic of
+        Ireland"; work_permit_free keeps British and Irish players, who need no UK work permit.
+
+        Where: country is where the club plays (Cardiff count as England); division_level is 1 for a country's
+        top flight, estimated from first-team strength because the save names no leagues; league matches part
+        of a league's name, such as a club in it. reserves_only keeps players outside their club's first team;
         bigger_clubs_only keeps clubs with a higher reputation than yours. within_reach keeps players whose
         reputation makes a move realistic; set it false for questions like the best players in the world.
-        scope "own" searches your club, "everyone" the whole save. nationality keeps players holding that
-        nationality (first or second, for example "Republic of Ireland"); work_permit_free keeps British and Irish
-        players, who need no UK work permit. country is where the club plays (Cardiff count as England);
-        division_level is the league's level in that country, 1 for the top flight, estimated from how strong its
-        first teams are; league matches part of a league's name, such as a club in it. The save does not record
-        transfer or loan listing; fringe_only keeps players whose contract squad status says their club does not
-        count on them (surplus to requirements, fringe, backup), which are the likeliest to be listed or loaned."""
+
+        Availability: the save does not record transfer or loan listing; fringe_only keeps players whose
+        contract squad status says their club does not count on them (surplus, fringe, backup), the likeliest
+        to be listed or loaned."""
         current = read_current(career)
         refuse_hidden_filters(
             view, {"min_ca": min_ca is not None, "max_ca": max_ca is not None, "min_pa": min_pa is not None}
         )
         search = PlayerSearch(
-            scope=scope, position=position, min_age=min_age, max_age=max_age, min_ca=min_ca, max_ca=max_ca,
+            scope=scope, position=position, natural_only=natural_only, min_age=min_age, max_age=max_age,
+            min_ca=min_ca, max_ca=max_ca,
             min_pa=min_pa, max_fee=optional_stored(max_fee), max_wage=optional_stored(max_wage),
             free_agents_only=free_agents_only, contract_ending_within_months=contract_ending_within_months,
             max_release_clause=optional_stored(max_release_clause), youth_contract_only=youth_contract_only,

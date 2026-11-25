@@ -16,7 +16,7 @@ from mezzala.core.metrics import (
 from mezzala.core.money import format_money
 from mezzala.core.nationality import holds_nationality, needs_no_work_permit
 from mezzala.core.players import Player, Snapshot
-from mezzala.core.positions import PositionGroup, covers, primary_group
+from mezzala.core.positions import Fit, PositionGroup, covers, fit, primary_group
 from mezzala.core.profile import position_score
 from mezzala.core.reach import within_reach
 from mezzala.core.squad import (
@@ -55,6 +55,7 @@ class SortBy(StrEnum):
 class PlayerSearch:
     scope: SearchScope
     position: PositionGroup | None
+    natural_only: bool
     min_age: int | None
     max_age: int | None
     min_ca: int | None
@@ -134,6 +135,10 @@ def in_scope(player: Player, snapshot: Snapshot, scope: SearchScope) -> bool:
             return True
 
 
+def plays_there(player: Player, group: PositionGroup, natural_only: bool) -> bool:
+    return fit(player, group) is Fit.NATURAL if natural_only else covers(player, group)
+
+
 def at_most(amount: int | None, limit: int | None) -> bool:
     return limit is None or (amount is not None and amount <= limit)
 
@@ -144,7 +149,7 @@ def at_least(amount: int | None, limit: int | None) -> bool:
 
 def matches_profile(player: Player, search: PlayerSearch) -> bool:
     return (
-        (search.position is None or covers(player, search.position))
+        (search.position is None or plays_there(player, search.position, search.natural_only))
         and at_least(player.age, search.min_age)
         and at_most(player.age, search.max_age)
         and at_least(player.current_ability, search.min_ca)

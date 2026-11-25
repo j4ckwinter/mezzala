@@ -225,3 +225,16 @@ def test_fringe_only_keeps_players_their_club_does_not_count_on(mezzala):
     result = mezzala(snapshot(squad)).result("find_players", fringe_only=True)
     assert {found["player"]["name"] for found in result["players"]} == {"Surplus", "Fringe"}
     assert {found["squad_status"] for found in result["players"]} == {"surplus to requirements", "fringe player"}
+
+
+def test_position_includes_accomplished_players_unless_natural_only(mezzala):
+    from dataclasses import replace
+
+    central = player("Central Mid", positions=("mc",))
+    central = replace(central, position_ratings={**central.position_ratings, "amr": 16})
+    squad = [*eleven(), central, player("Right Winger", positions=("amr",))]
+    app = mezzala(snapshot(squad))
+    names = {found["player"]["name"] for found in app.result("find_players", position="right wing")["players"]}
+    natural = app.result("find_players", position="right wing", natural_only=True)["players"]
+    assert names == {"Central Mid", "Right Winger"}
+    assert [found["player"]["name"] for found in natural] == ["Right Winger"]
