@@ -127,6 +127,11 @@ class Career:
                 return None
             return self._load(current.career, dates[-1] if since is not None else dates[0])
 
+    def previous(self, current: Current) -> Snapshot | None:
+        with self._lock:
+            dates = self._earlier_dates(current)
+            return self._load(current.career, dates[-1]) if dates else None
+
     def past_players(self, current: Current, uids: set[int]) -> list[PastPlayers]:
         with self._lock:
             found: list[PastPlayers] = []

@@ -29,6 +29,7 @@ from mezzala.tools.shortlist import Shortlist, shortlist
 from mezzala.tools.squad_gaps import SquadGaps, squad_gaps
 from mezzala.tools.squad_list import SquadList, squad_list
 from mezzala.tools.wage_review import WageReview, wage_review
+from mezzala.tools.what_changed import WhatChanged, what_changed
 
 DEFAULT_FORMATION = Formation.FOUR_THREE_THREE
 DEFAULT_LIMIT = 10
@@ -102,6 +103,12 @@ class DevelopmentPlanReport:
 class LeagueComparisonReport:
     context: SaveContext
     result: LeagueComparison
+
+
+@dataclass(frozen=True)
+class WhatChangedReport:
+    context: SaveContext
+    result: WhatChanged
 
 
 @dataclass(frozen=True)
@@ -299,6 +306,13 @@ def create_server(career: Career) -> MCPServer:
         against the league median and the best club there."""
         current = read_current(career)
         return LeagueComparisonReport(save_context(current), league_comparison(current.snapshot, formation))
+
+    @server.tool(name="what_changed")
+    def what_changed_tool() -> WhatChangedReport:
+        """What has changed since the previous snapshot: budget, players who joined or left the club, the club's
+        players whose CA, contract or value moved, new regens, and big transfers elsewhere."""
+        current = read_current(career)
+        return WhatChangedReport(save_context(current), what_changed(current.snapshot, career.previous(current)))
 
     @server.tool(name="compare_formations")
     def compare_formations_tool(formations: FormationChoices = None) -> FormationReport:
