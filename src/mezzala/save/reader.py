@@ -167,15 +167,34 @@ def is_manager_job(job: fmsave.JobVacancy) -> bool:
     return job.team_slot == 0 and job.unknown.get(VACANCY_ROLE_FIELD) == fmsave.StaffJob.MANAGER.value
 
 
+def clubs_with_a_manager(staff: Iterable[fmsave.Staff]) -> set[int]:
+    return {
+        person.club_uid
+        for person in staff
+        if person.team_slot == 0 and person.job is not None and person.job.label is fmsave.StaffJob.MANAGER
+    }
+
+
+def open_manager_jobs(
+    jobs: Iterable[fmsave.JobVacancy], filled: set[int], managed_club_uid: int
+) -> list[fmsave.JobVacancy]:
+    latest: dict[int, fmsave.JobVacancy] = {}
+    for job in jobs:
+        if not is_manager_job(job) or job.club_uid is None or job.club_uid in filled | {managed_club_uid}:
+            continue
+        known = latest.get(job.club_uid)
+        if known is None or (job.advertised_date or date.min) > (known.advertised_date or date.min):
+            latest[job.club_uid] = job
+    return list(latest.values())
+
+
 def vacancies(save: fmsave.Save, managed_club_uid: int) -> tuple[Vacancy, ...]:
     clubs = save.clubs()
     finances = latest_finances(save)
     found: list[Vacancy] = []
-    seen: set[int] = set()
-    for job in save.job_vacancies():
-        if not is_manager_job(job) or job.club_uid is None or job.club_uid in seen | {managed_club_uid}:
+    for job in open_manager_jobs(save.job_vacancies(), clubs_with_a_manager(save.staff()), managed_club_uid):
+        if job.club_uid is None:
             continue
-        seen.add(job.club_uid)
         money = finances.get(job.club_uid)
         found.append(
             Vacancy(

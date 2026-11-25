@@ -2,15 +2,17 @@ from datetime import date
 from types import SimpleNamespace
 from typing import cast
 
-from fmsave import ClauseKind, Contract, ContractType, Fixture, JobVacancy, StaffJob, TransferValueState
+from fmsave import ClauseKind, Contract, ContractType, Fixture, JobVacancy, Staff, StaffJob, TransferValueState
 from fmsave import Player as FmPlayer
 
 from mezzala.core.players import ReleaseClause, ReleaseScope
 from mezzala.save.reader import (
+    clubs_with_a_manager,
     first_team_leagues,
     is_manager_job,
     known_value,
     loan_wage,
+    open_manager_jobs,
     release_clauses,
     youth_contract,
 )
@@ -114,3 +116,21 @@ def test_only_first_team_manager_jobs_count_as_vacancies():
     scout = SimpleNamespace(team_slot=0, unknown={"role": StaffJob.SCOUT.value})
     reserve_manager = SimpleNamespace(team_slot=1, unknown={"role": StaffJob.MANAGER.value})
     assert [is_manager_job(cast(JobVacancy, job)) for job in (manager, scout, reserve_manager)] == [True, False, False]
+
+
+def job(club, day, role=StaffJob.MANAGER, slot=0):
+    return SimpleNamespace(club_uid=club, team_slot=slot, advertised_date=day, unknown={"role": role.value})
+
+
+def test_open_manager_jobs_skip_filled_and_own_jobs_and_keep_the_latest_advert():
+    jobs = [job(5, date(2016, 1, 1)), job(5, date(2026, 6, 1)), job(6, date(2026, 6, 1)), job(7, date(2026, 6, 1)),
+            job(8, date(2026, 6, 1), role=StaffJob.SCOUT)]  # fmt: skip
+    found = open_manager_jobs(cast(list[JobVacancy], jobs), filled={6}, managed_club_uid=7)
+    assert [(j.club_uid, j.advertised_date) for j in found] == [(5, date(2026, 6, 1))]
+
+
+def test_a_club_with_a_first_team_manager_on_its_staff_is_filled():
+    staff = [SimpleNamespace(club_uid=5, team_slot=0, job=SimpleNamespace(label=StaffJob.MANAGER)),
+             SimpleNamespace(club_uid=6, team_slot=3, job=SimpleNamespace(label=StaffJob.MANAGER)),
+             SimpleNamespace(club_uid=7, team_slot=0, job=SimpleNamespace(label=StaffJob.SCOUT))]  # fmt: skip
+    assert clubs_with_a_manager(cast(list[Staff], staff)) == {5}
