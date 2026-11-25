@@ -253,3 +253,18 @@ def test_results_show_both_reputations_behind_within_reach(mezzala):
     found = outcome.data["result"]["players"][0]
     assert (found["reputation"], found["club_reputation"]) == (5_600, 6_100)
     assert outcome.data["context"]["club_reputation"] == 5_000
+
+
+def test_compact_returns_one_short_row_per_player_instead_of_the_full_entries(mezzala):
+    result = mezzala(snapshot([*eleven(), player("Short", nationalities=("Wales",))])).result(
+        "find_players", compact=True
+    )
+    assert result["players"] == []
+    assert result["compact_players"] == [{
+        "name": "Short", "age": 25, "club": "Club 2", "nationality": "Wales", "positions": "DC",
+        "current_ability": 100, "potential_ability": 110, "value": "£500k", "expected_wage": "£2,000 p/w"}]  # fmt: skip
+
+
+def test_the_full_entries_are_the_default(mezzala):
+    result = mezzala(snapshot([*eleven(), player("Full")])).result("find_players")
+    assert result["compact_players"] == [] and result["players"][0]["player"]["name"] == "Full"

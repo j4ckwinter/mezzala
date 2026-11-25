@@ -128,7 +128,10 @@ on paper, though a player may still refuse; set it false for questions like the 
 
 Availability: the save does not record transfer or loan listing; fringe_only keeps players whose
 contract squad status says their club does not count on them (surplus, fringe, backup), the likeliest
-to be listed or loaned."""
+to be listed or loaned.
+
+Output: compact returns compact_players, one short row each (name, age, club, nationality, positions, ability,
+potential, value, expected wage), instead of the full players list; use it for long searches."""
 
 
 @dataclass(frozen=True)
@@ -476,6 +479,7 @@ def create_server(
         bigger_clubs_only: bool = False,
         within_reach: bool = True,
         limit: int = DEFAULT_LIMIT,
+        compact: bool = False,
     ) -> FoundPlayersReport:
         current = read_current(career)
         refuse_hidden_filters(
@@ -508,6 +512,7 @@ def create_server(
             within_reach=within_reach,
             sort_by=sort_by,
             limit=limit,
+            compact=compact,
         )
         return FoundPlayersReport(save_context(current), find_players(recruitable(current), search, view))
 

@@ -156,3 +156,8 @@ def test_fog_of_war_compares_ratings_within_his_league_not_his_hidden_ability(me
     assert fogged["players"][0]["rating_above_similar_players"] == 0.8
     assert "fog of war hides ability" in fogged["explanation"]
     assert mezzala(save).result("performance")["players"][0]["rating_above_similar_players"] == 0.2
+
+
+def test_compact_rows_use_stars_under_fog_of_war(mezzala):
+    rows = mezzala(distinctive_save(), view=View.SPOILER_FREE).result("find_players", compact=True, within_reach=False)
+    assert {row["current_ability"] for row in rows["compact_players"]} == {"4 stars"}

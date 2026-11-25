@@ -29,7 +29,7 @@ from mezzala.core.squad import (
     wage_paid_by_club,
 )
 from mezzala.core.summary import PlayerSummary, summarize
-from mezzala.core.view import Measure, View, measure_change
+from mezzala.core.view import Measure, Rating, View, measure_change
 from mezzala.core.wages import WageGuide, describe_wage, wage_guide
 
 
@@ -80,6 +80,7 @@ class PlayerSearch:
     within_reach: bool
     sort_by: SortBy
     limit: int
+    compact: bool
 
 
 @dataclass(frozen=True)
@@ -103,10 +104,24 @@ class FoundPlayer:
 
 
 @dataclass(frozen=True)
+class CompactPlayer:
+    name: str
+    age: int
+    club: str
+    nationality: str
+    positions: str
+    current_ability: Rating
+    potential_ability: Rating
+    value: str
+    expected_wage: str
+
+
+@dataclass(frozen=True)
 class FoundPlayers:
     matched: int
     sorted_by: str
     players: list[FoundPlayer]
+    compact_players: list[CompactPlayer]
 
 
 @dataclass(frozen=True)
@@ -292,6 +307,14 @@ def found(player: Player, search: PlayerSearch, measures: Measures, view: View) 
     )
 
 
+def compact(player: Player, measures: Measures, view: View) -> CompactPlayer:
+    summary = summarize(player, view)
+    return CompactPlayer(
+        summary.name, summary.age, summary.club, summary.nationality, summary.positions, summary.current_ability,
+        summary.potential_ability, summary.value, describe_wage(measures.wage_guide.expected(player)),
+    )  # fmt: skip
+
+
 def find_players(snapshot: Snapshot, search: PlayerSearch, view: View) -> FoundPlayers:
     measures = Measures(
         snapshot,
@@ -309,6 +332,7 @@ def find_players(snapshot: Snapshot, search: PlayerSearch, view: View) -> FoundP
         and matches_market(player, search, measures)
     ]
     matched.sort(key=sort_key(search.sort_by, search, measures))
-    return FoundPlayers(
-        len(matched), search.sort_by.value, [found(p, search, measures, view) for p in matched[: search.limit]]
-    )
+    shown = matched[: search.limit]
+    if search.compact:
+        return FoundPlayers(len(matched), search.sort_by.value, [], [compact(p, measures, view) for p in shown])
+    return FoundPlayers(len(matched), search.sort_by.value, [found(p, search, measures, view) for p in shown], [])
