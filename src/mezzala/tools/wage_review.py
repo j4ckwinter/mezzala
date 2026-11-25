@@ -9,7 +9,7 @@ from mezzala.core.players import Player, Snapshot
 from mezzala.core.squad import (
     YOUNG_PLAYER_MAX_AGE,
     available_squad,
-    owned_players,
+    everyone_paid,
     plays_for_club,
     squad_level,
     wage_paid_by_club,
@@ -45,11 +45,6 @@ class WageReview:
     overpaid: list[WageEntry]
     surplus: list[WageEntry]
     weekly_saving_without_surplus: str
-
-
-def everyone_paid(snapshot: Snapshot) -> list[Player]:
-    loaned_in = [player for player in available_squad(snapshot) if player.on_loan]
-    return [*owned_players(snapshot), *loaned_in]
 
 
 def roles(snapshot: Snapshot, formation: Formation) -> dict[int, Role]:

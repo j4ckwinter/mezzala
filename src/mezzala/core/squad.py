@@ -79,3 +79,8 @@ def squad_level(snapshot: Snapshot) -> float:
 def club_league(snapshot: Snapshot) -> int | None:
     leagues = Counter(player.league_id for player in available_squad(snapshot) if player.league_id is not None)
     return leagues.most_common(1)[0][0] if leagues else None
+
+
+def everyone_paid(snapshot: Snapshot) -> list[Player]:
+    loaned_in = [player for player in available_squad(snapshot) if player.on_loan]
+    return [*owned_players(snapshot), *loaned_in]
