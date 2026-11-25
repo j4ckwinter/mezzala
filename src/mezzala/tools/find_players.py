@@ -147,7 +147,7 @@ def matches_market(player: Player, search: PlayerSearch, measures: Measures) -> 
         return False
     if search.max_fee is not None and not player.costs_no_fee and not at_most(player.value, search.max_fee):
         return False
-    if not at_most(wage_for(player, snapshot), search.max_wage):
+    if not player.is_free_agent and not at_most(wage_for(player, snapshot), search.max_wage):
         return False
     if search.contract_ending_within_months is not None and (
         player.is_free_agent or ending(player, snapshot, search.contract_ending_within_months) is None

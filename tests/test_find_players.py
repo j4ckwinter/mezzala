@@ -194,3 +194,8 @@ def test_an_expired_domestic_release_clause_no_longer_counts(mezzala):
     live = (ReleaseClause(ReleaseScope.DOMESTIC, 300_000, date(2027, 6, 1)),)
     squad = [player("Expired", release_clauses=expired), player("Live", release_clauses=live)]
     assert names(mezzala(snapshot(squad)), max_release_clause=1_000_000) == ["Live"]
+
+
+def test_free_agents_pass_a_wage_cap_because_their_wage_is_still_to_agree(mezzala):
+    squad = [player("Free", club=None, value=None, wage=None), player("Too Dear", wage=9_000)]
+    assert names(mezzala(snapshot(squad)), max_wage=5_000) == ["Free"]
