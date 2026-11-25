@@ -215,7 +215,7 @@ def to_match(fixture: fmsave.Fixture) -> Match | None:
     return Match(
         fixture.date, fixture.competition_id, fixture.home_club_uid, fixture.home_club_name or "unknown",
         fixture.away_club_uid, fixture.away_club_name or "unknown", bool(fixture.played), fixture.home_goals,
-        fixture.away_goals, bool(fixture.is_neutral_venue),
+        fixture.away_goals, bool(fixture.is_neutral_venue), fixture.home_team_slot, fixture.away_team_slot,
     )  # fmt: skip
 
 

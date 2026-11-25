@@ -163,3 +163,12 @@ def test_kept_matches_cover_three_upcoming_opponents_and_their_last_five_results
 def test_a_neutral_venue_is_kept():
     kept = matches_kept(cast(list[Fixture], [raw_fixture(date(2026, 8, 1), 1, 2, neutral=True)]), 1, date(2026, 7, 1))
     assert kept[0].neutral is True
+
+
+def test_fixtures_stored_in_older_formats_still_decode():
+    from mezzala.save.store import decode_match
+
+    nine = ["2026-08-01", 33, 1, "Paisley", 2, "Rival FC", False, None, None]
+    ten = [*nine, True]
+    assert (decode_match(nine).neutral, decode_match(nine).away_team_slot) == (False, 0)
+    assert decode_match(ten).neutral is True

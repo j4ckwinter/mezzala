@@ -11,6 +11,7 @@ from mezzala.tools.compare_formations import SCORE_TIE_MARGIN, score
 
 KEY_PLAYERS_SHOWN = 3
 RECENT_RESULTS_SHOWN = 5
+FIRST_TEAM = 0
 
 
 @dataclass(frozen=True)
@@ -68,6 +69,25 @@ def competition_label(match: Match, snapshot: Snapshot) -> str:
     )
 
 
+def side_of(match: Match, club_uid: int) -> int:
+    slot = match.home_team_slot if match.home_club_uid == club_uid else match.away_team_slot
+    return slot or FIRST_TEAM
+
+
+def fields(player: Player, side: int) -> bool:
+    if side == FIRST_TEAM:
+        return player.first_team is not False
+    return player.first_team is False
+
+
+def same_side(match: Match, club_uid: int, side: int) -> bool:
+    return club_uid in (match.home_club_uid, match.away_club_uid) and side_of(match, club_uid) == side
+
+
+def side_label(side: int) -> str:
+    return "" if side == FIRST_TEAM else " (reserve or youth side)"
+
+
 def venue(match: Match, home: bool) -> str:
     if match.neutral:
         return "neutral"
@@ -98,20 +118,21 @@ def next_opponent(snapshot: Snapshot, formation: Formation) -> NextOpponent:
         return NextOpponent(NO_FIXTURE, None, None, None, None, [], [], [], [], [])
     home = match.home_club_uid == snapshot.club_uid
     opponent_uid = match.away_club_uid if home else match.home_club_uid
-    squad = [player for player in snapshot.players if player.club_uid == opponent_uid]
+    side = side_of(match, opponent_uid)
+    squad = [player for player in snapshot.players if player.club_uid == opponent_uid and fields(player, side)]
     shapes = likely_shapes(squad) if squad else []
     their_lineup = shapes[0] if shapes else None
     mine = outfield_profile(pick_lineup(available_squad(snapshot), formation).starters)
     theirs = outfield_profile(their_lineup.starters) if their_lineup else {}
     played = sorted(
-        (m for m in snapshot.matches if m.played and opponent_uid in (m.home_club_uid, m.away_club_uid)),
+        (m for m in snapshot.matches if m.played and same_side(m, opponent_uid, side)),
         key=lambda m: m.day,
         reverse=True,
     )
     return NextOpponent(
         explanation=EXPLANATION,
         date=match.day.isoformat(),
-        opponent=match.away_club_name if home else match.home_club_name,
+        opponent=(match.away_club_name if home else match.home_club_name) + side_label(side),
         competition=competition_label(match, snapshot),
         venue=venue(match, home),
         their_likely_formations=[shape.formation.value for shape in shapes],

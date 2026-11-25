@@ -56,14 +56,16 @@ def optional_text(day: date | None) -> str | None:
 def encode_match(match: Match) -> list[Any]:
     return [
         match.day.isoformat(), match.competition_id, match.home_club_uid, match.home_club_name, match.away_club_uid,
-        match.away_club_name, match.played, match.home_goals, match.away_goals, match.neutral,
+        match.away_club_name, match.played, match.home_goals, match.away_goals, match.neutral, match.home_team_slot,
+        match.away_team_slot,
     ]  # fmt: skip
 
 
 def decode_match(stored: list[Any]) -> Match:
-    day, competition, home_uid, home_name, away_uid, away_name, played, home_goals, away_goals, *rest = stored
+    day, competition, home_uid, home_name, away_uid, away_name, played, home_goals, away_goals, *later = stored
+    neutral, home_slot, away_slot = [*later, *MATCH_FACTS_ADDED_LATER[len(later) :]]
     return Match(date.fromisoformat(day), competition, home_uid, home_name, away_uid, away_name, played, home_goals,
-                 away_goals, bool(rest[0]) if rest else False)  # fmt: skip
+                 away_goals, bool(neutral), home_slot, away_slot)  # fmt: skip
 
 
 def encode_vacancy(vacancy: Vacancy) -> list[Any]:
@@ -97,7 +99,8 @@ def encode_player(player: Player) -> list[Any]:
 
 ORIGINAL_FIELDS = 19
 FACTS_ADDED_LATER: list[Any] = [None, None, None, None, None, [], None]
-CURRENT_FORMAT = 7
+CURRENT_FORMAT = 8
+MATCH_FACTS_ADDED_LATER: list[Any] = [False, 0, 0]
 COLUMNS_ADDED_LATER = {
     "club_nation_id": "INTEGER",
     "format": "INTEGER NOT NULL DEFAULT 1",

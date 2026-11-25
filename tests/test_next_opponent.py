@@ -17,7 +17,7 @@ def rival_squad(attributes):
 
 def match(day, home, away, played=False, home_goals=None, away_goals=None):
     names = {MY_CLUB: "Paisley", RIVAL: "Rival FC", OTHER: "Other FC"}
-    return Match(day, 33, home, names[home], away, names[away], played, home_goals, away_goals, False)
+    return Match(day, 33, home, names[home], away, names[away], played, home_goals, away_goals, False, 0, 0)
 
 
 def test_the_next_opponent_is_analysed(mezzala):
@@ -49,7 +49,7 @@ def test_fixtures_survive_a_restart(mezzala):
 
 
 def test_a_neutral_cup_tie_is_labelled_and_the_next_unplayed_match_on_the_save_date_counts(mezzala):
-    cup = Match(date(2026, 8, 2), 666, MY_CLUB, "Paisley", RIVAL, "Rival FC", False, None, None, True)
+    cup = Match(date(2026, 8, 2), 666, MY_CLUB, "Paisley", RIVAL, "Rival FC", False, None, None, True, 0, 0)
     played_today = match(date(2026, 8, 2), MY_CLUB, OTHER, played=True, home_goals=1, away_goals=1)
     elsewhere = match(date(2026, 8, 2), RIVAL, OTHER)
     squad = [*eleven(), *rival_squad({})]
@@ -84,3 +84,23 @@ def test_formations_their_squad_fits_equally_well_are_all_listed(mezzala):
     ]
     result = mezzala(snapshot(squad, matches=fixtures)).result("next_opponent")
     assert len(result["their_likely_formations"]) >= 2
+
+
+def test_a_match_against_a_reserve_side_is_analysed_as_that_side(mezzala):
+    reserves = [player(f"Rival Kid {n}", club=RIVAL, club_name="Rival FC", positions=p, ca=80, first_team=False)
+                for n, p in enumerate(SHAPE)]  # fmt: skip
+    friendly = Match(date(2026, 7, 10), 131, MY_CLUB, "Paisley", RIVAL, "Rival FC", False, None, None, False, 0, 1)
+    squad = [*eleven(), *rival_squad({}), *reserves]
+    result = mezzala(snapshot(squad, matches=(friendly,))).result("next_opponent")
+    assert result["opponent"] == "Rival FC (reserve or youth side)"
+    assert result["their_key_players"][0]["name"].startswith("Rival Kid")
+
+
+def test_a_neutral_venue_and_reserve_side_survive_a_restart(mezzala):
+    reserves = [player(f"Rival Kid {n}", club=RIVAL, club_name="Rival FC", positions=p, first_team=False)
+                for n, p in enumerate(SHAPE)]  # fmt: skip
+    final = Match(date(2026, 8, 2), 666, MY_CLUB, "Paisley", RIVAL, "Rival FC", False, None, None, True, 0, 1)
+    app = mezzala(snapshot([*eleven(), *reserves], matches=(final,)))
+    app.call("snapshot")
+    result = app.another_server().result("next_opponent")
+    assert (result["venue"], result["opponent"]) == ("neutral", "Rival FC (reserve or youth side)")

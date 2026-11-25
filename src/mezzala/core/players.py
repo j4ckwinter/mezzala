@@ -109,6 +109,8 @@ class Match:
     home_goals: int | None
     away_goals: int | None
     neutral: bool
+    home_team_slot: int | None
+    away_team_slot: int | None
 
 
 @dataclass(frozen=True)
