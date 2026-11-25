@@ -45,3 +45,15 @@ def test_a_young_player_with_first_team_potential_is_a_prospect_not_surplus(mezz
     surplus = [e["name"] for e in result["surplus"]]
     assert "Going Nowhere" in surplus
     assert "Prospect" not in surplus
+
+
+def test_the_better_backup_is_kept_even_when_a_prospect_plays_there(mezzala):
+    squad = [*eleven(age=26, pa=100), mine("Experienced Backup", positions=("gk",), age=25, ca=98, pa=100),
+             mine("Keeper Prospect", positions=("gk",), age=17, ca=80, pa=130)]  # fmt: skip
+    assert "Experienced Backup" not in [e["name"] for e in review(mezzala(snapshot(squad)))["surplus"]]
+
+
+def test_a_starter_elsewhere_is_not_counted_as_cover(mezzala):
+    squad = [*eleven(age=26, pa=100), mine("Backup Right Back", positions=("dr",), age=25, ca=95, pa=100)]
+    squad[1] = mine("Centre Back Who Can Play Right", positions=("dc", "dr"), age=26, ca=100, pa=100)
+    assert "Backup Right Back" not in [e["name"] for e in review(mezzala(snapshot(squad)))["surplus"]]

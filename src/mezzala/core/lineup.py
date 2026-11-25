@@ -109,3 +109,8 @@ def starter_entries(lineup: Lineup) -> list[StarterEntry]:
                              fit(player, place.group).value)
             )  # fmt: skip
     return entries
+
+
+def backup_lineup(squad: list[Player], formation: Formation) -> Lineup:
+    starters = {player.uid for player in pick_lineup(squad, formation).starters}
+    return pick_lineup([player for player in squad if player.uid not in starters], formation)

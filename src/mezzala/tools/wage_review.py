@@ -1,16 +1,21 @@
 from dataclasses import dataclass
 from enum import StrEnum
 
-from mezzala.core.formations import PLAYERS_PER_STARTING_PLACE, STARTERS, Formation
-from mezzala.core.lineup import pick_lineup
+from mezzala.core.formations import Formation
+from mezzala.core.lineup import backup_lineup, pick_lineup
 from mezzala.core.metrics import PeerMedians, weekly_wage
 from mezzala.core.money import format_weekly_wage
 from mezzala.core.players import Player, Snapshot
-from mezzala.core.positions import covers
-from mezzala.core.squad import available_squad, owned_players, plays_for_club, squad_level, wage_paid_by_club
+from mezzala.core.squad import (
+    YOUNG_PLAYER_MAX_AGE,
+    available_squad,
+    owned_players,
+    plays_for_club,
+    squad_level,
+    wage_paid_by_club,
+)
 
 OVERPAID_RATIO = 1.5
-PROSPECT_MAX_AGE = 21
 
 
 class Role(StrEnum):
@@ -50,24 +55,20 @@ def everyone_paid(snapshot: Snapshot) -> list[Player]:
 def roles(snapshot: Snapshot, formation: Formation) -> dict[int, Role]:
     squad = available_squad(snapshot)
     starters = {player.uid for player in pick_lineup(squad, formation).starters}
-    places = STARTERS[formation]
-    cover = {group: sum(1 for player in squad if covers(player, group)) for group in places}
+    backups = {player.uid for player in backup_lineup(squad, formation).starters}
     level = squad_level(snapshot)
     found: dict[int, Role] = {}
-    for player in sorted(everyone_paid(snapshot), key=lambda p: p.current_ability):
-        covered = [group for group in places if covers(player, group)]
+    for player in everyone_paid(snapshot):
         if not plays_for_club(player, snapshot.club_uid):
             found[player.uid] = Role.OUT_ON_LOAN
         elif player.uid in starters:
             found[player.uid] = Role.STARTER
-        elif any(cover[group] <= PLAYERS_PER_STARTING_PLACE * places[group] for group in covered):
+        elif player.uid in backups:
             found[player.uid] = Role.DEPTH
-        elif player.age <= PROSPECT_MAX_AGE and player.potential_ability >= level:
+        elif player.age <= YOUNG_PLAYER_MAX_AGE and player.potential_ability >= level:
             found[player.uid] = Role.PROSPECT
         else:
             found[player.uid] = Role.SURPLUS
-            for group in covered:
-                cover[group] -= 1
     return found
 
 

@@ -26,7 +26,7 @@ Run all four checks before committing.
 | Position groups, and when a player is natural or accomplished in one | `src/mezzala/core/positions.py` |
 | Formations and how many starters each needs | `src/mezzala/core/formations.py` |
 | Who belongs to the club, who plays for it, what it pays them, depth, leaving dates, squad level | `src/mezzala/core/squad.py` |
-| Choosing a starting eleven for a formation | `src/mezzala/core/lineup.py` |
+| Choosing a starting eleven and its cover (a second eleven) for a formation | `src/mezzala/core/lineup.py` |
 | The assignment algorithm the eleven uses (Hungarian, minimum cost) | `src/mezzala/core/assignment.py` |
 | Which players a club can realistically sign | `src/mezzala/core/reach.py` |
 | Attribute profiles, how alike two players are, and the key attributes for each position | `src/mezzala/core/profile.py` |

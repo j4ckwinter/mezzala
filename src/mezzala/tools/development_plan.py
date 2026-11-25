@@ -2,12 +2,11 @@ from dataclasses import dataclass
 
 from mezzala.core.formations import Formation
 from mezzala.core.growth import projected_growth
-from mezzala.core.lineup import pick_lineup, weakest_starters
+from mezzala.core.lineup import backup_lineup, pick_lineup, weakest_starters
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import PositionGroup, covers
-from mezzala.core.squad import available_squad, owned_players, plays_for_club, squad_level
+from mezzala.core.squad import YOUNG_PLAYER_MAX_AGE, available_squad, owned_players, plays_for_club, squad_level
 
-YOUTH_MAX_AGE = 21
 READY_MARGIN = 3
 LOAN_MIN_AGE = 17
 LOAN_MIN_HEADROOM = 10
@@ -55,8 +54,9 @@ def young_player(player: Player, bars: dict[PositionGroup, Player | None]) -> Yo
 def development_plan(snapshot: Snapshot, formation: Formation) -> DevelopmentPlan:
     squad = available_squad(snapshot)
     starters = {player.uid for player in pick_lineup(squad, formation).starters}
+    backups = {player.uid for player in backup_lineup(squad, formation).starters}
     bars = weakest_starters(squad, formation)
-    youngsters = [player for player in owned_players(snapshot) if player.age <= YOUTH_MAX_AGE]
+    youngsters = [player for player in owned_players(snapshot) if player.age <= YOUNG_PLAYER_MAX_AGE]
     ready: list[YoungPlayer] = []
     loan_out: list[YoungPlayer] = []
     on_loan: list[YoungPlayer] = []
@@ -68,7 +68,7 @@ def development_plan(snapshot: Snapshot, formation: Formation) -> DevelopmentPla
             continue
         elif entry.gap_to_first_team is not None and entry.gap_to_first_team >= -READY_MARGIN:
             ready.append(entry)
-        elif player.age >= LOAN_MIN_AGE and player.headroom >= LOAN_MIN_HEADROOM:
+        elif player.uid not in backups and player.age >= LOAN_MIN_AGE and player.headroom >= LOAN_MIN_HEADROOM:
             loan_out.append(entry)
     level = squad_level(snapshot)
     focus = sorted(

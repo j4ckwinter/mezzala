@@ -17,7 +17,7 @@ def test_a_youngster_close_to_the_weakest_starter_is_ready(mezzala):
 
 
 def test_a_youngster_far_off_with_room_to_grow_should_go_on_loan(mezzala):
-    squad = [*eleven(ca=110), mine("Needs Games", positions=("stc",), age=18, ca=80, pa=130)]
+    squad = [*eleven(ca=110), *eleven(ca=105), mine("Needs Games", positions=("stc",), age=18, ca=80, pa=130)]
     squad.append(mine("Too Young", positions=("stc",), age=16, ca=60, pa=130))
     squad.append(mine("No Ceiling", positions=("stc",), age=20, ca=80, pa=84))
     assert named(plan(mezzala(snapshot(squad)))["loan_out"]) == ["Needs Games"]
@@ -40,3 +40,9 @@ def test_loan_players_from_other_clubs_are_not_part_of_the_plan(mezzala):
     loanee = mine("Borrowed", age=19, ca=98, pa=150, on_loan=True, loan_parent_club_uid=9)
     result = plan(mezzala(snapshot([*eleven(ca=100), loanee])))
     assert "Borrowed" not in named(result["ready_for_first_team"]) + named(result["focus"])
+
+
+def test_a_youngster_who_is_the_only_backup_stays_rather_than_going_on_loan(mezzala):
+    squad = [*eleven(ca=110), mine("Only Backup", positions=("stc",), age=18, ca=80, pa=130)]
+    result = plan(mezzala(snapshot(squad)))
+    assert "Only Backup" not in named(result["loan_out"])

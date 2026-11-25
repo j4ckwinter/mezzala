@@ -67,6 +67,7 @@ def leaves_within(player: Player, club_uid: int, today: date, months: int) -> da
 
 
 FIRST_ELEVEN = 11
+YOUNG_PLAYER_MAX_AGE = 21
 
 
 def squad_level(snapshot: Snapshot) -> float:
