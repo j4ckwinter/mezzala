@@ -132,8 +132,8 @@ reputation is at most your club's plus {REPUTATION_REACH} (results show both), s
 on paper, though a player may still refuse; set it false for questions like the best players in the world.
 
 Availability: the save does not record transfer or loan listing; fringe_only keeps players whose
-contract squad status says their club does not count on them (surplus, fringe, backup), the likeliest
-to be listed or loaned.
+contract squad status says their club does not count on them (surplus to requirements, fringe player or
+emergency backup), the likeliest to be listed or loaned.
 
 Output: compact returns compact_players, one short row each (name, age, club, nationality, positions, ability,
 potential, value, expected wage), instead of the full players list; use it for long searches.

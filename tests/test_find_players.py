@@ -221,7 +221,7 @@ def test_our_players_out_on_loan_cost_us_their_wage_less_the_loan_clubs_share(me
 def test_fringe_only_keeps_players_their_club_does_not_count_on(mezzala):
     squad = [*eleven(), player("Surplus", squad_status="surplus to requirements"),
              player("Fringe", squad_status="fringe player"), player("Starter", squad_status="regular starter"),
-             player("No Contract Status")]  # fmt: skip
+             player("Number Two Keeper", squad_status="backup"), player("No Contract Status")]  # fmt: skip
     result = mezzala(snapshot(squad)).result("find_players", fringe_only=True)
     assert {found["player"]["name"] for found in result["players"]} == {"Surplus", "Fringe"}
     assert {found["squad_status"] for found in result["players"]} == {"surplus to requirements", "fringe player"}

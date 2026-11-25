@@ -13,8 +13,10 @@ def test_summaries_give_the_stronger_foot_and_how_good_the_weaker_one_is(mezzala
 
 
 def test_two_strong_feet_read_as_either(mezzala):
-    shown = summaries(mezzala, mine("Both", left_foot=15, right_foot=19), mine("Almost", left_foot=14, right_foot=19))
+    shown = summaries(mezzala, mine("Both", left_foot=15, right_foot=19), mine("Almost", left_foot=14, right_foot=19),
+                      mine("Even", left_foot=11, right_foot=11))  # fmt: skip
     assert shown["Both"]["preferred_foot"] == "either" and shown["Almost"]["preferred_foot"] == "right"
+    assert shown["Even"]["preferred_foot"] == "either"
 
 
 def test_unknown_feet_stay_unknown(mezzala):

@@ -14,7 +14,7 @@ class Foot(StrEnum):
 def preferred_foot(player: Player) -> Foot | None:
     if player.left_foot is None or player.right_foot is None:
         return None
-    if min(player.left_foot, player.right_foot) >= TWO_FOOTED_FROM:
+    if player.left_foot == player.right_foot or min(player.left_foot, player.right_foot) >= TWO_FOOTED_FROM:
         return Foot.EITHER
     return Foot.LEFT if player.left_foot > player.right_foot else Foot.RIGHT
 

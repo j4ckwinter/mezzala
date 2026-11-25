@@ -81,7 +81,7 @@ def everyone_paid(snapshot: Snapshot) -> list[Player]:
 
 
 NOT_COUNTED_ON = frozenset(
-    {"surplus to requirements", "fringe player", "backup", "emergency backup", "goalkeeper emergency backup"}
+    {"surplus to requirements", "fringe player", "emergency backup", "goalkeeper emergency backup"}
 )
 
 
