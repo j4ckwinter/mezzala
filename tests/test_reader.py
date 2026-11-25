@@ -2,18 +2,40 @@ from datetime import date
 from types import SimpleNamespace
 from typing import cast
 
-from fmsave import ClauseKind, Contract, ContractType, Fixture, JobVacancy, Staff, StaffJob, TransferValueState
+from fmsave import (
+    ClauseKind,
+    Contract,
+    ContractType,
+    Fixture,
+    InjuryCause,
+    InjuryRecord,
+    InjuryRecordKind,
+    InjurySeverity,
+    JobVacancy,
+    PlayerSeasonStats,
+    PlayerSuspension,
+    SeasonStatsKind,
+    Staff,
+    StaffJob,
+    SuspensionScope,
+    Trait,
+    TransferValueState,
+)
 from fmsave import Player as FmPlayer
 
-from mezzala.core.players import ReleaseClause, ReleaseScope
+from mezzala.core.players import Injury, ReleaseClause, ReleaseScope
+from mezzala.save.player_records import CurrentInjury, injury_records, season_records
 from mezzala.save.reader import (
+    ban_label,
     clubs_with_a_manager,
     first_team_leagues,
     is_manager_job,
     known_value,
     loan_wage,
     matches_kept,
+    named_traits,
     open_manager_jobs,
+    percent,
     release_clauses,
     youth_contract,
 )
@@ -172,3 +194,75 @@ def test_fixtures_stored_in_older_formats_still_decode():
     ten = [*nine, True]
     assert (decode_match(nine).neutral, decode_match(nine).away_team_slot) == (False, 0)
     assert decode_match(ten).neutral is True
+
+
+def injury(kind, uid, day, severity=None, cause=None, type_name=None):
+    return SimpleNamespace(kind=kind, player_uid=uid, date=day, type_name=type_name,
+                           severity=None if severity is None else SimpleNamespace(label=severity),
+                           cause=None if cause is None else SimpleNamespace(label=cause))  # fmt: skip
+
+
+def test_injury_history_is_kept_oldest_first_with_its_severity_and_cause():
+    records = [
+        injury(InjuryRecordKind.HISTORY, 7, date(2026, 4, 25), InjurySeverity.MAJOR, InjuryCause.IN_TRAINING),
+        injury(InjuryRecordKind.HISTORY, 7, date(2025, 9, 1), InjurySeverity.MINOR, InjuryCause.IN_MATCH),
+    ]
+    history, current = injury_records(cast(list[InjuryRecord], records), date(2026, 6, 29))
+    assert history[7] == (
+        Injury(date(2025, 9, 1), "minor", "in match"),
+        Injury(date(2026, 4, 25), "major", "in training"),
+    )
+    assert current == {}
+
+
+def test_a_typed_injury_ending_today_or_later_is_current_and_an_earlier_one_is_not():
+    records = [injury(InjuryRecordKind.TYPED, 7, date(2026, 7, 10), type_name="Twisted Ankle"),
+               injury(InjuryRecordKind.TYPED, 8, date(2026, 6, 1), type_name="Bruised Ribs"),
+               injury(InjuryRecordKind.TYPED, 9, date(2026, 6, 29), type_name="Dead Leg")]  # fmt: skip
+    _, current = injury_records(cast(list[InjuryRecord], records), date(2026, 6, 29))
+    assert current == {
+        7: CurrentInjury("Twisted Ankle", date(2026, 7, 10)),
+        9: CurrentInjury("Dead Leg", date(2026, 6, 29)),
+    }
+
+
+def season_row(
+    uid, kind=SeasonStatsKind.OVERALL, minutes=900, rating: float | None = 7.0, rated=10, goals=2, headers=None
+):
+    return SimpleNamespace(
+        player_uid=uid, kind=kind, minutes=minutes, starts=10, substitute_appearances=0, average_rating=rating,
+        rated_appearances=rated, goals=goals, assists=1, expected_goals=1.5, expected_assists=0.5, shots=10,
+        key_passes=5, progressive_passes=20, dribbles=3, tackles_completed=4, interceptions=6, headers_won=headers,
+        player_of_the_match=1,
+    )  # fmt: skip
+
+
+def test_a_players_season_adds_up_his_teams_and_weights_his_rating_by_rated_games():
+    rows = [season_row(7, rating=7.0, rated=10, headers=3), season_row(7, rating=6.0, rated=30),
+            season_row(7, kind=SeasonStatsKind.LEAGUE, minutes=5000)]  # fmt: skip
+    season = season_records(cast(list[PlayerSeasonStats], rows))[7]
+    assert (season.minutes, season.goals, season.average_rating, season.headers_won) == (1800, 4, 6.25, 3)
+
+
+def test_a_season_with_no_rated_games_has_no_rating():
+    season = season_records(cast(list[PlayerSeasonStats], [season_row(7, rating=None, rated=0)]))[7]
+    assert season.average_rating is None and season.headers_won is None
+
+
+def test_only_named_traits_are_kept_in_plain_words():
+    traits = (SimpleNamespace(label=Trait.SHOOTS_FROM_DISTANCE), SimpleNamespace(label=Trait.UNKNOWN))
+    assert named_traits(cast(FmPlayer, SimpleNamespace(traits=traits))) == ("shoots from distance",)
+
+
+def test_a_ban_names_its_competition_or_says_how_wide_it_is():
+    def ban(scope, name=None):
+        return cast(PlayerSuspension, SimpleNamespace(scope=scope, competition_name=name))
+
+    assert ban_label(ban(SuspensionScope.COMPETITION, "Scottish Cup")) == "Scottish Cup"
+    assert ban_label(ban(SuspensionScope.NATION)) == "domestic competitions"
+    assert ban_label(ban(SuspensionScope.EUROPE)) == "European competitions"
+    assert ban_label(ban(SuspensionScope.COMPETITION)) == "unknown competitions"
+
+
+def test_condition_and_sharpness_read_as_percentages():
+    assert percent(10_000) == 100 and percent(5_950) == 60

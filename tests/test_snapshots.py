@@ -214,3 +214,26 @@ def test_loan_wages_and_clause_expiry_survive_a_restart(mezzala):
     assert squad["Loanee"] == "£1,500 p/w"
     assert restarted.result("find_players", max_release_clause=1_000_000)["players"] == []
     assert app.save.reads == 1
+
+
+def test_the_new_player_and_club_facts_survive_a_restart(mezzala):
+    from mezzala.core.players import Injury, MentoringGroup, SeasonStats, StaffMember, Tactic
+    from mezzala.save.store import SnapshotStore
+
+    season = SeasonStats(900, 10, 2, 6.9, 3, 2, 2.5, 1.5, 20, 12, 40, 8, 15, 9, 30, 1)
+    starter = replace(
+        eleven()[0], adaptability=12, loyalty=13, pressure=14, sportsmanship=15, temperament=16, controversy=4,
+        left_foot=8, right_foot=20, height_cm=188, traits=("shoots from distance",), condition=96, match_sharpness=71,
+        banned_from=("Scottish Cup",), injury="Twisted Ankle", injured_until=date(2026, 7, 10),
+        injuries=(Injury(date(2026, 4, 25), "major", "in training"),), season=season,
+    )  # fmt: skip
+    first = replace(
+        snapshot([starter, *eleven()[1:]]),
+        staff=(StaffMember("Coach", "coach", 44, {"attacking": 14}),),
+        tactics=(Tactic("Press", "positive", ("gk", "dc", None)),),
+        mentoring=(MentoringGroup("Group 1", (starter.uid,)),),
+    )
+    app = mezzala(first)
+    app.call("snapshot")
+    stored = SnapshotStore(app.database).load(str(Path("career.fm").resolve()), first.game_date)
+    assert stored == first

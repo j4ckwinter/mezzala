@@ -1,7 +1,7 @@
 import json
 import sqlite3
 import zlib
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -10,11 +10,16 @@ from mezzala.core.players import (
     ATTRIBUTE_NAMES,
     POSITION_CODES,
     Budget,
+    Injury,
     Match,
+    MentoringGroup,
     Player,
     ReleaseClause,
     ReleaseScope,
+    SeasonStats,
     Snapshot,
+    StaffMember,
+    Tactic,
     Vacancy,
 )
 
@@ -32,6 +37,9 @@ CREATE TABLE IF NOT EXISTS snapshots (
     format INTEGER NOT NULL DEFAULT 1,
     vacancies TEXT,
     matches TEXT,
+    staff TEXT,
+    tactics TEXT,
+    mentoring TEXT,
     budget TEXT NOT NULL,
     players BLOB NOT NULL,
     UNIQUE (career, game_date)
@@ -84,6 +92,53 @@ def encode_clause(clause: ReleaseClause) -> list[Any]:
     return [clause.scope.value, clause.fee, optional_text(clause.expires)]
 
 
+def encode_injury(injury: Injury) -> list[Any]:
+    return [injury.day.isoformat(), injury.severity, injury.cause]
+
+
+def decode_injury(stored: list[Any]) -> Injury:
+    day, severity, cause = stored
+    return Injury(date.fromisoformat(day), severity, cause)
+
+
+SEASON_STAT_FIELDS = tuple(field.name for field in fields(SeasonStats))
+
+
+def encode_season(season: SeasonStats | None) -> list[Any] | None:
+    return None if season is None else [getattr(season, name) for name in SEASON_STAT_FIELDS]
+
+
+def decode_season(stored: list[Any] | None) -> SeasonStats | None:
+    return None if stored is None else SeasonStats(*stored)
+
+
+def encode_staff(member: StaffMember) -> list[Any]:
+    return [member.name, member.job, member.age, dict(member.ratings)]
+
+
+def decode_staff(stored: list[Any]) -> StaffMember:
+    name, job, age, ratings = stored
+    return StaffMember(name, job, age, ratings)
+
+
+def encode_tactic(tactic: Tactic) -> list[Any]:
+    return [tactic.name, tactic.mentality, list(tactic.positions)]
+
+
+def decode_tactic(stored: list[Any]) -> Tactic:
+    name, mentality, positions = stored
+    return Tactic(name, mentality, tuple(positions))
+
+
+def encode_mentoring(group: MentoringGroup) -> list[Any]:
+    return [group.label, list(group.member_uids)]
+
+
+def decode_mentoring(stored: list[Any]) -> MentoringGroup:
+    label, members = stored
+    return MentoringGroup(label, tuple(members))
+
+
 def encode_player(player: Player) -> list[Any]:
     return [
         player.uid, player.name, player.age, optional_text(player.birth_date), player.club_uid, player.club_name,
@@ -93,19 +148,43 @@ def encode_player(player: Player) -> list[Any]:
         [player.attributes[name] for name in ATTRIBUTE_NAMES], player.reputation, player.professionalism,
         player.ambition, player.first_team, player.club_reputation, player.club_nation_id, player.league_id,
         player.youth_contract, [encode_clause(clause) for clause in player.release_clauses],
-        player.loan_wage,
+        player.loan_wage, player.adaptability, player.loyalty, player.pressure, player.sportsmanship,
+        player.temperament, player.controversy, player.left_foot, player.right_foot, player.height_cm,
+        list(player.traits), player.condition, player.match_sharpness, list(player.banned_from), player.injury,
+        optional_text(player.injured_until), [encode_injury(injury) for injury in player.injuries],
+        encode_season(player.season),
     ]  # fmt: skip
 
 
 ORIGINAL_FIELDS = 19
-FACTS_ADDED_LATER: list[Any] = [None, None, None, None, None, [], None]
-CURRENT_FORMAT = 8
+FACTS_ADDED_LATER: list[Any] = [
+    None,
+    None,
+    None,
+    None,
+    None,
+    [],
+    None,
+    *[None] * 9,
+    [],
+    None,
+    None,
+    [],
+    None,
+    None,
+    [],
+    None,
+]
+CURRENT_FORMAT = 9
 MATCH_FACTS_ADDED_LATER: list[Any] = [False, 0, 0]
 COLUMNS_ADDED_LATER = {
     "club_nation_id": "INTEGER",
     "format": "INTEGER NOT NULL DEFAULT 1",
     "vacancies": "TEXT",
     "matches": "TEXT",
+    "staff": "TEXT",
+    "tactics": "TEXT",
+    "mentoring": "TEXT",
 }
 
 
@@ -126,7 +205,9 @@ def decode_player(row: list[Any]) -> Player:
     row = [*row, *FACTS_ADDED_LATER[len(row) - ORIGINAL_FIELDS :]]
     (uid, name, age, birth_date, club_uid, club_name, ratings, current, potential, value, wage, contract_end,
      on_loan, loan_parent, loan_end, attributes, reputation, professionalism, ambition, first_team,
-     club_reputation, club_nation_id, league_id, youth_contract, clauses, loan_wage) = row  # fmt: skip
+     club_reputation, club_nation_id, league_id, youth_contract, clauses, loan_wage, adaptability, loyalty,
+     pressure, sportsmanship, temperament, controversy, left_foot, right_foot, height_cm, traits, condition,
+     match_sharpness, banned_from, injury, injured_until, injuries, season) = row  # fmt: skip
     return Player(
         uid=uid,
         name=name,
@@ -154,6 +235,23 @@ def decode_player(row: list[Any]) -> Player:
         youth_contract=youth_contract,
         release_clauses=tuple(decode_clause(clause) for clause in clauses),
         loan_wage=loan_wage,
+        adaptability=adaptability,
+        loyalty=loyalty,
+        pressure=pressure,
+        sportsmanship=sportsmanship,
+        temperament=temperament,
+        controversy=controversy,
+        left_foot=left_foot,
+        right_foot=right_foot,
+        height_cm=height_cm,
+        traits=tuple(traits),
+        condition=condition,
+        match_sharpness=match_sharpness,
+        banned_from=tuple(banned_from),
+        injury=injury,
+        injured_until=optional_date(injured_until),
+        injuries=tuple(decode_injury(stored) for stored in injuries),
+        season=decode_season(season),
     )
 
 
@@ -201,8 +299,8 @@ class SnapshotStore:
             )
             self._db.execute(
                 "INSERT INTO snapshots (career, game_date, file_mtime_ns, file_size, club_uid, club_name, "
-                "club_reputation, club_nation_id, format, budget, players, vacancies, matches) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "club_reputation, club_nation_id, format, budget, players, vacancies, matches, staff, tactics, "
+                "mentoring) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     career, snapshot.game_date.isoformat(), stamp.mtime_ns, stamp.size, snapshot.club_uid,
                     snapshot.club_name,
@@ -213,6 +311,9 @@ class SnapshotStore:
                     encode_players(snapshot.players),
                     json.dumps([encode_vacancy(vacancy) for vacancy in snapshot.vacancies]),
                     json.dumps([encode_match(match) for match in snapshot.matches]),
+                    json.dumps([encode_staff(member) for member in snapshot.staff]),
+                    json.dumps([encode_tactic(tactic) for tactic in snapshot.tactics]),
+                    json.dumps([encode_mentoring(group) for group in snapshot.mentoring]),
                 ),
             )  # fmt: skip
 
@@ -230,14 +331,15 @@ class SnapshotStore:
 
     def load(self, career: str, game_date: date) -> Snapshot:
         row = self._db.execute(
-            "SELECT club_uid, club_name, club_reputation, club_nation_id, budget, players, vacancies, matches "
+            "SELECT club_uid, club_name, club_reputation, club_nation_id, budget, players, vacancies, matches, "
+            "staff, tactics, mentoring "
             "FROM snapshots "
             "WHERE career = ? AND game_date = ?",
             (career, game_date.isoformat()),
         ).fetchone()
         if row is None:
             raise KeyError(f"No snapshot of {career} on {game_date.isoformat()}")
-        club_uid, club_name, reputation, nation_id, budget, players, vacancies, matches = row
+        club_uid, club_name, reputation, nation_id, budget, players, vacancies, matches, staff, tactics, mentoring = row
         return Snapshot(
             game_date,
             club_uid,
@@ -248,4 +350,7 @@ class SnapshotStore:
             decode_players(players),
             tuple(decode_vacancy(vacancy) for vacancy in json.loads(vacancies or "[]")),
             tuple(decode_match(match) for match in json.loads(matches or "[]")),
+            tuple(decode_staff(member) for member in json.loads(staff or "[]")),
+            tuple(decode_tactic(tactic) for tactic in json.loads(tactics or "[]")),
+            tuple(decode_mentoring(group) for group in json.loads(mentoring or "[]")),
         )

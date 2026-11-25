@@ -33,6 +33,33 @@ class ReleaseClause:
 
 
 @dataclass(frozen=True)
+class Injury:
+    day: date
+    severity: str | None
+    cause: str | None
+
+
+@dataclass(frozen=True)
+class SeasonStats:
+    minutes: int
+    starts: int
+    substitute_appearances: int
+    average_rating: float | None
+    goals: int
+    assists: int
+    expected_goals: float
+    expected_assists: float
+    shots: int
+    key_passes: int
+    progressive_passes: int
+    dribbles: int
+    tackles_completed: int
+    interceptions: int
+    headers_won: int | None
+    player_of_the_match: int
+
+
+@dataclass(frozen=True)
 class Player:
     uid: int
     name: str
@@ -60,6 +87,23 @@ class Player:
     youth_contract: bool | None
     release_clauses: tuple[ReleaseClause, ...]
     loan_wage: int | None
+    adaptability: int | None = None
+    loyalty: int | None = None
+    pressure: int | None = None
+    sportsmanship: int | None = None
+    temperament: int | None = None
+    controversy: int | None = None
+    left_foot: int | None = None
+    right_foot: int | None = None
+    height_cm: int | None = None
+    traits: tuple[str, ...] = ()
+    condition: int | None = None
+    match_sharpness: int | None = None
+    banned_from: tuple[str, ...] = ()
+    injury: str | None = None
+    injured_until: date | None = None
+    injuries: tuple[Injury, ...] = ()
+    season: SeasonStats | None = None
 
     @property
     def headroom(self) -> int:
@@ -114,6 +158,27 @@ class Match:
 
 
 @dataclass(frozen=True)
+class StaffMember:
+    name: str
+    job: str
+    age: int | None
+    ratings: Mapping[str, int]
+
+
+@dataclass(frozen=True)
+class Tactic:
+    name: str
+    mentality: str
+    positions: tuple[str | None, ...]
+
+
+@dataclass(frozen=True)
+class MentoringGroup:
+    label: str
+    member_uids: tuple[int, ...]
+
+
+@dataclass(frozen=True)
 class Snapshot:
     game_date: date
     club_uid: int
@@ -124,6 +189,9 @@ class Snapshot:
     players: tuple[Player, ...]
     vacancies: tuple[Vacancy, ...]
     matches: tuple[Match, ...]
+    staff: tuple[StaffMember, ...] = ()
+    tactics: tuple[Tactic, ...] = ()
+    mentoring: tuple[MentoringGroup, ...] = ()
 
     def by_uid(self) -> dict[int, Player]:
         return {player.uid: player for player in self.players}

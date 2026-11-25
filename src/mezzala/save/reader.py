@@ -8,6 +8,9 @@ from pathlib import Path
 import fmsave
 
 from mezzala.core.players import Budget, Match, Player, ReleaseClause, ReleaseScope, Snapshot, Vacancy
+from mezzala.save.labels import label
+from mezzala.save.own_club import club_staff, first_team_tactics, mentoring_groups
+from mezzala.save.player_records import PlayerRecords, player_records
 
 
 class UnreadableSave(RuntimeError):
@@ -64,6 +67,10 @@ LEAGUE_NATION_SHARE = 0.9
 VACANCY_ROLE_FIELD = "role"
 UPCOMING_OPPONENTS_KEPT = 3
 RECENT_RESULTS_KEPT = 5
+RAW_PERCENT_SCALE = 100
+WHOLE_NATION_BAN = "domestic competitions"
+EUROPEAN_BAN = "European competitions"
+UNKNOWN_BAN = "unknown competitions"
 
 
 def first_team_fixtures(fixtures: Iterable[fmsave.Fixture]) -> Counter[tuple[int, int]]:
@@ -111,7 +118,27 @@ def loan_wage(player: fmsave.Player) -> int | None:
     return None
 
 
-def to_player(player: fmsave.Player, leagues: dict[int, int]) -> Player | None:
+def named_traits(player: fmsave.Player) -> tuple[str, ...]:
+    return tuple(label(trait.label.name) for trait in player.traits if trait.label is not fmsave.Trait.UNKNOWN)
+
+
+def ban_label(ban: fmsave.PlayerSuspension) -> str:
+    match ban.scope:
+        case fmsave.SuspensionScope.COMPETITION:
+            return ban.competition_name or UNKNOWN_BAN
+        case fmsave.SuspensionScope.NATION:
+            return WHOLE_NATION_BAN
+        case fmsave.SuspensionScope.EUROPE:
+            return EUROPEAN_BAN
+        case fmsave.SuspensionScope.UNKNOWN:
+            return UNKNOWN_BAN
+
+
+def percent(raw: int) -> int:
+    return round(raw / RAW_PERCENT_SCALE)
+
+
+def to_player(player: fmsave.Player, leagues: dict[int, int], records: PlayerRecords) -> Player | None:
     contract = player.contract
     personality = player.personality
     if player.name is None or player.age is None or player.ability.potential is None or personality is None:
@@ -143,6 +170,23 @@ def to_player(player: fmsave.Player, leagues: dict[int, int]) -> Player | None:
         youth_contract=youth_contract(contract),
         release_clauses=release_clauses(contract),
         loan_wage=loan_wage(player),
+        adaptability=personality.adaptability,
+        loyalty=personality.loyalty,
+        pressure=personality.pressure,
+        sportsmanship=personality.sportsmanship,
+        temperament=personality.temperament,
+        controversy=personality.controversy,
+        left_foot=player.left_foot,
+        right_foot=player.right_foot,
+        height_cm=player.height_cm,
+        traits=named_traits(player),
+        condition=percent(player.raw_condition),
+        match_sharpness=percent(player.raw_match_sharpness),
+        banned_from=tuple(ban_label(ban) for ban in player.suspensions or ()),
+        injury=current.name if (current := records.current_injuries.get(player.uid)) else None,
+        injured_until=current.back_on if current else None,
+        injuries=records.injuries.get(player.uid, ()),
+        season=records.seasons.get(player.uid),
     )
 
 
@@ -254,12 +298,13 @@ def read_snapshot(path: Path) -> Snapshot:
             if not clubs:
                 raise UnreadableSave(f"{path.name} has no managed club; mezzala needs a manager in a job.")
             club = clubs[0]
-            leagues = first_team_leagues(save.fixtures(), {c.uid: c.nation_id for c in save.clubs()})
-            converted = (to_player(player, leagues) for player in save.players())
-            players = tuple(player for player in converted if player is not None)
             game_date = save.info.game_date
             if game_date is None:
                 raise UnreadableSave(f"{path.name} has no in-game date.")
+            leagues = first_team_leagues(save.fixtures(), {c.uid: c.nation_id for c in save.clubs()})
+            records = player_records(save, game_date)
+            converted = (to_player(player, leagues, records) for player in save.players())
+            players = tuple(player for player in converted if player is not None)
             managed = save.clubs().by_uid(club.club_uid)
             reputation = managed.reputation
             if reputation is None:
@@ -274,4 +319,7 @@ def read_snapshot(path: Path) -> Snapshot:
                 players,
                 vacancies(save, club.club_uid),
                 matches_kept(save.fixtures(), club.club_uid, game_date),
+                club_staff(save, club.club_uid),
+                first_team_tactics(save, club.club_uid),
+                mentoring_groups(save, club.club_uid),
             )

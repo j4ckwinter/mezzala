@@ -28,6 +28,10 @@ Most players install the Claude Desktop extension, `mezzala.mcpb`, from the late
 | --- | --- |
 | What a player and a snapshot hold | `src/mezzala/core/players.py` |
 | Turning an fmsave record into a player, and what counts as unreadable | `src/mezzala/save/reader.py` |
+| Reading the managed club's staff, first-team tactics and mentoring groups | `src/mezzala/save/own_club.py` |
+| Reading each player's injury history, current injury and season stats | `src/mezzala/save/player_records.py` |
+| Turning fmsave enum names into plain words | `src/mezzala/save/labels.py` |
+| Which save sections may fail to read without failing the snapshot | `src/mezzala/save/sections.py` |
 | Where FM27 keeps saves, and which one is used by default | `src/mezzala/save/saves.py` |
 | When a new snapshot is taken, and which earlier snapshot a tool compares with | `src/mezzala/save/career.py` |
 | How snapshots are stored | `src/mezzala/save/store.py` |
