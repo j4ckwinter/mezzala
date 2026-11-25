@@ -63,6 +63,8 @@ Most players install the Claude Desktop extension, `mezzala.mcpb`, from the late
 - Stored snapshots encode each player as a positional list (`save/store.py`). Snapshots are history that cannot be rebuilt from the save, so a change to that encoding must keep existing rows readable: append new facts, add their defaults to `FACTS_ADDED_LATER`, and raise `CURRENT_FORMAT` so a snapshot in an older format is read again from the save.
 - `core/` holds the football rules every tool shares, `tools/` one module per tool, and `save/` everything that reads saves or stores snapshots. `core/` and `tools/` take snapshots and return results; only `save/` and `server.py` touch fmsave, files, SQLite or MCP, and `core/` never imports from `tools/` or `save/`.
 - Tests go through the MCP client (`tests/conftest.py`) with a fake save, so they pin behaviour, not internals.
+- Anything shown to the manager that is CA, PA, or derived from them (averages, levels, gains) goes through `core/view.py` with the server's `View`. Under fog of war (`View.SPOILER_FREE`) they become stars, and hidden attributes and personality numbers stay out of answers; personality may still be described in words. `tests/test_fog_of_war.py` calls every tool, so a new tool that needs arguments gets an entry in its `ARGUMENTS`.
+- Tools that take a formation accept none and resolve it with `with_formation` in `server.py`: the saved first-team tactic's shape, else `DEFAULT_FORMATION`, with a note in the answer when the tactic decided.
 
 ## Standards
 
