@@ -28,6 +28,7 @@ GROUP_POSITION_CODES: dict[PositionGroup, tuple[str, ...]] = {
     PositionGroup.RIGHT_WING: ("amr", "mr"),
     PositionGroup.STRIKER: ("stc",),
 }
+GROUP_OF_POSITION_CODE = {code: group for group, codes in GROUP_POSITION_CODES.items() for code in codes}
 
 NATURAL_POSITION_RATING = 18
 ACCOMPLISHED_POSITION_RATING = 15

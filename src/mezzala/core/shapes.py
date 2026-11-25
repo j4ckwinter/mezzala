@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from mezzala.core.positions import GROUP_POSITION_CODES, PositionGroup
+from mezzala.core.positions import GROUP_OF_POSITION_CODE, PositionGroup
 from mezzala.core.roles import Role, Side, find_role
 
 SLOT_SEPARATOR = ":"
@@ -11,7 +11,6 @@ WIDE_SLOT_CODES = {
 CENTRAL_POSITION_CODES = {"STC": "stc", "AMC": "amc", "DMC": "dm", "MC": "mc", "DC": "dc"}
 SINGLE_SLOT_CODES = {"GK": "gk", "DM": "dm", "ST": "stc"}
 SIDE_LETTERS = {"L": Side.LEFT, "R": Side.RIGHT}
-GROUP_OF_CODE = {code: group for group, codes in GROUP_POSITION_CODES.items() for code in codes}
 
 
 class BadSlot(ValueError):
@@ -46,4 +45,4 @@ def parse_slot(text: str) -> Slot:
     if not separator or not role.strip():
         raise BadSlot(f"'{text}' needs a slot and a role, like 'AML: inside forward'.")
     code, side = position_of(label.strip().upper())
-    return Slot(label.strip().upper(), GROUP_OF_CODE[code], side, find_role(role))
+    return Slot(label.strip().upper(), GROUP_OF_POSITION_CODE[code], side, find_role(role))

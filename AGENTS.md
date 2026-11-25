@@ -38,7 +38,7 @@ Most players install the Claude Desktop extension, `mezzala.mcpb`, from the late
 | How snapshots are stored | `src/mezzala/save/store.py` |
 | How the watchlist is stored | `src/mezzala/save/watchlist.py` |
 | How rejected players are stored | `src/mezzala/save/rejections.py` |
-| Position groups, and when a player is natural or accomplished in one | `src/mezzala/core/positions.py` |
+| Position groups, which FM position codes each covers, and when a player is natural or accomplished in one | `src/mezzala/core/positions.py` |
 | Formations and shapes, how many starters each needs, the default formation, and the shape of a saved tactic | `src/mezzala/core/formations.py` |
 | Who belongs to the club, who plays for it, what it pays them, depth, leaving dates, squad level | `src/mezzala/core/squad.py` |
 | Choosing a starting eleven and its cover (a second eleven) for a formation | `src/mezzala/core/lineup.py` |

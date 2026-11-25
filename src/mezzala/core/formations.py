@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from mezzala.core.players import Tactic
-from mezzala.core.positions import GROUP_POSITION_CODES
+from mezzala.core.positions import GROUP_OF_POSITION_CODE
 from mezzala.core.positions import PositionGroup as G
 
 
@@ -58,7 +58,6 @@ def shape_for(formation: Formation) -> Shape:
 
 
 DEFAULT_FORMATION = Formation.FOUR_THREE_THREE
-GROUP_OF_POSITION = {code: group for group, codes in GROUP_POSITION_CODES.items() for code in codes}
 
 
 CENTRAL_MIDFIELD_GROUPS = frozenset({G.DEFENSIVE_MIDFIELD, G.CENTRAL_MIDFIELD})
@@ -72,7 +71,7 @@ def merge_central_midfield(counts: Mapping[G | None, int] | Mapping[G, int]) -> 
 
 
 def shape_of(positions: Iterable[str | None]) -> Formation | None:
-    counts = Counter(GROUP_OF_POSITION.get(code) if code is not None else None for code in positions)
+    counts = Counter(GROUP_OF_POSITION_CODE.get(code) if code is not None else None for code in positions)
     exact = next((formation for formation, starters in STARTERS.items() if counts == Counter(starters)), None)
     if exact is not None:
         return exact
@@ -95,7 +94,7 @@ class SavedShape:
 
 
 def tactic_shape(tactic: Tactic) -> SavedShape | None:
-    groups = [GROUP_OF_POSITION.get(code) if code is not None else None for code in tactic.positions]
+    groups = [GROUP_OF_POSITION_CODE.get(code) if code is not None else None for code in tactic.positions]
     known = [group for group in groups if group is not None]
     if len(known) < len(groups):
         return None
