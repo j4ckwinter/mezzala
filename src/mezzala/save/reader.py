@@ -215,26 +215,33 @@ def to_match(fixture: fmsave.Fixture) -> Match | None:
     return Match(
         fixture.date, fixture.competition_id, fixture.home_club_uid, fixture.home_club_name or "unknown",
         fixture.away_club_uid, fixture.away_club_name or "unknown", bool(fixture.played), fixture.home_goals,
-        fixture.away_goals,
+        fixture.away_goals, bool(fixture.is_neutral_venue),
     )  # fmt: skip
 
 
-def involves(match: Match, club_uid: int) -> bool:
-    return club_uid in (match.home_club_uid, match.away_club_uid)
+def first_team_side(fixture: fmsave.Fixture, club_uid: int) -> bool:
+    return (fixture.home_club_uid == club_uid and fixture.home_team_slot == 0) or (
+        fixture.away_club_uid == club_uid and fixture.away_team_slot == 0
+    )
+
+
+def first_team_matches(fixtures: list[fmsave.Fixture], club_uid: int) -> list[Match]:
+    found: list[Match] = []
+    for fixture in fixtures:
+        match = to_match(fixture) if first_team_side(fixture, club_uid) else None
+        if match is not None:
+            found.append(match)
+    return sorted(found, key=lambda match: match.day)
 
 
 def matches_kept(fixtures: Iterable[fmsave.Fixture], club_uid: int, today: date) -> tuple[Match, ...]:
-    first_team = [
-        match
-        for fixture in fixtures
-        if fixture.home_team_slot == 0 and fixture.away_team_slot == 0 and (match := to_match(fixture)) is not None
-    ]
-    ours = sorted((m for m in first_team if involves(m, club_uid)), key=lambda m: m.day)
-    upcoming = [m for m in ours if not m.played and m.day >= today][:UPCOMING_OPPONENTS_KEPT]
+    listed = list(fixtures)
+    ours = first_team_matches(listed, club_uid)
+    upcoming = [match for match in ours if not match.played and match.day >= today][:UPCOMING_OPPONENTS_KEPT]
     opponents = {m.away_club_uid if m.home_club_uid == club_uid else m.home_club_uid for m in upcoming}
     recent: list[Match] = []
     for opponent in opponents:
-        played = sorted((m for m in first_team if m.played and involves(m, opponent)), key=lambda m: m.day)
+        played = [match for match in first_team_matches(listed, opponent) if match.played]
         recent.extend(played[-RECENT_RESULTS_KEPT:])
     return tuple(dict.fromkeys([*ours, *recent]))
 

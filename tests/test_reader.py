@@ -12,6 +12,7 @@ from mezzala.save.reader import (
     is_manager_job,
     known_value,
     loan_wage,
+    matches_kept,
     open_manager_jobs,
     release_clauses,
     youth_contract,
@@ -134,3 +135,31 @@ def test_a_club_with_a_first_team_manager_on_its_staff_is_filled():
              SimpleNamespace(club_uid=6, team_slot=3, job=SimpleNamespace(label=StaffJob.MANAGER)),
              SimpleNamespace(club_uid=7, team_slot=0, job=SimpleNamespace(label=StaffJob.SCOUT))]  # fmt: skip
     assert clubs_with_a_manager(cast(list[Staff], staff)) == {5}
+
+
+def raw_fixture(day, home, away, home_slot=0, away_slot=0, played=False, neutral=False, goals=(None, None)):
+    return SimpleNamespace(date=day, competition_id=33, home_club_uid=home, home_club_name=f"Club {home}",
+                           away_club_uid=away, away_club_name=f"Club {away}", home_team_slot=home_slot,
+                           away_team_slot=away_slot, played=played, home_goals=goals[0], away_goals=goals[1],
+                           is_neutral_venue=neutral)  # fmt: skip
+
+
+def test_kept_matches_include_first_team_games_against_b_teams_but_not_our_reserves():
+    fixtures = [raw_fixture(date(2026, 8, 1), 1, 2, away_slot=1), raw_fixture(date(2026, 8, 2), 1, 3, home_slot=3)]
+    kept = matches_kept(cast(list[Fixture], fixtures), 1, date(2026, 7, 1))
+    assert [(m.home_club_uid, m.away_club_uid) for m in kept] == [(1, 2)]
+
+
+def test_kept_matches_cover_three_upcoming_opponents_and_their_last_five_results():
+    ours = [raw_fixture(date(2026, 8, day), 1, opponent) for day, opponent in ((1, 2), (8, 3), (15, 4), (22, 5))]
+    theirs = [raw_fixture(date(2026, 7, day), 2, 9, played=True, goals=(1, 0)) for day in range(1, 8)]
+    elsewhere = [raw_fixture(date(2026, 7, 9), 5, 9, played=True, goals=(2, 2))]
+    kept = matches_kept(cast(list[Fixture], [*ours, *theirs, *elsewhere]), 1, date(2026, 7, 20))
+    opponent_results = [m for m in kept if m.played and m.home_club_uid == 2]
+    assert len(opponent_results) == 5 and opponent_results[0].day == date(2026, 7, 3)
+    assert not any(m.home_club_uid == 5 and m.played for m in kept)
+
+
+def test_a_neutral_venue_is_kept():
+    kept = matches_kept(cast(list[Fixture], [raw_fixture(date(2026, 8, 1), 1, 2, neutral=True)]), 1, date(2026, 7, 1))
+    assert kept[0].neutral is True

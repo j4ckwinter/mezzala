@@ -4,11 +4,12 @@ from mezzala.core.formations import Formation
 from mezzala.core.lineup import Lineup, StarterEntry, pick_lineup, starter_entries
 from mezzala.core.players import Match, Player, Snapshot
 from mezzala.core.profile import outfield_profile
-from mezzala.core.squad import available_squad
+from mezzala.core.squad import available_squad, club_league
 from mezzala.core.summary import PlayerSummary, summarize
-from mezzala.tools.compare_formations import score
+from mezzala.tools.compare_formations import SCORE_TIE_MARGIN, score
 
 KEY_PLAYERS_SHOWN = 3
+RECENT_RESULTS_SHOWN = 5
 
 
 @dataclass(frozen=True)
@@ -24,8 +25,9 @@ class NextOpponent:
     explanation: str
     date: str | None
     opponent: str | None
+    competition: str | None
     venue: str | None
-    their_likely_formation: str | None
+    their_likely_formations: list[str]
     their_eleven: list[StarterEntry]
     their_key_players: list[PlayerSummary]
     attributes: list[GroupComparison]
@@ -34,9 +36,10 @@ class NextOpponent:
 
 NO_FIXTURE = "No upcoming first-team fixture is stored for your club in this save."
 EXPLANATION = (
-    "Their likely formation is the one their squad fits best; the attribute groups compare their best eleven's "
-    "outfield players with yours (positive means you are stronger). Recent results are their last first-team "
-    "matches in the save."
+    "Their likely formations are the ones their squad fits best, listing every formation within a whisker of the "
+    "best (the eleven shown is for the first); the save does not say which they actually use. The attribute groups "
+    "compare their best eleven's outfield players with yours (positive means you are stronger). Recent results are "
+    "their last five first-team matches in the save."
 )
 
 
@@ -50,8 +53,24 @@ def next_match(snapshot: Snapshot) -> Match | None:
     return min(upcoming, key=lambda match: match.day, default=None)
 
 
-def best_shape(squad: list[Player]) -> Lineup:
-    return max((pick_lineup(squad, formation) for formation in Formation), key=score)
+def likely_shapes(squad: list[Player]) -> list[Lineup]:
+    lineups = sorted((pick_lineup(squad, formation) for formation in Formation), key=score, reverse=True)
+    best = score(lineups[0])
+    return [lineup for lineup in lineups if round(best - score(lineup), 1) <= SCORE_TIE_MARGIN]
+
+
+def competition_label(match: Match, snapshot: Snapshot) -> str:
+    return (
+        "league"
+        if match.competition_id is not None and match.competition_id == club_league(snapshot)
+        else "cup or other competition"
+    )
+
+
+def venue(match: Match, home: bool) -> str:
+    if match.neutral:
+        return "neutral"
+    return "home" if home else "away"
 
 
 def result_line(match: Match, club_uid: int) -> str:
@@ -75,11 +94,12 @@ def compare(mine: dict[str, float], theirs: dict[str, float]) -> list[GroupCompa
 def next_opponent(snapshot: Snapshot, formation: Formation) -> NextOpponent:
     match = next_match(snapshot)
     if match is None:
-        return NextOpponent(NO_FIXTURE, None, None, None, None, [], [], [], [])
+        return NextOpponent(NO_FIXTURE, None, None, None, None, [], [], [], [], [])
     home = match.home_club_uid == snapshot.club_uid
     opponent_uid = match.away_club_uid if home else match.home_club_uid
     squad = [player for player in snapshot.players if player.club_uid == opponent_uid]
-    their_lineup = best_shape(squad) if squad else None
+    shapes = likely_shapes(squad) if squad else []
+    their_lineup = shapes[0] if shapes else None
     mine = outfield_profile(pick_lineup(available_squad(snapshot), formation).starters)
     theirs = outfield_profile(their_lineup.starters) if their_lineup else {}
     played = sorted(
@@ -91,12 +111,13 @@ def next_opponent(snapshot: Snapshot, formation: Formation) -> NextOpponent:
         explanation=EXPLANATION,
         date=match.day.isoformat(),
         opponent=match.away_club_name if home else match.home_club_name,
-        venue="home" if home else "away",
-        their_likely_formation=their_lineup.formation.value if their_lineup else None,
+        competition=competition_label(match, snapshot),
+        venue=venue(match, home),
+        their_likely_formations=[shape.formation.value for shape in shapes],
         their_eleven=starter_entries(their_lineup) if their_lineup else [],
         their_key_players=[
             summarize(p) for p in sorted(squad, key=lambda p: p.current_ability, reverse=True)[:KEY_PLAYERS_SHOWN]
         ],
         attributes=compare(mine, theirs),
-        their_recent_results=[result_line(m, opponent_uid) for m in played],
+        their_recent_results=[result_line(m, opponent_uid) for m in played[:RECENT_RESULTS_SHOWN]],
     )

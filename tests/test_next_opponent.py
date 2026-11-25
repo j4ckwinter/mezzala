@@ -17,7 +17,7 @@ def rival_squad(attributes):
 
 def match(day, home, away, played=False, home_goals=None, away_goals=None):
     names = {MY_CLUB: "Paisley", RIVAL: "Rival FC", OTHER: "Other FC"}
-    return Match(day, 33, home, names[home], away, names[away], played, home_goals, away_goals)
+    return Match(day, 33, home, names[home], away, names[away], played, home_goals, away_goals, False)
 
 
 def test_the_next_opponent_is_analysed(mezzala):
@@ -46,3 +46,41 @@ def test_fixtures_survive_a_restart(mezzala):
     app = mezzala(snapshot(eleven(), matches=(match(date(2026, 8, 8), MY_CLUB, RIVAL),)))
     app.call("snapshot")
     assert app.another_server().result("next_opponent")["opponent"] == "Rival FC"
+
+
+def test_a_neutral_cup_tie_is_labelled_and_the_next_unplayed_match_on_the_save_date_counts(mezzala):
+    cup = Match(date(2026, 8, 2), 666, MY_CLUB, "Paisley", RIVAL, "Rival FC", False, None, None, True)
+    played_today = match(date(2026, 8, 2), MY_CLUB, OTHER, played=True, home_goals=1, away_goals=1)
+    elsewhere = match(date(2026, 8, 2), RIVAL, OTHER)
+    squad = [*eleven(), *rival_squad({})]
+    result = mezzala(snapshot(squad, game_date=date(2026, 8, 2), matches=(played_today, elsewhere, cup))).result(
+        "next_opponent"
+    )
+    assert (result["opponent"], result["venue"], result["competition"]) == (
+        "Rival FC",
+        "neutral",
+        "cup or other competition",
+    )
+
+
+def test_recent_results_are_the_last_five_and_away_results_read_from_their_side(mezzala):
+    fixtures = [match(date(2026, 8, 20), MY_CLUB, RIVAL)]
+    fixtures += [
+        match(date(2026, 7, day), OTHER, RIVAL, played=True, home_goals=1, away_goals=2) for day in range(1, 8)
+    ]
+    result = mezzala(
+        snapshot([*eleven(), *rival_squad({})], game_date=date(2026, 8, 1), matches=tuple(fixtures))
+    ).result("next_opponent")
+    assert result["their_recent_results"][0] == "2026-07-07 W 2-1 at Other FC"
+    assert len(result["their_recent_results"]) == 5
+
+
+def test_formations_their_squad_fits_equally_well_are_all_listed(mezzala):
+    fixtures = (match(date(2026, 8, 8), MY_CLUB, RIVAL),)
+    squad = [
+        *eleven(),
+        *rival_squad({}),
+        player("Rival AM", club=RIVAL, club_name="Rival FC", positions=("amc",), ca=115),
+    ]
+    result = mezzala(snapshot(squad, matches=fixtures)).result("next_opponent")
+    assert len(result["their_likely_formations"]) >= 2

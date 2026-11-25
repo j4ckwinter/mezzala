@@ -56,14 +56,14 @@ def optional_text(day: date | None) -> str | None:
 def encode_match(match: Match) -> list[Any]:
     return [
         match.day.isoformat(), match.competition_id, match.home_club_uid, match.home_club_name, match.away_club_uid,
-        match.away_club_name, match.played, match.home_goals, match.away_goals,
+        match.away_club_name, match.played, match.home_goals, match.away_goals, match.neutral,
     ]  # fmt: skip
 
 
 def decode_match(stored: list[Any]) -> Match:
-    day, competition, home_uid, home_name, away_uid, away_name, played, home_goals, away_goals = stored
+    day, competition, home_uid, home_name, away_uid, away_name, played, home_goals, away_goals, *rest = stored
     return Match(date.fromisoformat(day), competition, home_uid, home_name, away_uid, away_name, played, home_goals,
-                 away_goals)  # fmt: skip
+                 away_goals, bool(rest[0]) if rest else False)  # fmt: skip
 
 
 def encode_vacancy(vacancy: Vacancy) -> list[Any]:
@@ -97,7 +97,7 @@ def encode_player(player: Player) -> list[Any]:
 
 ORIGINAL_FIELDS = 19
 FACTS_ADDED_LATER: list[Any] = [None, None, None, None, None, [], None]
-CURRENT_FORMAT = 6
+CURRENT_FORMAT = 7
 COLUMNS_ADDED_LATER = {
     "club_nation_id": "INTEGER",
     "format": "INTEGER NOT NULL DEFAULT 1",
