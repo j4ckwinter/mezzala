@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from mezzala.core.availability import absence
+from mezzala.core.availability import absence, possible_ban
 from mezzala.core.formations import Formation
 from mezzala.core.lineup import pick_lineup
 from mezzala.core.players import Player, Snapshot
@@ -25,6 +25,7 @@ class FitnessReport:
     formation: str
     explanation: str
     unavailable: list[str]
+    possible_bans: list[str]
     injury_risks_in_the_eleven: list[FitnessEntry]
     low_condition: list[FitnessEntry]
     low_match_sharpness: list[FitnessEntry]
@@ -33,7 +34,9 @@ class FitnessReport:
 EXPLANATION = (
     f"Condition below {LOW_CONDITION_BELOW}% raises the chance of injury; match sharpness below "
     f"{LOW_SHARPNESS_BELOW}% means a player needs games. Injury risks are starters in the best eleven who are prone "
-    f"to injury or have had {RECENT_INJURIES_FOR_RISK} or more injuries in the save's last two years."
+    f"to injury or have had {RECENT_INJURIES_FOR_RISK} or more injuries in the save's last two years. The save "
+    "keeps bans the game has stopped showing and does not name their competitions, so bans are only possible: "
+    "check them in the game."
 )
 
 
@@ -59,6 +62,7 @@ def fitness(snapshot: Snapshot, formation: Formation, view: View) -> FitnessRepo
         formation.value,
         EXPLANATION,
         [missing for player in squad if (missing := absence(player, snapshot.game_date)) is not None],
+        [ban for player in squad if (ban := possible_ban(player)) is not None],
         risks,
         below(squad, lambda player: player.condition, LOW_CONDITION_BELOW),
         below(squad, lambda player: player.match_sharpness, LOW_SHARPNESS_BELOW),

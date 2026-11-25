@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import date
 
-from mezzala.core.availability import absence, injured_on
+from mezzala.core.availability import absence, injured_on, possible_ban
 from mezzala.core.formations import Formation
 from mezzala.core.leagues import club_league
 from mezzala.core.lineup import Lineup, StarterEntry, pick_lineup, starter_entries
@@ -46,7 +46,8 @@ EXPLANATION = (
     "Their likely formations are the ones their squad fits best, listing every formation within a whisker of the "
     "best (the eleven shown is for the first); the save does not say which they actually use. The attribute groups "
     "compare their best eleven's outfield players with yours (positive means you are stronger). Players injured on "
-    "the day are left out of both elevens; bans are listed but may only cover some competitions. Recent results "
+    "the day are left out of both elevens. Bans are listed as possible, since the save keeps bans the game no "
+    "longer shows and does not name their competitions. Recent results "
     "are their last five first-team matches in the save."
 )
 
@@ -119,7 +120,8 @@ def compare(mine: dict[str, float], theirs: dict[str, float]) -> list[GroupCompa
 
 
 def missing(players: list[Player], day: date) -> list[str]:
-    return [found for player in players if (found := absence(player, day)) is not None]
+    injured = [found for player in players if (found := absence(player, day)) is not None]
+    return injured + [found for player in players if (found := possible_ban(player)) is not None]
 
 
 def next_opponent(snapshot: Snapshot, formation: Formation, view: View) -> NextOpponent:

@@ -29,7 +29,7 @@ def test_a_profile_groups_attributes_and_shows_what_the_save_knows_about_him(mez
     assert profile["traits"] == ["tries killer balls often"]
     assert profile["fitness"] == {
         "condition_percent": 93, "match_sharpness_percent": 55, "injury": None, "injured_until": None,
-        "banned_from": ["Scottish Cup"], "injuries_in_the_last_two_years": ["2025-11-02: moderate, in match"],
+        "may_be_banned_from": ["Scottish Cup"], "injuries_in_the_last_two_years": ["2025-11-02: moderate, in match"],
     }  # fmt: skip
     assert profile["season"]["goals"] == 3 and profile["season"]["average_rating"] == 6.9
     scores = [fit["key_attribute_score"] for fit in profile["positions"]]

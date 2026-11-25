@@ -259,9 +259,10 @@ def test_a_ban_names_its_competition_or_says_how_wide_it_is():
         return cast(PlayerSuspension, SimpleNamespace(scope=scope, competition_name=name))
 
     assert ban_label(ban(SuspensionScope.COMPETITION, "Scottish Cup")) == "Scottish Cup"
-    assert ban_label(ban(SuspensionScope.NATION)) == "domestic competitions"
+    assert ban_label(ban(SuspensionScope.NATION)) == "some competitions in one country"
     assert ban_label(ban(SuspensionScope.EUROPE)) == "European competitions"
-    assert ban_label(ban(SuspensionScope.COMPETITION)) == "unknown competitions"
+    assert ban_label(ban(SuspensionScope.COMPETITION)) == "one competition"
+    assert ban_label(ban(SuspensionScope.UNKNOWN)) == "unknown competitions"
 
 
 def test_condition_and_sharpness_read_as_percentages():

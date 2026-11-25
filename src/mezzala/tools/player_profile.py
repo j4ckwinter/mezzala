@@ -32,7 +32,7 @@ class Fitness:
     match_sharpness_percent: int | None
     injury: str | None
     injured_until: str | None
-    banned_from: list[str]
+    may_be_banned_from: list[str]
     injuries_in_the_last_two_years: list[str]
 
 

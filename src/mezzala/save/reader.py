@@ -68,7 +68,8 @@ VACANCY_ROLE_FIELD = "role"
 UPCOMING_OPPONENTS_KEPT = 3
 RECENT_RESULTS_KEPT = 5
 RAW_PERCENT_SCALE = 100
-WHOLE_NATION_BAN = "domestic competitions"
+COMPETITION_BAN = "one competition"
+NATION_BAN = "some competitions in one country"
 EUROPEAN_BAN = "European competitions"
 UNKNOWN_BAN = "unknown competitions"
 
@@ -125,9 +126,9 @@ def named_traits(player: fmsave.Player) -> tuple[str, ...]:
 def ban_label(ban: fmsave.PlayerSuspension) -> str:
     match ban.scope:
         case fmsave.SuspensionScope.COMPETITION:
-            return ban.competition_name or UNKNOWN_BAN
+            return ban.competition_name or COMPETITION_BAN
         case fmsave.SuspensionScope.NATION:
-            return WHOLE_NATION_BAN
+            return NATION_BAN
         case fmsave.SuspensionScope.EUROPE:
             return EUROPEAN_BAN
         case fmsave.SuspensionScope.UNKNOWN:

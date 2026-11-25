@@ -6,12 +6,13 @@ from factory import SEASON_START, eleven, mine, snapshot
 from mezzala.core.players import Injury
 
 
-def test_injured_and_banned_players_are_listed_as_unavailable(mezzala):
+def test_injured_players_are_unavailable_and_bans_are_only_possible(mezzala):
     hurt = mine("Hurt", injury="Twisted Ankle", injured_until=date(2026, 7, 10))
     healed = mine("Healed", injury="Bruised Ribs", injured_until=date(2026, 6, 1))
     banned = mine("Banned", banned_from=("Scottish Cup",))
     result = mezzala(snapshot([*eleven(), hurt, healed, banned])).result("fitness")
-    assert result["unavailable"] == ["Hurt: Twisted Ankle, back 2026-07-10", "Banned: banned from Scottish Cup"]
+    assert result["unavailable"] == ["Hurt: Twisted Ankle, back 2026-07-10"]
+    assert result["possible_bans"] == ["Banned: may be banned from Scottish Cup"]
 
 
 def test_a_player_back_on_the_day_is_still_unavailable_that_day(mezzala):

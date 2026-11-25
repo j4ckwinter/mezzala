@@ -118,7 +118,10 @@ def test_injured_players_are_left_out_of_both_elevens_and_listed(mezzala):
     assert "Rival 10" not in [starter["name"] for starter in result["their_eleven"]]
     assert result["their_key_players"][0]["name"] == "Rival 9"
     assert result["their_missing"] == ["Rival 10: Broken Leg, back 2026-09-01"]
-    assert result["your_missing"] == ["Starter 5: Hamstring, back 2026-08-20", "Starter 6: banned from Premiership"]
+    assert result["your_missing"] == [
+        "Starter 5: Hamstring, back 2026-08-20",
+        "Starter 6: may be banned from Premiership",
+    ]
 
 
 def test_a_player_fit_again_by_match_day_is_not_missing(mezzala):

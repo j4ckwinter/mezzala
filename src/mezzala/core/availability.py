@@ -11,6 +11,10 @@ def absence(player: Player, day: date) -> str | None:
     if injured_on(player, day) and player.injured_until is not None:
         what = player.injury or "injured"
         return f"{player.name}: {what}, back {player.injured_until.isoformat()}"
-    if player.banned_from:
-        return f"{player.name}: banned from {', '.join(player.banned_from)}"
     return None
+
+
+def possible_ban(player: Player) -> str | None:
+    if not player.banned_from:
+        return None
+    return f"{player.name}: may be banned from {', '.join(player.banned_from)}"
