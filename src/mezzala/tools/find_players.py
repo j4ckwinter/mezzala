@@ -19,6 +19,7 @@ from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import Fit, PositionGroup, covers, fit, primary_group
 from mezzala.core.profile import position_score
 from mezzala.core.reach import within_reach
+from mezzala.core.roles import Role, Side, role_score
 from mezzala.core.squad import (
     belongs_to_club,
     contract_ends_within,
@@ -50,6 +51,7 @@ class SortBy(StrEnum):
     LOWEST_RELEASE_CLAUSE = "lowest release clause"
     YOUNGEST = "youngest"
     MOST_OVERPAID = "most overpaid"
+    ROLE_FIT = "role fit"
 
 
 @dataclass(frozen=True)
@@ -81,6 +83,8 @@ class PlayerSearch:
     sort_by: SortBy
     limit: int
     compact: bool
+    role: Role | None
+    side: Side | None
 
 
 @dataclass(frozen=True)
@@ -99,6 +103,7 @@ class FoundPlayer:
     above_league_level: Measure | None
     position: str
     position_attribute_score: float
+    role_score: float | None
     release_clause: str
     needs_no_work_permit: bool
 
@@ -269,8 +274,14 @@ def sort_key(sort_by: SortBy, search: PlayerSearch, measures: Measures) -> Calla
                 return missing_last(player.age, False)
             case SortBy.MOST_OVERPAID:
                 return missing_last(measures.wage_ratio(player), True)
+            case SortBy.ROLE_FIT:
+                return missing_last(role_fit(player, search), True)
 
     return key
+
+
+def role_fit(player: Player, search: PlayerSearch) -> float | None:
+    return None if search.role is None else role_score(player, search.role, search.side)
 
 
 def describe_ratio(ratio: float | None) -> str:
@@ -302,6 +313,7 @@ def found(player: Player, search: PlayerSearch, measures: Measures, view: View) 
         above_league_level=None if excess is None else measure_change(view, round(excess, 1)),
         position=group.value,
         position_attribute_score=position_score(player, group),
+        role_score=role_fit(player, search),
         release_clause="none" if clause is None else format_money(clause),
         needs_no_work_permit=needs_no_work_permit(player),
     )

@@ -268,3 +268,30 @@ def test_compact_returns_one_short_row_per_player_instead_of_the_full_entries(me
 def test_the_full_entries_are_the_default(mezzala):
     result = mezzala(snapshot([*eleven(), player("Full")])).result("find_players")
     assert result["compact_players"] == [] and result["players"][0]["player"]["name"] == "Full"
+
+
+INSIDE_FORWARD = {"dribbling": 16, "finishing": 16, "first_touch": 16, "technique": 16, "off_the_ball": 16,
+                  "acceleration": 16, "agility": 16}  # fmt: skip
+
+
+def test_role_adds_a_role_score_and_role_fit_sorts_by_it(mezzala):
+    squad = [*eleven(), player("Ordinary", positions=("aml",)),
+             player("Inside Forward", positions=("aml",), attributes=INSIDE_FORWARD)]  # fmt: skip
+    result = mezzala(snapshot(squad)).result("find_players", role="IF", sort_by="role fit")
+    assert [found["player"]["name"] for found in result["players"]] == ["Inside Forward", "Ordinary"]
+    assert result["players"][0]["role_score"] > result["players"][1]["role_score"]
+
+
+def test_side_favours_the_foot_the_role_wants_there(mezzala):
+    righty = player("Righty", positions=("aml",), attributes=INSIDE_FORWARD, left_foot=5, right_foot=20)
+    lefty = player("Lefty", positions=("aml",), attributes=INSIDE_FORWARD, left_foot=20, right_foot=5)
+    left = mezzala(snapshot([*eleven(), lefty, righty])).result(
+        "find_players", role="inside forward", side="left", sort_by="role fit"
+    )
+    assert [found["player"]["name"] for found in left["players"]] == ["Righty", "Lefty"]
+
+
+def test_role_fit_needs_a_role_and_a_role_mezzala_knows(mezzala):
+    app = mezzala(snapshot(eleven()))
+    assert "needs a role" in app.call("find_players", sort_by="role fit").text
+    assert "is not a role mezzala knows" in app.call("find_players", role="luxury player").text

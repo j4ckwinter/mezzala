@@ -15,7 +15,7 @@ from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import ACCOMPLISHED_POSITION_RATING, NATURAL_POSITION_RATING, PositionGroup
 from mezzala.core.reach import REPUTATION_REACH
 from mezzala.core.rejections import without_rejected
-from mezzala.core.roles import UnknownRole
+from mezzala.core.roles import Side, UnknownRole, find_role
 from mezzala.core.shapes import BadSlot, parse_slot
 from mezzala.core.squad import belongs_to_club, owned_players, plays_for_club, squad_level
 from mezzala.core.view import View, shows_hidden_information
@@ -135,7 +135,10 @@ contract squad status says their club does not count on them (surplus, fringe, b
 to be listed or loaned.
 
 Output: compact returns compact_players, one short row each (name, age, club, nationality, positions, ability,
-potential, value, expected wage), instead of the full players list; use it for long searches."""
+potential, value, expected wage), instead of the full players list; use it for long searches.
+
+Roles: role (an FM role such as "inside forward" or "ball-playing centre-back") adds each player's role score out
+of 20 and allows sort "role fit"; side ("left" or "right") lets the score favour the foot the role wants there."""
 
 
 @dataclass(frozen=True)
@@ -435,6 +438,7 @@ ScopeChoice = Annotated[RiserScope, Field(description=one_of(RiserScope))]
 SearchScopeChoice = Annotated[SearchScope, Field(description=one_of(SearchScope))]
 SortChoice = Annotated[SortBy, Field(description=one_of(SortBy))]
 CheckScopeChoice = Annotated[CheckScope, Field(description=one_of(CheckScope))]
+SideChoice = Annotated[Side | None, Field(description=one_of(Side))]
 PerformanceScopeChoice = Annotated[PerformanceScope, Field(description=one_of(PerformanceScope))]
 PerformanceSortChoice = Annotated[PerformanceSort, Field(description=one_of(PerformanceSort))]
 
@@ -490,11 +494,19 @@ def create_server(
         within_reach: bool = True,
         limit: int = DEFAULT_LIMIT,
         compact: bool = False,
+        role: str | None = None,
+        side: SideChoice = None,
     ) -> FoundPlayersReport:
         current = read_current(career)
         refuse_hidden_filters(
             view, {"min_ca": min_ca is not None, "max_ca": max_ca is not None, "min_pa": min_pa is not None}
         )
+        if sort_by is SortBy.ROLE_FIT and role is None:
+            raise ToolError('Sorting by "role fit" needs a role, such as "inside forward".')
+        try:
+            chosen_role = find_role(role) if role is not None else None
+        except UnknownRole as error:
+            raise ToolError(str(error)) from error
         search = PlayerSearch(
             scope=scope,
             position=position,
@@ -523,6 +535,8 @@ def create_server(
             sort_by=sort_by,
             limit=limit,
             compact=compact,
+            role=chosen_role,
+            side=side,
         )
         return FoundPlayersReport(save_context(current), find_players(recruitable(current), search, view))
 
