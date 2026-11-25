@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import date
 
 from mezzala.core.players import Player, Snapshot, is_same_person
 from mezzala.core.summary import PlayerSummary, summarize
@@ -10,7 +11,7 @@ CLUBS_SHOWN = 10
 @dataclass(frozen=True)
 class ClubRegens:
     club: str
-    new_regens: int
+    promising_regens: int
     best_potential: int
     best: str
 
@@ -34,18 +35,25 @@ def is_unsigned(player: Player) -> bool:
     return player.is_free_agent or player.youth_contract is True
 
 
-def clubs_producing(regens: list[Player]) -> list[ClubRegens]:
+def clubs_producing(regens: list[Player], min_potential: int) -> list[ClubRegens]:
     by_club: dict[str, list[Player]] = {}
     for player in regens:
-        if player.club_name is not None:
+        if player.club_name is not None and player.potential_ability >= min_potential:
             by_club.setdefault(player.club_name, []).append(player)
     clubs = [
         ClubRegens(club, len(found), best.potential_ability, best.name)
         for club, found in by_club.items()
         if (best := max(found, key=lambda player: player.potential_ability))
     ]
-    clubs.sort(key=lambda club: (club.best_potential, club.new_regens), reverse=True)
+    clubs.sort(key=lambda club: (club.promising_regens, club.best_potential), reverse=True)
     return clubs[:CLUBS_SHOWN]
+
+
+def was_youth_at(player: Player, day: date) -> bool:
+    if player.birth_date is None:
+        return player.age <= REGEN_MAX_AGE
+    youngest_adult_birthday = date(day.year - REGEN_MAX_AGE - 1, day.month, min(day.day, 28))
+    return player.birth_date > youngest_adult_birthday
 
 
 def regen_intake(
@@ -57,7 +65,8 @@ def regen_intake(
     new = [
         player
         for player in current.players
-        if player.age <= REGEN_MAX_AGE and not (player.uid in before and is_same_person(before[player.uid], player))
+        if was_youth_at(player, baseline.game_date)
+        and not (player.uid in before and is_same_person(before[player.uid], player))
     ]
     new.sort(key=lambda player: (player.potential_ability, player.current_ability), reverse=True)
     shown = [
@@ -65,5 +74,11 @@ def regen_intake(
         for player in new
         if player.potential_ability >= min_potential and (not unsigned_only or is_unsigned(player))
     ][:limit]
-    explanation = f"Players aged {REGEN_MAX_AGE} or under who were not in the save on {baseline.game_date.isoformat()}."
-    return RegenIntake(baseline.game_date.isoformat(), explanation, len(new), shown, clubs_producing(new))
+    explanation = (
+        f"Players who were {REGEN_MAX_AGE} or under on {baseline.game_date.isoformat()} and were not in the save then. "
+        f"Clubs are ranked by how many of them with potential of at least {min_potential} they hold now (the save "
+        "does not record where a player came through)."
+    )
+    return RegenIntake(
+        baseline.game_date.isoformat(), explanation, len(new), shown, clubs_producing(new, min_potential)
+    )

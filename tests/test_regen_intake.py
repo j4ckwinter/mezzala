@@ -44,8 +44,8 @@ def test_clubs_whose_intakes_produced_the_best_regens_are_listed(mezzala):
               player("Gem B", age=15, pa=150, club=2, club_name="Academy FC"),
               player("Lone", age=15, pa=160, club=3, club_name="Elsewhere FC")]  # fmt: skip
     app.play_to(snapshot([*squad, *regens], game_date=date(2027, 3, 20)))
-    clubs = app.result("regen_intake")["by_club"]
-    assert [(c["club"], c["new_regens"], c["best"]) for c in clubs] == [
+    clubs = app.result("regen_intake", min_pa=140)["by_club"]
+    assert [(c["club"], c["promising_regens"], c["best"]) for c in clubs] == [
         ("Academy FC", 2, "Gem A"),
         ("Elsewhere FC", 1, "Lone"),
     ]
@@ -73,3 +73,24 @@ def test_since_last_save_compares_with_the_previous_snapshot(mezzala):
     app.play_to(snapshot([*squad, early, late], game_date=date(2027, 4, 20)))
     assert [r["name"] for r in app.result("regen_intake", since_last_save=True)["regens"]] == ["Late Regen"]
     assert sorted(r["name"] for r in app.result("regen_intake")["regens"]) == ["Early Regen", "Late Regen"]
+
+
+def test_a_regen_who_has_since_turned_eighteen_still_counts(mezzala):
+    squad = eleven()
+    app = mezzala(snapshot(squad))
+    app.call("snapshot")
+    regen = player("Grown Up", age=15, pa=190, birth_date=date(2011, 1, 1))
+    app.play_to(snapshot([*squad, regen], game_date=date(2027, 3, 20)))
+    app.play_to(snapshot([*squad, replace(regen, age=18)], game_date=date(2029, 3, 20)))
+    result = app.result("regen_intake")
+    assert [r["name"] for r in result["regens"]] == ["Grown Up"]
+
+
+def test_clubs_are_ranked_by_how_many_promising_regens_they_produce(mezzala):
+    squad = eleven()
+    app = mezzala(snapshot(squad))
+    app.call("snapshot")
+    regens = [player("One Off Star", age=15, pa=195, club=3, club_name="Lucky FC"),
+              *[player(f"Factory {n}", age=15, pa=150, club=2, club_name="Factory FC") for n in range(3)]]  # fmt: skip
+    app.play_to(snapshot([*squad, *regens], game_date=date(2027, 3, 20)))
+    assert [c["club"] for c in app.result("regen_intake", min_pa=140)["by_club"]] == ["Factory FC", "Lucky FC"]
