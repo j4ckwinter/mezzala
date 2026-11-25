@@ -1,7 +1,7 @@
 from statistics import correlation
 
 from mezzala.core.players import Player
-from mezzala.core.positions import is_goalkeeper
+from mezzala.core.positions import PositionGroup, is_goalkeeper
 
 TECHNICAL_ATTRIBUTES = (
     "corners", "crossing", "dribbling", "finishing", "first_touch", "free_kick_taking", "heading",
@@ -43,3 +43,43 @@ def attribute_label(name: str) -> str:
 def strongest_attributes(player: Player, count: int) -> tuple[str, ...]:
     names = sorted(visible_profile(player), key=lambda name: player.attributes[name], reverse=True)
     return tuple(attribute_label(name) for name in names[:count])
+
+
+KEY_ATTRIBUTES: dict[PositionGroup, tuple[str, ...]] = {
+    PositionGroup.GOALKEEPER: (
+        "handling", "reflexes", "one_on_ones", "aerial_reach", "command_of_area", "positioning", "concentration",
+        "agility",
+    ),
+    PositionGroup.CENTRE_BACK: (
+        "marking", "tackling", "heading", "positioning", "jumping_reach", "strength", "anticipation", "concentration",
+    ),
+    PositionGroup.LEFT_BACK: (
+        "tackling", "marking", "crossing", "pace", "acceleration", "stamina", "work_rate", "positioning",
+    ),
+    PositionGroup.RIGHT_BACK: (
+        "tackling", "marking", "crossing", "pace", "acceleration", "stamina", "work_rate", "positioning",
+    ),
+    PositionGroup.DEFENSIVE_MIDFIELD: (
+        "tackling", "positioning", "anticipation", "passing", "decisions", "teamwork", "work_rate", "concentration",
+    ),
+    PositionGroup.CENTRAL_MIDFIELD: (
+        "passing", "first_touch", "vision", "decisions", "teamwork", "stamina", "work_rate", "technique",
+    ),
+    PositionGroup.ATTACKING_MIDFIELD: (
+        "passing", "vision", "first_touch", "technique", "flair", "off_the_ball", "decisions", "dribbling",
+    ),
+    PositionGroup.LEFT_WING: (
+        "crossing", "dribbling", "pace", "acceleration", "technique", "flair", "off_the_ball", "agility",
+    ),
+    PositionGroup.RIGHT_WING: (
+        "crossing", "dribbling", "pace", "acceleration", "technique", "flair", "off_the_ball", "agility",
+    ),
+    PositionGroup.STRIKER: (
+        "finishing", "off_the_ball", "composure", "first_touch", "anticipation", "pace", "acceleration", "heading",
+    ),
+}  # fmt: skip
+
+
+def position_score(player: Player, group: PositionGroup) -> float:
+    names = KEY_ATTRIBUTES[group]
+    return round(sum(player.attributes[name] for name in names) / len(names), 1)

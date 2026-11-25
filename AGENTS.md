@@ -29,9 +29,9 @@ Run all four checks before committing.
 | Choosing a starting eleven for a formation | `src/mezzala/core/lineup.py` |
 | The assignment algorithm the eleven uses (Hungarian, minimum cost) | `src/mezzala/core/assignment.py` |
 | Which players a club can realistically sign | `src/mezzala/core/reach.py` |
-| Attribute profiles and how alike two players are | `src/mezzala/core/profile.py` |
+| Attribute profiles, how alike two players are, and the key attributes for each position | `src/mezzala/core/profile.py` |
 | Projected and observed growth | `src/mezzala/core/growth.py` |
-| Derived numbers: comparisons with similar players | `src/mezzala/core/metrics.py` |
+| Derived numbers: comparisons with similar players, league level, which release clause applies | `src/mezzala/core/metrics.py` |
 | Money units and formatting | `src/mezzala/core/money.py` |
 | How a player is shown in answers | `src/mezzala/core/summary.py` |
 | Finding a player by name | `src/mezzala/core/lookup.py` |

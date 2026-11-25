@@ -18,6 +18,7 @@ from mezzala.save.career import Career, Current
 from mezzala.save.reader import UnreadableSave
 from mezzala.tools.compare_formations import FormationComparison, compare_formations
 from mezzala.tools.contract_watch import ContractWatch, contract_watch
+from mezzala.tools.find_players import FoundPlayers, PlayerSearch, SearchScope, SortBy, find_players
 from mezzala.tools.regen_intake import RegenIntake, regen_intake
 from mezzala.tools.replacement import Limits, Replacements, find_replacements
 from mezzala.tools.risers import RiserFilters, Risers, RiserScope, find_risers
@@ -64,6 +65,12 @@ class SnapshotReport:
 class SquadReport:
     context: SaveContext
     result: SquadList
+
+
+@dataclass(frozen=True)
+class FoundPlayersReport:
+    context: SaveContext
+    result: FoundPlayers
 
 
 @dataclass(frozen=True)
@@ -158,6 +165,8 @@ FormationChoice = Annotated[Formation, Field(description=one_of(Formation))]
 FormationChoices = Annotated[list[Formation] | None, Field(description=f"Defaults to all. {one_of(Formation)}")]
 PositionChoice = Annotated[PositionGroup | None, Field(description=one_of(PositionGroup))]
 ScopeChoice = Annotated[RiserScope, Field(description=one_of(RiserScope))]
+SearchScopeChoice = Annotated[SearchScope, Field(description=one_of(SearchScope))]
+SortChoice = Annotated[SortBy, Field(description=one_of(SortBy))]
 
 
 def create_server(career: Career) -> MCPServer:
@@ -176,6 +185,46 @@ def create_server(career: Career) -> MCPServer:
         positions; plus the club's own players who are out on loan."""
         current = read_current(career)
         return SquadReport(save_context(current), squad_list(current.snapshot))
+
+    @server.tool(name="find_players")
+    def find_players_tool(
+        sort_by: SortChoice = SortBy.CURRENT_ABILITY,
+        scope: SearchScopeChoice = SearchScope.ELSEWHERE,
+        position: PositionChoice = None,
+        min_age: int | None = None,
+        max_age: int | None = None,
+        min_ca: int | None = None,
+        max_ca: int | None = None,
+        min_pa: int | None = None,
+        max_fee: float | None = None,
+        max_wage: float | None = None,
+        free_agents_only: bool = False,
+        contract_ending_within_months: int | None = None,
+        max_release_clause: float | None = None,
+        youth_contract_only: bool = False,
+        reserves_only: bool = False,
+        bigger_clubs_only: bool = False,
+        within_reach: bool = True,
+        limit: int = DEFAULT_LIMIT,
+    ) -> FoundPlayersReport:
+        """Search every player in the save with filters and a sort. Money is in pounds (max_wage weekly).
+
+        Sorts: "value for money" puts players valued lowest against others of similar CA and age first
+        (undervalued, cheap to flip); "above league level" puts players furthest above their league's
+        first-team median CA first (too good for their division); "position attributes" ranks the key
+        attributes for the position (combine with max_ca to find attributes ahead of ability); "most overpaid"
+        ranks wages against similar players. reserves_only keeps players outside their club's first team;
+        bigger_clubs_only keeps clubs with a higher reputation than yours. within_reach keeps players whose
+        reputation makes a move realistic; set it false for questions like the best players in the world.
+        scope "own" searches your club, "everyone" the whole save."""
+        current = read_current(career)
+        search = PlayerSearch(
+            scope, position, min_age, max_age, min_ca, max_ca, min_pa, optional_stored(max_fee),
+            optional_stored(max_wage), free_agents_only, contract_ending_within_months,
+            optional_stored(max_release_clause), youth_contract_only, reserves_only, bigger_clubs_only,
+            within_reach, sort_by, limit,
+        )  # fmt: skip
+        return FoundPlayersReport(save_context(current), find_players(current.snapshot, search))
 
     @server.tool(name="compare_formations")
     def compare_formations_tool(formations: FormationChoices = None) -> FormationReport:
