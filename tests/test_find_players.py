@@ -199,3 +199,13 @@ def test_an_expired_domestic_release_clause_no_longer_counts(mezzala):
 def test_free_agents_pass_a_wage_cap_because_their_wage_is_still_to_agree(mezzala):
     squad = [player("Free", club=None, value=None, wage=None), player("Too Dear", wage=9_000)]
     assert names(mezzala(snapshot(squad)), max_wage=5_000) == ["Free"]
+
+
+def test_low_valued_peers_still_count_when_judging_value(mezzala):
+    squad = [
+        *peers(13, ca=105, age=25, value=40_000),
+        *peers(14, ca=105, age=25, value=120_000),
+        player("Middling", ca=105, age=25, value=60_000),
+    ]
+    found = mezzala(snapshot(squad)).result("find_players", sort_by="value for money", limit=30)["players"]
+    assert {f["player"]["name"]: f["value_vs_similar_players"] for f in found}["Middling"] == "0.67x"

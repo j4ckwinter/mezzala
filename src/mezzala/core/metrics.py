@@ -50,6 +50,10 @@ class PeerMedians:
 
 
 def transfer_value(player: Player) -> int | None:
+    return player.value
+
+
+def market_value(player: Player) -> int | None:
     if player.value is None or player.value < MIN_MARKET_VALUE:
         return None
     return player.value

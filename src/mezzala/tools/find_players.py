@@ -7,6 +7,7 @@ from mezzala.core.metrics import (
     PeerMedians,
     above_league,
     league_levels,
+    market_value,
     release_clause_for,
     transfer_value,
     weekly_wage,
@@ -92,6 +93,9 @@ class Measures:
     values: PeerMedians
     wages: PeerMedians
     leagues: dict[int, float]
+
+    def value_ratio(self, player: Player) -> float | None:
+        return self.values.ratio_of(market_value(player), player)
 
     def wage_ratio(self, player: Player) -> float | None:
         return self.wages.ratio_of(wage_for(player, self.snapshot), player)
@@ -185,7 +189,7 @@ def sort_key(sort_by: SortBy, search: PlayerSearch, measures: Measures) -> Calla
             case SortBy.HEADROOM:
                 return missing_last(player.headroom, True)
             case SortBy.VALUE_FOR_MONEY:
-                return missing_last(measures.values.ratio(player), False)
+                return missing_last(measures.value_ratio(player), False)
             case SortBy.ABOVE_LEAGUE:
                 return missing_last(above_league(player, measures.leagues), True)
             case SortBy.POSITION_ATTRIBUTES:
@@ -219,7 +223,7 @@ def found(player: Player, search: PlayerSearch, measures: Measures) -> FoundPlay
     return FoundPlayer(
         player=summarize(player),
         team=team_label(player),
-        value_vs_similar_players=describe_ratio(measures.values.ratio(player)),
+        value_vs_similar_players=describe_ratio(measures.value_ratio(player)),
         wage_vs_similar_players=describe_ratio(measures.wage_ratio(player)),
         above_league_level=None if excess is None else round(excess, 1),
         position=group.value,

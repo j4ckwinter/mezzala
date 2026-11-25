@@ -210,7 +210,7 @@ def create_server(career: Career) -> MCPServer:
     ) -> FoundPlayersReport:
         """Search every player in the save with filters and a sort. Money is in pounds (max_wage weekly).
 
-        Sorts: "value for money" puts players valued lowest against others of similar CA and age first
+        Sorts: "value for money" puts players valued lowest against others of similar CA, age and potential first
         (undervalued, cheap to flip); "above league level" puts players furthest above their league's
         first-team median CA first (too good for their division); "position attributes" ranks the key
         attributes for the position (combine with max_ca to find attributes ahead of ability); "most overpaid"
