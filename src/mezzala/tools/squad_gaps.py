@@ -2,9 +2,9 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from mezzala.core.formations import PLAYERS_PER_STARTING_PLACE, STARTERS, Formation
-from mezzala.core.lineup import StarterEntry, pick_lineup, starter_entries
+from mezzala.core.lineup import ACCOMPLISHED_PENALTY, StarterEntry, level_in, pick_lineup, starter_entries
 from mezzala.core.players import Player, Snapshot
-from mezzala.core.positions import PositionGroup, fit
+from mezzala.core.positions import Fit, PositionGroup, fit
 from mezzala.core.squad import available_squad, depth_chart, leaves_within
 from mezzala.core.view import Measure, Rating, View, ability_text, measure, rating, rating_text
 
@@ -33,6 +33,7 @@ class IssueKind(StrEnum):
     LEAVING = "leaving"
     WEAK = "weak"
     NO_SUCCESSOR = "no successor"
+    OUT_OF_POSITION = "out of position"
 
 
 @dataclass(frozen=True)
@@ -92,8 +93,16 @@ def group_issues(
         if leaving is not None:
             how = "loan ends" if starter.on_loan else "contract ends"
             issues.append((IssueKind.LEAVING, f"{starter.name}'s {how} {leaving.isoformat()}"))
-    weakest = min(starters, key=lambda player: player.current_ability)
-    if weakest.current_ability < eleven_median - WEAK_STARTER_MARGIN:
+    for starter in starters:
+        if fit(starter, group) is not Fit.NATURAL:
+            issues.append(
+                (
+                    IssueKind.OUT_OF_POSITION,
+                    f"{starter.name} is not a natural here and plays {ACCOMPLISHED_PENALTY} below his level",
+                )
+            )
+    weakest = min(starters, key=lambda player: level_in(player, group))
+    if level_in(weakest, group) < eleven_median - WEAK_STARTER_MARGIN:
         detail = f"{weakest.name} ({ability_text(view, weakest.current_ability)}) starts here, well below the XI median"
         issues.append((IssueKind.WEAK, f"{detail} of {rating_text(view, eleven_median)}"))
     successors = [

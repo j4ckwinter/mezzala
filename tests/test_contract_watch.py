@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import date
 
 from factory import eleven, mine, player, snapshot
@@ -51,3 +52,13 @@ def test_targets_are_measured_against_the_weakest_starter_in_a_position(mezzala)
     assert [(t["player"]["name"], t["improves_on"]) for t in report["free_agents"]] == [
         ("Free Defender", "Weak Centre Back (90)")
     ]
+
+
+def test_a_free_agent_who_beats_an_out_of_position_starters_level_is_a_target(mezzala):
+    squad = [p for p in eleven() if p.position_ratings["amr"] != 20]
+    ramos = mine("Ramos", positions=("aml",), ca=100)
+    squad.append(replace(ramos, position_ratings={**ramos.position_ratings, "amr": 16}))
+    squad.append(player("Free Winger", positions=("amr",), ca=98, club=None, value=None))
+    free = mezzala(snapshot(squad)).result("contract_watch")["free_agents"]
+    assert [(target["player"]["name"], target["improves_on"]) for target in free] == [
+        ("Free Winger", "Ramos (100, out of position)")]  # fmt: skip

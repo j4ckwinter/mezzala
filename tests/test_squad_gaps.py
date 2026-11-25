@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import date
 
 from factory import eleven, mine, snapshot
@@ -110,3 +111,12 @@ def test_each_issue_is_labelled_with_its_kind(mezzala):
     squad.append(mine("Old Keeper", positions=("gk",), age=31, ca=150, contract_end=date(2027, 5, 31)))
     keeper = {p["group"]: p for p in mezzala(snapshot(squad)).result("squad_gaps")["positions"]}["goalkeeper"]
     assert keeper["issue_kinds"] == ["ageing", "leaving", "no successor"]
+
+
+def test_a_starter_who_is_not_a_natural_in_his_place_is_flagged(mezzala):
+    squad = [p for p in eleven() if p.position_ratings["amr"] != 20]
+    ramos = mine("Ramos", positions=("aml",), ca=100)
+    squad.append(replace(ramos, position_ratings={**ramos.position_ratings, "amr": 16}))
+    right = next(p for p in mezzala(snapshot(squad)).result("squad_gaps")["positions"] if p["group"] == "right wing")
+    assert "out of position" in right["issue_kinds"]
+    assert "out of position: Ramos is not a natural here and plays 5 below his level" in right["issues"]

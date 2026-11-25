@@ -1,13 +1,13 @@
 from dataclasses import dataclass
 
 from mezzala.core.formations import Formation
-from mezzala.core.lineup import weakest_starters
+from mezzala.core.lineup import Bar, describe_bar, level_in, weakest_starters
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import PositionGroup, covers
 from mezzala.core.reach import within_reach
 from mezzala.core.squad import available_squad, is_outside_club, leaves_within, owned_players
 from mezzala.core.summary import PlayerSummary, summarize
-from mezzala.core.view import View, rating
+from mezzala.core.view import View
 
 KEY_PLAYER_MARGIN = 5
 
@@ -35,42 +35,34 @@ class ContractWatch:
     pre_contract_targets: list[Target]
 
 
-def own_advice(player: Player, snapshot: Snapshot, bars: dict[PositionGroup, Player | None]) -> str:
-    best_bar = max(
-        (bar.current_ability for group, bar in bars.items() if bar is not None and covers(player, group)),
-        default=None,
-    )
+def own_advice(player: Player, snapshot: Snapshot, bars: dict[PositionGroup, Bar | None]) -> str:
+    margins = [level_in(player, group) - bar.level for group, bar in bars.items() if bar and covers(player, group)]
     if player.on_loan and player.club_uid == snapshot.club_uid:
         return "loan player returning to his parent club; replace or extend the loan"
-    if best_bar is not None and player.current_ability >= best_bar - KEY_PLAYER_MARGIN:
+    if margins and max(margins) >= -KEY_PLAYER_MARGIN:
         return "first-team level: renew, or sell before he can leave for free"
     return "squad player: let him run down or sell for what you can get"
 
 
 def best_improvement(
-    player: Player, bars: dict[PositionGroup, Player | None], view: View
+    player: Player, bars: dict[PositionGroup, Bar | None], view: View
 ) -> tuple[PositionGroup, str] | None:
     options: list[tuple[int, PositionGroup, str]] = []
     for group, bar in bars.items():
         if not covers(player, group):
             continue
+        level = level_in(player, group)
         if bar is None:
-            options.append((player.current_ability, group, "nobody (a gap)"))
-        elif player.current_ability > bar.current_ability:
-            options.append(
-                (
-                    player.current_ability - bar.current_ability,
-                    group,
-                    f"{bar.name} ({rating(view, bar.current_ability)})",
-                )
-            )
+            options.append((level, group, "nobody (a gap)"))
+        elif level > bar.level:
+            options.append((level - bar.level, group, describe_bar(bar, view)))
     if not options:
         return None
     _, group, improves_on = max(options, key=lambda option: option[0])
     return group, improves_on
 
 
-def target(player: Player, bars: dict[PositionGroup, Player | None], why: str, view: View) -> Target | None:
+def target(player: Player, bars: dict[PositionGroup, Bar | None], why: str, view: View) -> Target | None:
     improvement = best_improvement(player, bars, view)
     if improvement is None:
         return None

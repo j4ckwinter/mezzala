@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 from factory import eleven, mine, player, snapshot
 
 
@@ -167,3 +169,27 @@ def test_a_wider_domestic_band_is_tried_before_clubs_abroad(mezzala):
     squad.append(player("Free Striker", positions=("stc",), ca=120, age=27, club=None, value=None, wage=None))
     striker = picks(mezzala(snapshot(squad)), weekly_wage_budget=5_000)["striker"]
     assert striker["weekly_wage"] == "about £3,000 p/w (the going rate at clubs like yours in your country)"
+
+
+def out_of_position_right_winger():
+    ramos = mine("Ramos", positions=("aml",), ca=100)
+    return replace(ramos, position_ratings={**ramos.position_ratings, "amr": 16})
+
+
+def test_a_starter_out_of_position_makes_his_place_a_target(mezzala):
+    squad = [*without("amr"), out_of_position_right_winger()]
+    squad += [player("Right Winger", positions=("amr",), ca=98, value=200_000)]
+    right = picks(mezzala(snapshot(squad)))["right wing"]
+    assert right["target"]["name"] == "Right Winger"
+    assert right["improves_on"] == "Ramos (100, out of position)"
+
+
+def test_the_bar_is_the_starter_with_the_lowest_level_in_the_place_not_the_lowest_ability(mezzala):
+    squad = [p for p in eleven() if p.position_ratings["dc"] != 20]
+    stretched = mine("Stretched", positions=("dl",), ca=103)
+    squad += [mine("Natural Centre Back", positions=("dc",), ca=100), mine("Left Back", positions=("dl",), ca=104),
+              replace(stretched, position_ratings={**stretched.position_ratings, "dc": 16}),
+              player("Centre Back Target", positions=("dc",), ca=99, value=200_000)]  # fmt: skip
+    centre = picks(mezzala(snapshot(squad)))["centre back"]
+    assert centre["improves_on"] == "Stretched (103, out of position)"
+    assert centre["target"]["name"] == "Centre Back Target"

@@ -3,7 +3,7 @@ from enum import StrEnum
 from statistics import median
 
 from mezzala.core.formations import Formation
-from mezzala.core.lineup import weakest_starters
+from mezzala.core.lineup import Bar, describe_bar, level_in, weakest_starters
 from mezzala.core.metrics import PeerMedians, weekly_wage
 from mezzala.core.money import format_money, format_weekly_wage
 from mezzala.core.players import Player, Snapshot
@@ -11,7 +11,7 @@ from mezzala.core.positions import PositionGroup, covers
 from mezzala.core.reach import REPUTATION_REACH, within_reach
 from mezzala.core.squad import available_squad, is_outside_club
 from mezzala.core.summary import PlayerSummary, summarize
-from mezzala.core.view import View, rating
+from mezzala.core.view import View
 from mezzala.tools.squad_gaps import LOOKAHEAD_SEASONS, ageing_age, squad_gaps
 
 ALTERNATIVES_PER_POSITION = 2
@@ -143,7 +143,7 @@ def age_limit(group: PositionGroup) -> int:
 def candidates(
     snapshot: Snapshot,
     group: PositionGroup,
-    bar: Player | None,
+    bar: Bar | None,
     max_age: int,
     budget: SpendingRoom,
     taken: set[int],
@@ -157,7 +157,7 @@ def candidates(
         and covers(player, group)
         and player.age <= max_age
         and within_reach(player, snapshot)
-        and (bar is None or player.current_ability > bar.current_ability)
+        and (bar is None or level_in(player, group) > bar.level)
         and (fee := fee_for(player)) is not None
         and budget.affords(fee, amount(wages.expected(player)))
     ]
@@ -174,8 +174,8 @@ def candidates(
     )
 
 
-def describe_bar(bar: Player | None, view: View) -> str:
-    return "nobody (an empty place)" if bar is None else f"{bar.name} ({rating(view, bar.current_ability)})"
+def improves_on(bar: Bar | None, view: View) -> str:
+    return "nobody (an empty place)" if bar is None else describe_bar(bar, view)
 
 
 def shortlist(
@@ -200,7 +200,7 @@ def shortlist(
         options = candidates(snapshot, group, bar, age_limit(group), budget, taken, wages_of_peers)
         if not options:
             picks.append(
-                ShortlistPick(position.group, position.issues, None, describe_bar(bar, view), "none", "none", [])
+                ShortlistPick(position.group, position.issues, None, improves_on(bar, view), "none", "none", [])
             )
             continue
         target = options[0]
@@ -216,7 +216,7 @@ def shortlist(
                 position.group,
                 position.issues,
                 summarize(target, view),
-                describe_bar(bar, view),
+                improves_on(bar, view),
                 format_money(fee),
                 describe_wage(estimate),
                 [summarize(player, view) for player in options[1 : 1 + ALTERNATIVES_PER_POSITION]],

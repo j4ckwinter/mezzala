@@ -11,7 +11,7 @@ from mezzala.core.view import Rating, View, rating
 ACCOMPLISHED_PENALTY = 5
 
 
-def ability_in(player: Player, group: PositionGroup) -> float | None:
+def ability_in(player: Player, group: PositionGroup) -> int | None:
     match fit(player, group):
         case Fit.NATURAL:
             return player.current_ability
@@ -81,13 +81,34 @@ def pick_lineup(squad: list[Player], formation: Formation) -> Lineup:
     return Lineup(formation, tuple(chosen))
 
 
-def weakest_starters(squad: list[Player], formation: Formation) -> dict[PositionGroup, Player | None]:
+@dataclass(frozen=True)
+class Bar:
+    player: Player
+    level: int
+    out_of_position: bool
+
+
+def level_in(player: Player, group: PositionGroup) -> int:
+    ability = ability_in(player, group)
+    return 0 if ability is None else ability
+
+
+def weakest_starters(squad: list[Player], formation: Formation) -> dict[PositionGroup, Bar | None]:
     lineup = pick_lineup(squad, formation)
-    weakest: dict[PositionGroup, Player | None] = {}
+    weakest: dict[PositionGroup, Bar | None] = {}
     for group, needed in STARTERS[formation].items():
         starters = lineup.at(group)
-        weakest[group] = starters[-1] if len(starters) == needed else None
+        if len(starters) < needed:
+            weakest[group] = None
+            continue
+        bar = min(starters, key=lambda player: level_in(player, group))
+        weakest[group] = Bar(bar, level_in(bar, group), fit(bar, group) is not Fit.NATURAL)
     return weakest
+
+
+def describe_bar(bar: Bar, view: View) -> str:
+    where = ", out of position" if bar.out_of_position else ""
+    return f"{bar.player.name} ({rating(view, bar.player.current_ability)}{where})"
 
 
 @dataclass(frozen=True)

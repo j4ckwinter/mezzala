@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from mezzala.core.formations import Formation
 from mezzala.core.growth import projected_growth
-from mezzala.core.lineup import backup_lineup, pick_lineup, weakest_starters
+from mezzala.core.lineup import Bar, backup_lineup, level_in, pick_lineup, weakest_starters
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import PositionGroup, covers
 from mezzala.core.squad import YOUNG_PLAYER_MAX_AGE, available_squad, owned_players, plays_for_club, squad_level
@@ -34,16 +34,16 @@ class DevelopmentPlan:
     focus: list[YoungPlayer]
 
 
-def closest_place(player: Player, bars: dict[PositionGroup, Player | None]) -> tuple[PositionGroup, int] | None:
+def closest_place(player: Player, bars: dict[PositionGroup, Bar | None]) -> tuple[PositionGroup, int] | None:
     gaps = [
-        (group, player.current_ability - bar.current_ability)
+        (group, level_in(player, group) - bar.level)
         for group, bar in bars.items()
         if bar is not None and covers(player, group)
     ]
     return max(gaps, key=lambda gap: gap[1], default=None)
 
 
-def young_player(player: Player, bars: dict[PositionGroup, Player | None], view: View) -> YoungPlayer:
+def young_player(player: Player, bars: dict[PositionGroup, Bar | None], view: View) -> YoungPlayer:
     place = closest_place(player, bars)
     return YoungPlayer(
         player.name, player.age, rating(view, player.current_ability), rating(view, player.potential_ability),
