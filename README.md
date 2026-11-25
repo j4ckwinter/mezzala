@@ -18,6 +18,9 @@ so i made an mcp server that reads my save and does the scouting for me. i ask c
 | `watch_player`, `watchlist` | mezzala's own shortlist, flagging targets that got cheaper |
 | `development_check` | wonderkids who aren't developing as expected, and players in decline |
 | `squad_progress` | your squad now against when you started using mezzala |
+| `next_job` | open manager jobs, biggest club first, with each club's squad and money |
+| `league_values` | which leagues have the cheapest players for their level |
+| `relegated_clubs` | clubs that dropped a league since an earlier snapshot, and who's worth signing there |
 | `squad_gaps` | your eleven for a formation, plus where you're thin, ageing, losing players, weak, or have no young successor coming through |
 | `find_replacement` | who plays like a player you're losing, fits your budget, and would actually sign |
 | `risers` | who's improving fastest: transfer targets, your own players, or ones you sold too early |
