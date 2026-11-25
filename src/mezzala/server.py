@@ -23,6 +23,7 @@ from mezzala.tools.development_check import CheckScope, DevelopmentCheck, develo
 from mezzala.tools.development_plan import DevelopmentPlan, development_plan
 from mezzala.tools.find_players import FoundPlayers, PlayerSearch, SearchScope, SortBy, find_players
 from mezzala.tools.league_comparison import LeagueComparison, league_comparison
+from mezzala.tools.league_values import LeagueValues, league_values
 from mezzala.tools.next_job import NextJob, next_job
 from mezzala.tools.regen_intake import RegenIntake, regen_intake
 from mezzala.tools.replacement import Limits, Replacements, find_replacements
@@ -140,6 +141,12 @@ class SquadProgressReport:
 class NextJobReport:
     context: SaveContext
     result: NextJob
+
+
+@dataclass(frozen=True)
+class LeagueValuesReport:
+    context: SaveContext
+    result: LeagueValues
 
 
 @dataclass(frozen=True)
@@ -405,6 +412,14 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         its league level, the strength of its best eleven, and its money where the save has finances."""
         current = read_current(career)
         return NextJobReport(save_context(current), next_job(current.snapshot, formation, bigger_only, limit))
+
+    @server.tool(name="league_values")
+    def league_values_tool(limit: int = DEFAULT_LIMIT) -> LeagueValuesReport:
+        """Which leagues offer the best value: leagues whose first-team players cost least against similar players
+        (same CA, age and potential) across the save, cheapest first, with each league's level and median value.
+        Leagues are named after their three biggest clubs."""
+        current = read_current(career)
+        return LeagueValuesReport(save_context(current), league_values(current.snapshot, limit))
 
     @server.tool(name="compare_formations")
     def compare_formations_tool(formations: FormationChoices = None) -> FormationReport:
