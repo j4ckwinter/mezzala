@@ -1,5 +1,7 @@
 from dataclasses import dataclass
+from datetime import date
 
+from mezzala.core.availability import absence, injured_on
 from mezzala.core.formations import Formation
 from mezzala.core.leagues import club_league
 from mezzala.core.lineup import Lineup, StarterEntry, pick_lineup, starter_entries
@@ -35,14 +37,17 @@ class NextOpponent:
     their_key_players: list[PlayerSummary]
     attributes: list[GroupComparison]
     their_recent_results: list[str]
+    your_missing: list[str]
+    their_missing: list[str]
 
 
 NO_FIXTURE = "No upcoming first-team fixture is stored for your club in this save."
 EXPLANATION = (
     "Their likely formations are the ones their squad fits best, listing every formation within a whisker of the "
     "best (the eleven shown is for the first); the save does not say which they actually use. The attribute groups "
-    "compare their best eleven's outfield players with yours (positive means you are stronger). Recent results are "
-    "their last five first-team matches in the save."
+    "compare their best eleven's outfield players with yours (positive means you are stronger). Players injured on "
+    "the day are left out of both elevens; bans are listed but may only cover some competitions. Recent results "
+    "are their last five first-team matches in the save."
 )
 
 
@@ -113,17 +118,23 @@ def compare(mine: dict[str, float], theirs: dict[str, float]) -> list[GroupCompa
     ]
 
 
+def missing(players: list[Player], day: date) -> list[str]:
+    return [found for player in players if (found := absence(player, day)) is not None]
+
+
 def next_opponent(snapshot: Snapshot, formation: Formation, view: View) -> NextOpponent:
     match = next_match(snapshot)
     if match is None:
-        return NextOpponent(NO_FIXTURE, None, None, None, None, [], [], [], [], [])
+        return NextOpponent(NO_FIXTURE, None, None, None, None, [], [], [], [], [], [], [])
     home = match.home_club_uid == snapshot.club_uid
     opponent_uid = match.away_club_uid if home else match.home_club_uid
     side = side_of(match, opponent_uid)
     squad = [player for player in snapshot.players if player.club_uid == opponent_uid and fields(player, side)]
-    shapes = likely_shapes(squad) if squad else []
+    fit_squad = [player for player in squad if not injured_on(player, match.day)]
+    yours = available_squad(snapshot)
+    shapes = likely_shapes(fit_squad) if fit_squad else []
     their_lineup = shapes[0] if shapes else None
-    mine = outfield_profile(pick_lineup(available_squad(snapshot), formation).starters)
+    mine = outfield_profile(pick_lineup([p for p in yours if not injured_on(p, match.day)], formation).starters)
     theirs = outfield_profile(their_lineup.starters) if their_lineup else {}
     played = sorted(
         (m for m in snapshot.matches if m.played and same_side(m, opponent_uid, side)),
@@ -139,8 +150,11 @@ def next_opponent(snapshot: Snapshot, formation: Formation, view: View) -> NextO
         their_likely_formations=[shape.formation.value for shape in shapes],
         their_eleven=starter_entries(their_lineup, view) if their_lineup else [],
         their_key_players=[
-            summarize(p, view) for p in sorted(squad, key=lambda p: p.current_ability, reverse=True)[:KEY_PLAYERS_SHOWN]
+            summarize(p, view)
+            for p in sorted(fit_squad, key=lambda p: p.current_ability, reverse=True)[:KEY_PLAYERS_SHOWN]
         ],
         attributes=compare(mine, theirs),
         their_recent_results=[result_line(m, opponent_uid) for m in played[:RECENT_RESULTS_SHOWN]],
+        your_missing=missing(yours, match.day),
+        their_missing=missing(squad, match.day),
     )

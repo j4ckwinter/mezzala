@@ -22,6 +22,7 @@ so i made an mcp server that reads my save and does the scouting for me. i ask c
 | `development_plan` | which youngsters are ready, who to loan out, and who to focus on |
 | `training_plan` | one of your players' position to train for, additional focus, intensity, traits to learn or unlearn, and who should mentor him |
 | `dressing_room` | who should captain the club, and who could unsettle the squad or push for a move |
+| `fitness` | who's injured or banned, injury-prone starters, and who's low on condition or match sharpness |
 | `league_comparison` | where your squad ranks in your league, overall and position by position |
 | `what_changed` | what's changed since your last save: squad, budget, contracts, values, new regens, big transfers |
 | `watch_player`, `watchlist` | mezzala's own shortlist, flagging targets that got cheaper |
@@ -32,7 +33,7 @@ so i made an mcp server that reads my save and does the scouting for me. i ask c
 | `relegated_clubs` | clubs that dropped a league since an earlier snapshot, and who's worth signing there |
 | `squad_profile` | your eleven's attribute strengths and weaknesses against the league, for tactics |
 | `positional_fit` | starters whose attributes suit another position better |
-| `next_opponent` | your next opponent: likely shape, best eleven, key players, how they compare, recent form |
+| `next_opponent` | your next opponent: likely shape, best eleven, key players, how they compare, recent form, and who's missing on both sides |
 | `squad_gaps` | your eleven for a formation, plus where you're thin, ageing, losing players, weak, or have no young successor coming through |
 | `find_replacement` | who plays like a player you're losing, fits your budget, and would actually sign |
 | `risers` | who's improving fastest: transfer targets, your own players, or ones you sold too early |

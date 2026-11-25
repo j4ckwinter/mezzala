@@ -40,6 +40,7 @@ Most players install the Claude Desktop extension, `mezzala.mcpb`, from the late
 | Formations, how many starters each needs, the default formation, and which formation a saved tactic is | `src/mezzala/core/formations.py` |
 | Who belongs to the club, who plays for it, what it pays them, depth, leaving dates, squad level | `src/mezzala/core/squad.py` |
 | Choosing a starting eleven and its cover (a second eleven) for a formation | `src/mezzala/core/lineup.py` |
+| Who is injured or banned on a given day | `src/mezzala/core/availability.py` |
 | The assignment algorithm the eleven uses (Hungarian, minimum cost) | `src/mezzala/core/assignment.py` |
 | Which players a club can realistically sign | `src/mezzala/core/reach.py` |
 | Attribute profiles, how alike two players are, and the key attributes for each position | `src/mezzala/core/profile.py` |

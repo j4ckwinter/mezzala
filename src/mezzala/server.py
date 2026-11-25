@@ -24,6 +24,7 @@ from mezzala.tools.development_check import CheckScope, DevelopmentCheck, develo
 from mezzala.tools.development_plan import DevelopmentPlan, development_plan
 from mezzala.tools.dressing_room import DressingRoom, dressing_room
 from mezzala.tools.find_players import FoundPlayers, PlayerSearch, SearchScope, SortBy, find_players
+from mezzala.tools.fitness import FitnessReport, fitness
 from mezzala.tools.league_comparison import LeagueComparison, league_comparison
 from mezzala.tools.league_values import LeagueValues, league_values
 from mezzala.tools.next_job import NextJob, next_job
@@ -65,6 +66,7 @@ watchlist) work from history and say so when there is only one snapshot. next_jo
 relegated_clubs cover managerial vacancies, the best-value leagues and clubs that dropped a league.
 player_profile shows one player in full, or two side by side. training_plan suggests one of the club's players'
 position, attribute focus, intensity, traits and mentors. dressing_room ranks captains and flags troublemakers.
+fitness lists injuries, bans, injury risks, condition and sharpness.
 squad_profile, positional_fit and next_opponent support tactics and match preparation; the save stores formations
 but not roles or instructions, so suggest tactics from the attributes they report.
 Positions are natural (FM rating {NATURAL_POSITION_RATING}+) or accomplished
@@ -252,6 +254,12 @@ class TrainingPlanReport:
 class DressingRoomReport:
     context: SaveContext
     result: DressingRoom
+
+
+@dataclass(frozen=True)
+class FitnessToolReport:
+    context: SaveContext
+    result: FitnessReport
 
 
 @dataclass(frozen=True)
@@ -693,5 +701,13 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
         unsettle the dressing room: volatile, hot-headed, unprofessional, or ambitious enough to push for a move."""
         current = read_current(career)
         return DressingRoomReport(save_context(current), dressing_room(current.snapshot))
+
+    @server.tool(name="fitness")
+    def fitness_tool(formation: FormationChoice = None) -> FitnessToolReport:
+        """Who is injured or banned, which starters in the best eleven are injury risks, and who is low on
+        condition or match sharpness."""
+        current = read_current(career)
+        formation, context = with_formation(current, formation)
+        return FitnessToolReport(context, fitness(current.snapshot, formation))
 
     return server

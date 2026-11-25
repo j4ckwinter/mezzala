@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import date
 
 from factory import MY_CLUB, eleven, player, snapshot
@@ -104,3 +105,38 @@ def test_a_neutral_venue_and_reserve_side_survive_a_restart(mezzala):
     app.call("snapshot")
     result = app.another_server().result("next_opponent")
     assert (result["venue"], result["opponent"]) == ("neutral", "Rival FC (reserve or youth side)")
+
+
+def test_injured_players_are_left_out_of_both_elevens_and_listed(mezzala):
+    fixtures = (match(date(2026, 8, 8), RIVAL, MY_CLUB),)
+    rivals = rival_squad({})
+    rivals[10] = replace(rivals[10], injury="Broken Leg", injured_until=date(2026, 9, 1))
+    mine = eleven()
+    mine[5] = replace(mine[5], injury="Hamstring", injured_until=date(2026, 8, 20))
+    mine[6] = replace(mine[6], banned_from=("Premiership",))
+    result = mezzala(snapshot([*mine, *rivals], game_date=date(2026, 8, 2), matches=fixtures)).result("next_opponent")
+    assert "Rival 10" not in [starter["name"] for starter in result["their_eleven"]]
+    assert result["their_key_players"][0]["name"] == "Rival 9"
+    assert result["their_missing"] == ["Rival 10: Broken Leg, back 2026-09-01"]
+    assert result["your_missing"] == ["Starter 5: Hamstring, back 2026-08-20", "Starter 6: banned from Premiership"]
+
+
+def test_a_player_fit_again_by_match_day_is_not_missing(mezzala):
+    fixtures = (match(date(2026, 8, 8), RIVAL, MY_CLUB),)
+    rivals = rival_squad({})
+    rivals[10] = replace(rivals[10], injury="Knock", injured_until=date(2026, 8, 5))
+    result = mezzala(snapshot([*eleven(), *rivals], game_date=date(2026, 8, 2), matches=fixtures)).result(
+        "next_opponent"
+    )
+    assert result["their_missing"] == [] and result["their_key_players"][0]["name"] == "Rival 10"
+
+
+def test_your_injured_players_do_not_count_in_the_attribute_comparison(mezzala):
+    fixtures = (match(date(2026, 8, 8), RIVAL, MY_CLUB),)
+    mine = eleven()
+    flyer = replace(mine[10], name="Injured Flyer", attributes={**mine[10].attributes, "pace": 20, "acceleration": 20},
+                    injury="Hamstring", injured_until=date(2026, 8, 20))  # fmt: skip
+    cover = replace(mine[10], uid=mine[10].uid + 5000, name="Cover Striker", current_ability=60)
+    save = snapshot([*mine[:10], flyer, cover, *rival_squad({})], game_date=date(2026, 8, 2), matches=fixtures)
+    pace = {g["group"]: g for g in mezzala(save).result("next_opponent")["attributes"]}["pace"]
+    assert pace["yours"] == 10.0
