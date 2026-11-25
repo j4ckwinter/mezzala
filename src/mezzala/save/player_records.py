@@ -35,7 +35,8 @@ def injury_records(
                 injury = Injury(record.date, coded_label(record.severity), coded_label(record.cause))
                 history.setdefault(record.player_uid, []).append(injury)
             case fmsave.InjuryRecordKind.TYPED:
-                if record.date >= today:
+                known = current.get(record.player_uid)
+                if record.date >= today and (known is None or record.date > known.back_on):
                     current[record.player_uid] = CurrentInjury(record.type_name, record.date)
     return {uid: tuple(sorted(found, key=lambda injury: injury.day)) for uid, found in history.items()}, current
 

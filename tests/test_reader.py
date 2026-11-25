@@ -267,3 +267,10 @@ def test_a_ban_names_its_competition_or_says_how_wide_it_is():
 
 def test_condition_and_sharpness_read_as_percentages():
     assert percent(10_000) == 100 and percent(5_950) == 60
+
+
+def test_of_two_current_injuries_the_one_lasting_longer_is_kept():
+    records = [injury(InjuryRecordKind.TYPED, 7, date(2026, 8, 20), type_name="Broken Toe"),
+               injury(InjuryRecordKind.TYPED, 7, date(2026, 7, 2), type_name="Knock")]  # fmt: skip
+    _, current = injury_records(cast(list[InjuryRecord], records), date(2026, 6, 29))
+    assert current == {7: CurrentInjury("Broken Toe", date(2026, 8, 20))}
