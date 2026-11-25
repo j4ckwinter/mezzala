@@ -23,3 +23,14 @@ def test_a_position_he_cannot_play_does_not_count(mezzala):
     squad = [p for p in eleven() if p.position_ratings["stc"] != 20]
     squad.append(mine("Winger Up Front", positions=("stc",), ca=130, attributes=WINGER_ATTRIBUTES))
     assert mezzala(snapshot(squad)).result("positional_fit")["misplaced"] == []
+
+
+def test_exactly_the_margin_better_counts_as_better_suited(mezzala):
+    squad = [p for p in eleven() if p.position_ratings["stc"] != 20]
+    attributes = {"crossing": 11, "dribbling": 11, "pace": 11, "acceleration": 11, "technique": 11, "flair": 11,
+                  "off_the_ball": 11, "agility": 11, "finishing": 10, "composure": 10, "first_touch": 10,
+                  "anticipation": 10, "heading": 7}  # fmt: skip
+    striker = mine("Borderline", positions=("stc",), ca=130, attributes=attributes)
+    striker = replace(striker, position_ratings={**striker.position_ratings, "aml": 16})
+    result = mezzala(snapshot([*squad, striker])).result("positional_fit")
+    assert len(result["misplaced"]) == 1

@@ -26,3 +26,19 @@ def test_without_a_known_league_only_the_squads_own_profile_is_shown(mezzala):
     ours = [replace(p, league_id=None) for p in eleven()]
     result = mezzala(snapshot(ours)).result("squad_profile")
     assert all(g["league_median"] is None for g in result["groups"]) and result["strengths"] == []
+
+
+def test_goalkeepers_do_not_count_and_the_league_median_uses_every_rival(mezzala):
+    ours = eleven()
+    ours[0] = replace(ours[0], attributes={**ours[0].attributes, "pace": 1, "acceleration": 1})
+    rivals = [*rival(2, {"pace": 12, "acceleration": 12}), *rival(3, {"pace": 14, "acceleration": 14}),
+              *rival(4, {"pace": 20, "acceleration": 20})]  # fmt: skip
+    groups = {g["group"]: g for g in mezzala(snapshot([*ours, *rivals])).result("squad_profile")["groups"]}
+    assert (groups["pace"]["yours"], groups["pace"]["league_median"]) == (10.0, 14.0)
+
+
+def test_small_differences_are_neither_strengths_nor_weaknesses(mezzala):
+    ours = eleven(attributes={"strength": 11})
+    result = mezzala(snapshot([*ours, *rival(2, {})])).result("squad_profile")
+    assert {g["group"]: g["difference"] for g in result["groups"]}["physical"] == 0.2
+    assert "physical" not in result["strengths"]
