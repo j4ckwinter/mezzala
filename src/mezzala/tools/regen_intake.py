@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
-from mezzala.players import Snapshot, is_same_person
-from mezzala.summary import PlayerSummary, summarize
+from mezzala.core.players import Snapshot, is_same_person
+from mezzala.core.summary import PlayerSummary, summarize
 
 REGEN_MAX_AGE = 17
 

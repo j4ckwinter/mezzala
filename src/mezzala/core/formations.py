@@ -1,6 +1,6 @@
 from enum import StrEnum
 
-from mezzala.positions import PositionGroup as G
+from mezzala.core.positions import PositionGroup as G
 
 
 class Formation(StrEnum):

@@ -1,13 +1,13 @@
 from dataclasses import dataclass
 from enum import StrEnum
 
-from mezzala.growth import Growth, GrowthBasis, observed_growth, projected_growth
-from mezzala.money import format_money
-from mezzala.players import Player, Snapshot, is_same_person
-from mezzala.positions import PositionGroup, covers
-from mezzala.reach import within_reach
-from mezzala.squad import belongs_to_club, is_outside_club
-from mezzala.summary import PlayerSummary, summarize
+from mezzala.core.growth import Growth, GrowthBasis, observed_growth, projected_growth
+from mezzala.core.money import format_money
+from mezzala.core.players import Player, Snapshot, is_same_person
+from mezzala.core.positions import PositionGroup, covers
+from mezzala.core.reach import within_reach
+from mezzala.core.squad import belongs_to_club, is_outside_club
+from mezzala.core.summary import PlayerSummary, summarize
 
 
 class RiserScope(StrEnum):

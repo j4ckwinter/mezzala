@@ -2,7 +2,7 @@ from datetime import date
 from itertools import count
 from typing import Any
 
-from mezzala.players import ATTRIBUTE_NAMES, POSITION_CODES, Budget, Player, Snapshot
+from mezzala.core.players import ATTRIBUTE_NAMES, POSITION_CODES, Budget, Player, Snapshot
 
 MY_CLUB = 1
 MY_CLUB_NAME = "Paisley"

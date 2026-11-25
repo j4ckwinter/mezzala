@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 
-from mezzala.money import format_money, format_weekly_wage
-from mezzala.players import Player
-from mezzala.positions import NATURAL_POSITION_RATING
+from mezzala.core.money import format_money, format_weekly_wage
+from mezzala.core.players import Player
+from mezzala.core.positions import NATURAL_POSITION_RATING
 
 
 @dataclass(frozen=True)

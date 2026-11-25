@@ -4,7 +4,7 @@ from pathlib import Path
 
 import fmsave
 
-from mezzala.players import Budget, Player, Snapshot
+from mezzala.core.players import Budget, Player, Snapshot
 
 
 class UnreadableSave(RuntimeError):

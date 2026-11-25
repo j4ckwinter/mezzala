@@ -9,10 +9,10 @@ from typing import Any
 import pytest
 from mcp import Client
 
-from mezzala.career import Career
-from mezzala.players import Snapshot
+from mezzala.core.players import Snapshot
+from mezzala.save.career import Career
+from mezzala.save.store import FileStamp, SnapshotStore
 from mezzala.server import create_server
-from mezzala.store import FileStamp, SnapshotStore
 
 
 class SaveUnreadable(Exception):

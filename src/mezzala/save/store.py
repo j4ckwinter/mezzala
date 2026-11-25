@@ -6,7 +6,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from mezzala.players import ATTRIBUTE_NAMES, POSITION_CODES, Budget, Player, Snapshot
+from mezzala.core.players import ATTRIBUTE_NAMES, POSITION_CODES, Budget, Player, Snapshot
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS snapshots (

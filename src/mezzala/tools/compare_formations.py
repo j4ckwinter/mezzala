@@ -1,7 +1,7 @@
 from dataclasses import dataclass, replace
 
-from mezzala.formations import Formation
-from mezzala.lineup import (
+from mezzala.core.formations import Formation
+from mezzala.core.lineup import (
     ACCOMPLISHED_PENALTY,
     Lineup,
     Place,
@@ -10,9 +10,9 @@ from mezzala.lineup import (
     pick_lineup,
     starter_entries,
 )
-from mezzala.players import Snapshot
-from mezzala.positions import Fit, fit
-from mezzala.squad import available_squad
+from mezzala.core.players import Snapshot
+from mezzala.core.positions import Fit, fit
+from mezzala.core.squad import available_squad
 
 SCORE_TIE_MARGIN = 0.5
 

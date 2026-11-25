@@ -2,7 +2,7 @@ from dataclasses import replace
 
 from factory import eleven, mine, snapshot
 
-from mezzala.players import Player
+from mezzala.core.players import Player
 
 
 def starter_at(app, position):

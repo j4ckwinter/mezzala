@@ -6,9 +6,9 @@ from pathlib import Path
 
 import fmsave
 
-from mezzala.players import PastPlayers, Snapshot
-from mezzala.reader import UnreadableSave
-from mezzala.store import FileStamp, SnapshotStore
+from mezzala.core.players import PastPlayers, Snapshot
+from mezzala.save.reader import UnreadableSave
+from mezzala.save.store import FileStamp, SnapshotStore
 
 CACHED_SNAPSHOTS = 2
 MAX_HISTORY_SNAPSHOTS = 12

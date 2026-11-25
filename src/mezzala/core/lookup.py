@@ -1,8 +1,8 @@
 import unicodedata
 from dataclasses import dataclass
 
-from mezzala.players import Player, Snapshot
-from mezzala.squad import belongs_to_club, plays_for_club
+from mezzala.core.players import Player, Snapshot
+from mezzala.core.squad import belongs_to_club, plays_for_club
 
 MAX_LISTED_MATCHES = 8
 

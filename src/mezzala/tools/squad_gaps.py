@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 
-from mezzala.formations import PLAYERS_PER_STARTING_PLACE, STARTERS, Formation
-from mezzala.lineup import StarterEntry, pick_lineup, starter_entries
-from mezzala.players import Player, Snapshot
-from mezzala.positions import PositionGroup, fit
-from mezzala.squad import available_squad, depth_chart, leaves_within
+from mezzala.core.formations import PLAYERS_PER_STARTING_PLACE, STARTERS, Formation
+from mezzala.core.lineup import StarterEntry, pick_lineup, starter_entries
+from mezzala.core.players import Player, Snapshot
+from mezzala.core.positions import PositionGroup, fit
+from mezzala.core.squad import available_squad, depth_chart, leaves_within
 
 AGEING_OUTFIELD_AGE = 30
 AGEING_GOALKEEPER_AGE = 32

@@ -1,4 +1,4 @@
-from mezzala.players import Player, Snapshot
+from mezzala.core.players import Player, Snapshot
 
 REPUTATION_REACH = 750
 

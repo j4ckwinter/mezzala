@@ -1,11 +1,11 @@
 import argparse
 from pathlib import Path
 
-from mezzala.career import Career
-from mezzala.reader import read_snapshot
-from mezzala.saves import newest_save
+from mezzala.save.career import Career
+from mezzala.save.reader import read_snapshot
+from mezzala.save.saves import newest_save
+from mezzala.save.store import SnapshotStore
 from mezzala.server import create_server
-from mezzala.store import SnapshotStore
 
 DEFAULT_DATABASE = Path.home() / ".mezzala" / "snapshots.db"
 

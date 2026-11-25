@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 
-from mezzala.players import Player, Snapshot
-from mezzala.positions import Fit, PositionGroup, fit
-from mezzala.squad import available_squad, owned_players, plays_for_club
-from mezzala.summary import PlayerSummary, summarize
+from mezzala.core.players import Player, Snapshot
+from mezzala.core.positions import Fit, PositionGroup, fit
+from mezzala.core.squad import available_squad, owned_players, plays_for_club
+from mezzala.core.summary import PlayerSummary, summarize
 
 
 @dataclass(frozen=True)

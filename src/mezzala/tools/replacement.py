@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 
-from mezzala.money import format_money
-from mezzala.players import Player, Snapshot
-from mezzala.positions import PositionGroup, covers, primary_group
-from mezzala.profile import profile_similarity, strongest_attributes
-from mezzala.reach import within_reach
-from mezzala.squad import is_outside_club, leaves_within
-from mezzala.summary import PlayerSummary, summarize
+from mezzala.core.money import format_money
+from mezzala.core.players import Player, Snapshot
+from mezzala.core.positions import PositionGroup, covers, primary_group
+from mezzala.core.profile import profile_similarity, strongest_attributes
+from mezzala.core.reach import within_reach
+from mezzala.core.squad import is_outside_club, leaves_within
+from mezzala.core.summary import PlayerSummary, summarize
 
 ABILITY_SHORTFALL_ALLOWED = 5
 GROWS_INTO_IT_MAX_AGE = 21

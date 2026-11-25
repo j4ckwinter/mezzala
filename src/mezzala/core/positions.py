@@ -1,6 +1,6 @@
 from enum import StrEnum
 
-from mezzala.players import Player
+from mezzala.core.players import Player
 
 
 class PositionGroup(StrEnum):

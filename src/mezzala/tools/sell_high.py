@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from statistics import median
 
-from mezzala.money import format_money
-from mezzala.players import PastPlayers, Player, Snapshot, is_same_person
-from mezzala.positions import is_goalkeeper
-from mezzala.squad import leaves_within, owned_players
+from mezzala.core.money import format_money
+from mezzala.core.players import PastPlayers, Player, Snapshot, is_same_person
+from mezzala.core.positions import is_goalkeeper
+from mezzala.core.squad import leaves_within, owned_players
 
 PEAK_OUTFIELD_AGE = 29
 PEAK_GOALKEEPER_AGE = 32

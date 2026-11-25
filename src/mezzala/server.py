@@ -8,22 +8,22 @@ from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field
 
-from mezzala.career import Career, Current
-from mezzala.compare_formations import FormationComparison, compare_formations
-from mezzala.contract_watch import ContractWatch, contract_watch
-from mezzala.formations import Formation
-from mezzala.lookup import AmbiguousPlayer, PlayerNotFound, find_player
-from mezzala.money import format_money, format_weekly_wage, stored_from_pounds
-from mezzala.players import Player, Snapshot
-from mezzala.positions import ACCOMPLISHED_POSITION_RATING, NATURAL_POSITION_RATING, PositionGroup
-from mezzala.reader import UnreadableSave
-from mezzala.regen_intake import RegenIntake, regen_intake
-from mezzala.replacement import Limits, Replacements, find_replacements
-from mezzala.risers import RiserFilters, Risers, RiserScope, find_risers
-from mezzala.sell_high import SellHigh, sell_high
-from mezzala.squad import owned_players, squad_level
-from mezzala.squad_gaps import SquadGaps, squad_gaps
-from mezzala.squad_list import SquadList, squad_list
+from mezzala.core.formations import Formation
+from mezzala.core.lookup import AmbiguousPlayer, PlayerNotFound, find_player
+from mezzala.core.money import format_money, format_weekly_wage, stored_from_pounds
+from mezzala.core.players import Player, Snapshot
+from mezzala.core.positions import ACCOMPLISHED_POSITION_RATING, NATURAL_POSITION_RATING, PositionGroup
+from mezzala.core.squad import owned_players, squad_level
+from mezzala.save.career import Career, Current
+from mezzala.save.reader import UnreadableSave
+from mezzala.tools.compare_formations import FormationComparison, compare_formations
+from mezzala.tools.contract_watch import ContractWatch, contract_watch
+from mezzala.tools.regen_intake import RegenIntake, regen_intake
+from mezzala.tools.replacement import Limits, Replacements, find_replacements
+from mezzala.tools.risers import RiserFilters, Risers, RiserScope, find_risers
+from mezzala.tools.sell_high import SellHigh, sell_high
+from mezzala.tools.squad_gaps import SquadGaps, squad_gaps
+from mezzala.tools.squad_list import SquadList, squad_list
 
 DEFAULT_FORMATION = Formation.FOUR_THREE_THREE
 DEFAULT_LIMIT = 10

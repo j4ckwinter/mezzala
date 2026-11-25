@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import date
 from enum import StrEnum
 
-from mezzala.players import Player
+from mezzala.core.players import Player
 
 HEADROOM_SHARE_PER_SEASON_BY_AGE: tuple[tuple[int, float], ...] = (
     (17, 0.30),

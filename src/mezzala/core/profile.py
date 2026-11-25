@@ -1,7 +1,7 @@
 from statistics import correlation
 
-from mezzala.players import Player
-from mezzala.positions import is_goalkeeper
+from mezzala.core.players import Player
+from mezzala.core.positions import is_goalkeeper
 
 TECHNICAL_ATTRIBUTES = (
     "corners", "crossing", "dribbling", "finishing", "first_touch", "free_kick_taking", "heading",

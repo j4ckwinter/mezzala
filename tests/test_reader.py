@@ -1,6 +1,6 @@
 from fmsave import TransferValueState
 
-from mezzala.reader import known_value
+from mezzala.save.reader import known_value
 
 
 def test_a_player_valued_at_zero_costs_nothing_rather_than_an_unknown_fee():

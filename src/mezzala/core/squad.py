@@ -1,8 +1,8 @@
 from datetime import date
 from statistics import median
 
-from mezzala.players import Player, Snapshot
-from mezzala.positions import PositionGroup, covers, group_rating
+from mezzala.core.players import Player, Snapshot
+from mezzala.core.positions import PositionGroup, covers, group_rating
 
 
 def plays_for_club(player: Player, club_uid: int) -> bool:

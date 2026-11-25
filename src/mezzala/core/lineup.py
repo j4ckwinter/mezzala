@@ -2,10 +2,10 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from statistics import median
 
-from mezzala.assignment import BLOCKED, min_cost_assignment
-from mezzala.formations import STARTERS, Formation
-from mezzala.players import Player
-from mezzala.positions import Fit, PositionGroup, fit
+from mezzala.core.assignment import BLOCKED, min_cost_assignment
+from mezzala.core.formations import STARTERS, Formation
+from mezzala.core.players import Player
+from mezzala.core.positions import Fit, PositionGroup, fit
 
 ACCOMPLISHED_PENALTY = 5
 
