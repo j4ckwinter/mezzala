@@ -472,10 +472,20 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         return ContractWatchReport(save_context(current), result)
 
     @server.tool(name="regen_intake")
-    def regen_intake_tool(since: date | None = None, min_pa: int = 120, limit: int = 20) -> RegenIntakeReport:
-        """Newly generated youth players (regens) that appeared since an earlier snapshot, best potential first."""
+    def regen_intake_tool(
+        since: date | None = None,
+        since_last_save: bool = False,
+        min_pa: int = 120,
+        unsigned_only: bool = False,
+        limit: int = 20,
+    ) -> RegenIntakeReport:
+        """Newly generated youth players (regens) since an earlier snapshot, best potential first, and the clubs
+        whose intakes produced the best of them. The baseline is the oldest snapshot (the best regens of the save
+        so far), the snapshot at or before since, or with since_last_save the previous snapshot. unsigned_only
+        keeps regens on youth contracts or without a club, i.e. not yet on professional terms."""
         current = read_current(career)
-        baseline = career.baseline(current, since)
-        return RegenIntakeReport(save_context(current), regen_intake(current.snapshot, baseline, min_pa, limit))
+        baseline = career.previous(current) if since_last_save else career.baseline(current, since)
+        result = regen_intake(current.snapshot, baseline, min_pa, unsigned_only, limit)
+        return RegenIntakeReport(save_context(current), result)
 
     return server

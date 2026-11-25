@@ -1,9 +1,18 @@
 from dataclasses import dataclass
 
-from mezzala.core.players import Snapshot, is_same_person
+from mezzala.core.players import Player, Snapshot, is_same_person
 from mezzala.core.summary import PlayerSummary, summarize
 
 REGEN_MAX_AGE = 17
+CLUBS_SHOWN = 10
+
+
+@dataclass(frozen=True)
+class ClubRegens:
+    club: str
+    new_regens: int
+    best_potential: int
+    best: str
 
 
 @dataclass(frozen=True)
@@ -12,6 +21,7 @@ class RegenIntake:
     explanation: str
     total_new: int
     regens: list[PlayerSummary]
+    by_club: list[ClubRegens]
 
 
 NO_BASELINE = (
@@ -20,9 +30,29 @@ NO_BASELINE = (
 )
 
 
-def regen_intake(current: Snapshot, baseline: Snapshot | None, min_potential: int, limit: int) -> RegenIntake:
+def is_unsigned(player: Player) -> bool:
+    return player.is_free_agent or player.youth_contract is True
+
+
+def clubs_producing(regens: list[Player]) -> list[ClubRegens]:
+    by_club: dict[str, list[Player]] = {}
+    for player in regens:
+        if player.club_name is not None:
+            by_club.setdefault(player.club_name, []).append(player)
+    clubs = [
+        ClubRegens(club, len(found), best.potential_ability, best.name)
+        for club, found in by_club.items()
+        if (best := max(found, key=lambda player: player.potential_ability))
+    ]
+    clubs.sort(key=lambda club: (club.best_potential, club.new_regens), reverse=True)
+    return clubs[:CLUBS_SHOWN]
+
+
+def regen_intake(
+    current: Snapshot, baseline: Snapshot | None, min_potential: int, unsigned_only: bool, limit: int
+) -> RegenIntake:
     if baseline is None:
-        return RegenIntake(None, NO_BASELINE, 0, [])
+        return RegenIntake(None, NO_BASELINE, 0, [], [])
     before = baseline.by_uid()
     new = [
         player
@@ -30,6 +60,10 @@ def regen_intake(current: Snapshot, baseline: Snapshot | None, min_potential: in
         if player.age <= REGEN_MAX_AGE and not (player.uid in before and is_same_person(before[player.uid], player))
     ]
     new.sort(key=lambda player: (player.potential_ability, player.current_ability), reverse=True)
-    shown = [summarize(player) for player in new if player.potential_ability >= min_potential][:limit]
+    shown = [
+        summarize(player)
+        for player in new
+        if player.potential_ability >= min_potential and (not unsigned_only or is_unsigned(player))
+    ][:limit]
     explanation = f"Players aged {REGEN_MAX_AGE} or under who were not in the save on {baseline.game_date.isoformat()}."
-    return RegenIntake(baseline.game_date.isoformat(), explanation, len(new), shown)
+    return RegenIntake(baseline.game_date.isoformat(), explanation, len(new), shown, clubs_producing(new))

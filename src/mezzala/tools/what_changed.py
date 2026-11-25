@@ -134,7 +134,7 @@ def what_changed(current: Snapshot, previous: Snapshot | None) -> WhatChanged:
     pairs = matched(previous, current)
     joined, left = squad_moves(previous, current)
     ability, contracts, values = own_changes(pairs, current.club_uid)
-    regens = regen_intake(current, previous, 0, REGENS_SHOWN)
+    regens = regen_intake(current, previous, 0, False, REGENS_SHOWN)
     return WhatChanged(
         compared_with=previous.game_date.isoformat(),
         explanation=f"Changes between the snapshots of {previous.game_date.isoformat()} and "
