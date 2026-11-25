@@ -37,7 +37,8 @@ Every answer starts with the save's in-game date and club. Each call checks the 
 snapshot when it has changed, so growth compares real snapshots once there are two or more.
 Money is in pounds. Fees are FM's transfer values, because asking prices are not stored in the save.
 Current and potential ability (CA, PA) are FM's hidden 1-200 numbers.
-squad lists the players. compare_formations ranks formations by how well the squad fits them and shows each
+find_players searches every player in the save with filters and sorts, and answers most recruitment
+questions. squad lists the players. compare_formations ranks formations by how well the squad fits them and shows each
 eleven. Positions are natural (FM rating {NATURAL_POSITION_RATING}+) or accomplished
 ({ACCOMPLISHED_POSITION_RATING}-{NATURAL_POSITION_RATING - 1}). Ask the manager which formation they
 play if it matters; tools that take one default to {DEFAULT_FORMATION.value}."""

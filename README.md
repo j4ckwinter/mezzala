@@ -7,6 +7,7 @@ so i made an mcp server that reads my save and does the scouting for me. i ask c
 
 | tool | answers |
 | --- | --- |
+| `find_players` | searches the whole save: wonderkids under a price, undervalued players, players too good for their league, reserves stuck at bigger clubs, low release clauses, free agents, the best players in the world |
 | `squad` | everyone available, loanees included, with natural and accomplished positions |
 | `compare_formations` | which formation your squad fits best, with the eleven for each |
 | `squad_gaps` | your eleven for a formation, plus where you're thin, ageing, losing players, weak, or have no young successor coming through |
@@ -19,6 +20,8 @@ so i made an mcp server that reads my save and does the scouting for me. i ask c
 
 so you can ask things like:
 
+- "find me the best wonderkids under £5m"
+- "who's too good for the league they play in?"
 - "who replaces gogić for under £1m?"
 - "which of my players should i sell this window?"
 - "anyone out of contract next summer who'd walk into my team?"
