@@ -62,7 +62,7 @@ for the claude desktop app, add this to `~/Library/Application Support/Claude/cl
 }
 ```
 
-both can run at once. they share the same snapshots.
+both can run at once. they share the same snapshots, so after updating mezzala restart both: an older copy that's still running can't read snapshots a newer one wrote.
 
 open a new claude code session, load your save in fm, and ask away. save in fm whenever you want mezzala to see what's changed.
 
@@ -72,6 +72,8 @@ open a new claude code session, load your save in fm, and ask away. save in fm w
 - it doesn't know your tactic. tell claude your formation (4-3-3, 4-2-3-1, 4-4-2, 4-4-2 diamond, 3-5-2 or 3-4-3) and it'll pass it along. the default is 4-3-3.
 - `compare_formations` ranks shapes by how well your players fit them, not by how the match engine rates them. it treats wingers and wide midfielders as the same position, and full backs and wing backs too, so 4-1-4-1 and 5-3-2 would tie with 4-3-3 and 3-5-2.
 - it sees everything, including hidden ca and pa. no fog of war.
+- the save doesn't name leagues, and leagues that aren't loaded in your save don't count, so "above league level" only covers players in loaded leagues.
+- a loan player counts at the club he's on loan to, so `reserves_only` and `bigger_clubs_only` don't find a big club's youngsters out on loan.
 - fmsave has only verified fm27 build `27.0.0+2486695`. my save is on 27.1.1 and reads fine, but treat the numbers as fmsave's best effort.
 
 ## develop
