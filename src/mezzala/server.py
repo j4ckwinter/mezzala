@@ -13,6 +13,7 @@ from mezzala.core.lookup import AmbiguousPlayer, PlayerNotFound, find_player
 from mezzala.core.money import format_money, format_weekly_wage, stored_from_pounds
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import ACCOMPLISHED_POSITION_RATING, NATURAL_POSITION_RATING, PositionGroup
+from mezzala.core.reach import REPUTATION_REACH
 from mezzala.core.squad import belongs_to_club, owned_players, plays_for_club, squad_level
 from mezzala.core.view import View, shows_hidden_information
 from mezzala.save.career import Career, Current
@@ -95,11 +96,38 @@ def instructions_for(view: View) -> str:
             return INSTRUCTIONS + SPOILER_FREE_INSTRUCTIONS
 
 
+FIND_PLAYERS_DESCRIPTION = f"""\
+Search every player in the save with filters and a sort. Money is in pounds (max_wage weekly).
+
+Sorts: "value for money" puts players valued lowest against similar players first; "above league level"
+puts players furthest above their league's first-team median CA first; "position attributes" ranks the
+key attributes for the position (combine with max_ca to find attributes ahead of ability); "most
+overpaid" ranks wages against similar players.
+
+Who: scope "elsewhere" (default) searches other clubs and free agents, "own" your club, "everyone" the
+whole save. position matches players natural or accomplished there (FM rating 15 or more); natural_only
+keeps naturals (18 or more). nationality matches a first or second nationality, such as "Republic of
+Ireland"; work_permit_free keeps British and Irish players, who need no UK work permit. free_agents_only
+and clubs_only keep or leave out players without a club.
+
+Where: country is where the club plays (Cardiff count as England); division_level is 1 for a country's
+top flight, estimated from first-team strength because the save names no leagues; league matches part
+of a league's name, such as a club in it. reserves_only keeps players outside their club's first team;
+bigger_clubs_only keeps clubs with a higher reputation than yours. within_reach keeps players whose
+reputation is at most your club's plus {REPUTATION_REACH} (results show both), so a move is realistic
+on paper, though a player may still refuse; set it false for questions like the best players in the world.
+
+Availability: the save does not record transfer or loan listing; fringe_only keeps players whose
+contract squad status says their club does not count on them (surplus, fringe, backup), the likeliest
+to be listed or loaned."""
+
+
 @dataclass(frozen=True)
 class SaveContext:
     save: str
     game_date: str
     club: str
+    club_reputation: int
     transfer_budget: str
     wage_headroom: str
     snapshots: int
@@ -293,6 +321,7 @@ def save_context(current: Current, notes: list[str] | None = None) -> SaveContex
         save=current.save_path.name,
         game_date=snapshot.game_date.isoformat(),
         club=snapshot.club_name,
+        club_reputation=snapshot.club_reputation,
         transfer_budget=format_money(snapshot.budget.transfer_remaining),
         wage_headroom=format_weekly_wage(snapshot.budget.wage_headroom_weekly),
         snapshots=current.snapshot_count,
@@ -384,7 +413,7 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
         current = read_current(career)
         return SquadReport(save_context(current), squad_list(current.snapshot, view))
 
-    @server.tool(name="find_players")
+    @server.tool(name="find_players", description=FIND_PLAYERS_DESCRIPTION)
     def find_players_tool(
         sort_by: SortChoice = SortBy.CURRENT_ABILITY,
         scope: SearchScopeChoice = SearchScope.ELSEWHERE,
@@ -413,28 +442,6 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
         within_reach: bool = True,
         limit: int = DEFAULT_LIMIT,
     ) -> FoundPlayersReport:
-        """Search every player in the save with filters and a sort. Money is in pounds (max_wage weekly).
-
-        Sorts: "value for money" puts players valued lowest against similar players first; "above league level"
-        puts players furthest above their league's first-team median CA first; "position attributes" ranks the
-        key attributes for the position (combine with max_ca to find attributes ahead of ability); "most
-        overpaid" ranks wages against similar players.
-
-        Who: scope "elsewhere" (default) searches other clubs and free agents, "own" your club, "everyone" the
-        whole save. position matches players natural or accomplished there (FM rating 15 or more); natural_only
-        keeps naturals (18 or more). nationality matches a first or second nationality, such as "Republic of
-        Ireland"; work_permit_free keeps British and Irish players, who need no UK work permit. free_agents_only
-        and clubs_only keep or leave out players without a club.
-
-        Where: country is where the club plays (Cardiff count as England); division_level is 1 for a country's
-        top flight, estimated from first-team strength because the save names no leagues; league matches part
-        of a league's name, such as a club in it. reserves_only keeps players outside their club's first team;
-        bigger_clubs_only keeps clubs with a higher reputation than yours. within_reach keeps players whose
-        reputation makes a move realistic; set it false for questions like the best players in the world.
-
-        Availability: the save does not record transfer or loan listing; fringe_only keeps players whose
-        contract squad status says their club does not count on them (surplus, fringe, backup), the likeliest
-        to be listed or loaned."""
         current = read_current(career)
         refuse_hidden_filters(
             view, {"min_ca": min_ca is not None, "max_ca": max_ca is not None, "min_pa": min_pa is not None}

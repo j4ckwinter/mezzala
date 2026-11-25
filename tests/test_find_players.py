@@ -244,3 +244,12 @@ def test_clubs_only_leaves_out_free_agents(mezzala):
     squad = [*eleven(), player("Signed"), player("Unattached", club=None, value=None)]
     result = mezzala(snapshot(squad)).result("find_players", clubs_only=True)
     assert [found["player"]["name"] for found in result["players"]] == ["Signed"]
+
+
+def test_results_show_both_reputations_behind_within_reach(mezzala):
+    outcome = mezzala(snapshot([*eleven(), player("Target", reputation=5_600, club_reputation=6_100)])).call(
+        "find_players"
+    )
+    found = outcome.data["result"]["players"][0]
+    assert (found["reputation"], found["club_reputation"]) == (5_600, 6_100)
+    assert outcome.data["context"]["club_reputation"] == 5_000

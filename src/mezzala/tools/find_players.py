@@ -86,6 +86,8 @@ class PlayerSearch:
 class FoundPlayer:
     player: PlayerSummary
     team: str
+    reputation: int
+    club_reputation: int | None
     squad_status: str | None
     league: str | None
     country: str | None
@@ -273,6 +275,8 @@ def found(player: Player, search: PlayerSearch, measures: Measures, view: View) 
     return FoundPlayer(
         player=summarize(player, view),
         team=team_label(player),
+        reputation=player.reputation,
+        club_reputation=player.club_reputation,
         squad_status=player.squad_status,
         league=league.name if (league := measures.league_of(player)) else None,
         country=player.club_country,
