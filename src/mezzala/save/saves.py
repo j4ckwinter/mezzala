@@ -3,6 +3,7 @@ from pathlib import Path
 GAMES_FOLDERS = (
     Path("Library/Application Support/Sports Interactive/Football Manager 27/games"),
     Path("Documents/Sports Interactive/Football Manager 27/games"),
+    Path("OneDrive/Documents/Sports Interactive/Football Manager 27/games"),
     Path("AppData/Local/Sports Interactive/Football Manager 27/games"),
 )
 
