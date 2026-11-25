@@ -200,3 +200,17 @@ def test_adding_a_column_another_server_already_added_is_harmless():
     database = sqlite3.connect(":memory:")
     database.execute(SCHEMA)
     add_column(database, "format", "INTEGER NOT NULL DEFAULT 1")
+
+
+def test_loan_wages_and_clause_expiry_survive_a_restart(mezzala):
+    from mezzala.core.players import ReleaseClause, ReleaseScope
+
+    loanee = player("Loanee", club=1, on_loan=True, loan_parent_club_uid=9, wage=9_000, loan_wage=1_500)
+    lapsed = player("Lapsed Clause", release_clauses=(ReleaseClause(ReleaseScope.DOMESTIC, 100_000, date(2026, 6, 1)),))
+    app = mezzala(snapshot([*eleven(), loanee, lapsed]))
+    app.call("snapshot")
+    restarted = app.another_server()
+    squad = {m["player"]["name"]: m["player"]["wage_while_on_loan"] for m in restarted.result("squad")["available"]}
+    assert squad["Loanee"] == "£1,500 p/w"
+    assert restarted.result("find_players", max_release_clause=1_000_000)["players"] == []
+    assert app.save.reads == 1
