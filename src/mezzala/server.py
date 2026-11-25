@@ -13,7 +13,7 @@ from mezzala.core.lookup import AmbiguousPlayer, PlayerNotFound, find_player
 from mezzala.core.money import format_money, format_weekly_wage, stored_from_pounds
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import ACCOMPLISHED_POSITION_RATING, NATURAL_POSITION_RATING, PositionGroup
-from mezzala.core.squad import owned_players, squad_level
+from mezzala.core.squad import belongs_to_club, owned_players, plays_for_club, squad_level
 from mezzala.core.view import View
 from mezzala.save.career import Career, Current
 from mezzala.save.reader import UnreadableSave
@@ -39,6 +39,7 @@ from mezzala.tools.squad_gaps import SquadGaps, squad_gaps
 from mezzala.tools.squad_list import SquadList, squad_list
 from mezzala.tools.squad_profile import SquadProfile, squad_profile
 from mezzala.tools.squad_progress import SquadProgress, squad_progress
+from mezzala.tools.training_plan import TrainingPlan, training_plan
 from mezzala.tools.wage_review import WageReview, wage_review
 from mezzala.tools.watchlist import NotWatched, Watchlist, find_watched_entry, watched_record, watchlist
 from mezzala.tools.what_changed import WhatChanged, what_changed
@@ -61,7 +62,8 @@ the players. compare_formations ranks formations by how well the squad fits them
 what_changed, development_check, squad_progress and the watchlist tools (watch_player, unwatch_player,
 watchlist) work from history and say so when there is only one snapshot. next_job, league_values and
 relegated_clubs cover managerial vacancies, the best-value leagues and clubs that dropped a league.
-player_profile shows one player in full, or two side by side.
+player_profile shows one player in full, or two side by side. training_plan suggests one of the club's players'
+position, attribute focus, intensity, traits and mentors.
 squad_profile, positional_fit and next_opponent support tactics and match preparation; the save stores formations
 but not roles or instructions, so suggest tactics from the attributes they report.
 Positions are natural (FM rating {NATURAL_POSITION_RATING}+) or accomplished
@@ -237,6 +239,12 @@ class ContractWatchReport:
 class PlayerProfileReport:
     context: SaveContext
     result: PlayerProfiles
+
+
+@dataclass(frozen=True)
+class TrainingPlanReport:
+    context: SaveContext
+    result: TrainingPlan
 
 
 @dataclass(frozen=True)
@@ -656,5 +664,20 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
             chosen.append(target_player(current.snapshot, compare_with, compare_club))
         result = player_profiles(chosen, career.baseline(current, None), view)
         return PlayerProfileReport(save_context(current), result)
+
+    @server.tool(name="training_plan")
+    def training_plan_tool(player: str, club: str | None = None, position: PositionChoice = None) -> TrainingPlanReport:
+        """A training plan for one of the club's players: the position to train him for (his best fit unless
+        position is given), the key attributes to set as his additional focus, whether to lower his intensity,
+        traits to learn or unlearn, his mentoring group and senior players who would make good mentors."""
+        current = read_current(career)
+        target = target_player(current.snapshot, player, club)
+        if not (
+            plays_for_club(target, current.snapshot.club_uid) or belongs_to_club(target, current.snapshot.club_uid)
+        ):
+            raise ToolError(
+                f"{target.name} is not at {current.snapshot.club_name}; training plans are for your players."
+            )
+        return TrainingPlanReport(save_context(current), training_plan(target, current.snapshot, position, view))
 
     return server

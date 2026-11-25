@@ -16,6 +16,7 @@ HIDDEN_NUMBERS = re.compile(r"\b(143|151|187)\b")
 ARGUMENTS = {
     "find_replacement": {"player": "Prospect"},
     "player_profile": {"player": "Prospect", "compare_with": "Rival Target"},
+    "training_plan": {"player": "Prospect"},
     "watch_player": {"player": "Rival Target"},
     "unwatch_player": {"player": "Rival Target"},
 }
