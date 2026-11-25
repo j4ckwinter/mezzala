@@ -2,7 +2,7 @@
   "manifest_version": "0.4",
   "name": "mezzala",
   "display_name": "mezzala",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Answers Football Manager 27 transfer, squad and tactics questions from your own save.",
   "author": {
     "name": "Jack Winter",
