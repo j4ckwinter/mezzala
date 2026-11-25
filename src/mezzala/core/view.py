@@ -1,8 +1,9 @@
 from enum import StrEnum
+from math import floor
 
 ABILITY_PER_STAR = 40
 STAR_STEPS = 2
-CHANGE_DECIMALS = 1
+FEWEST_STARS = 0.5
 
 type Rating = int | str
 type Measure = float | str
@@ -13,10 +14,13 @@ class View(StrEnum):
     SPOILER_FREE = "spoiler-free"
 
 
+def star_count(ability: float) -> float:
+    return floor(ability / ABILITY_PER_STAR * STAR_STEPS + 0.5) / STAR_STEPS
+
+
 def stars(ability: float) -> str:
-    count = round(ability / ABILITY_PER_STAR * STAR_STEPS) / STAR_STEPS
-    shown = f"{count:g}"
-    return f"{shown} star" if count == 1 else f"{shown} stars"
+    count = max(star_count(ability), FEWEST_STARS)
+    return f"{count:g} star" if count == 1 else f"{count:g} stars"
 
 
 def rating(view: View, ability: int) -> Rating:
@@ -36,7 +40,9 @@ def measure(view: View, ability: float) -> Measure:
 
 
 def star_change(change: float) -> str:
-    return f"{change / ABILITY_PER_STAR:+.{CHANGE_DECIMALS}f} stars"
+    count = floor(abs(change) / ABILITY_PER_STAR * STAR_STEPS + 0.5) / STAR_STEPS
+    sign = "-" if change < 0 and count else "+"
+    return f"{sign}{count:g} stars"
 
 
 def rating_change(view: View, change: int) -> Rating:
@@ -109,3 +115,11 @@ def shows_hidden_information(view: View) -> bool:
             return True
         case View.SPOILER_FREE:
             return False
+
+
+def ability_moved(view: View, before: int, after: int) -> bool:
+    match view:
+        case View.FULL:
+            return before != after
+        case View.SPOILER_FREE:
+            return star_count(before) != star_count(after)

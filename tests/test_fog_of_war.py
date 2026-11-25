@@ -89,3 +89,25 @@ def test_fog_of_war_is_off_unless_the_option_is_given():
     assert parse_arguments(["--fog-of-war"]).fog_of_war is View.SPOILER_FREE
     assert parse_arguments(["--fog-of-war", "false"]).fog_of_war is View.FULL
     assert parse_arguments(["--fog-of-war", "on"]).fog_of_war is View.SPOILER_FREE
+
+
+def test_stars_round_half_up_in_half_star_steps(mezzala):
+    squad = [mine(f"Ability {ca}", ca=ca) for ca in (130, 150, 70, 5)]
+    found = mezzala(snapshot(squad), view=View.SPOILER_FREE).result("squad")["available"]
+    shown = {member["player"]["name"]: member["player"]["current_ability"] for member in found}
+    assert shown == {"Ability 130": "3.5 stars", "Ability 150": "4 stars", "Ability 70": "2 stars",
+                     "Ability 5": "0.5 stars"}  # fmt: skip
+
+
+def test_a_profile_under_fog_of_war_mentions_ability_only_when_the_stars_move(mezzala):
+    first = snapshot([*eleven(), mine("Grower", ca=143)])
+    app = mezzala(first, view=View.SPOILER_FREE)
+    app.call("snapshot")
+    grower = first.players[-1]
+    app.play_to(replace(first, game_date=first.game_date.replace(year=2027),
+                        players=(*first.players[:-1], replace(grower, current_ability=145))))  # fmt: skip
+    assert app.result("player_profile", player="Grower")["profiles"][0]["changes_since_first_snapshot"] == []
+    app.play_to(replace(first, game_date=first.game_date.replace(year=2028),
+                        players=(*first.players[:-1], replace(grower, current_ability=152))))  # fmt: skip
+    changes = app.result("player_profile", player="Grower")["profiles"][0]["changes_since_first_snapshot"]
+    assert changes == ["3.5 stars -> 4 stars"]

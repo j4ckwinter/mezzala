@@ -14,7 +14,7 @@ from mezzala.core.profile import (
     visible_profile,
 )
 from mezzala.core.summary import PlayerSummary, summarize
-from mezzala.core.view import View, ability_text, rating, shows_hidden_information
+from mezzala.core.view import View, ability_moved, ability_text, rating, shows_hidden_information
 
 ATTRIBUTE_CHANGE_MIN = 1
 
@@ -109,7 +109,7 @@ def changes(earlier: Player | None, player: Player, view: View) -> list[str]:
     if earlier is None or not is_same_person(earlier, player):
         return []
     found: list[str] = []
-    if earlier.current_ability != player.current_ability:
+    if ability_moved(view, earlier.current_ability, player.current_ability):
         found.append(f"{ability_text(view, earlier.current_ability)} -> {rating(view, player.current_ability)}")
     for name in visible_profile(player):
         before, now = earlier.attributes[name], player.attributes[name]
