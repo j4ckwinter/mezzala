@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
-from mezzala.core.formations import STARTERS, Formation
-from mezzala.core.lineup import assign_starters
+from mezzala.core.formations import Formation
+from mezzala.core.lineup import weakest_starters
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import PositionGroup, covers
 from mezzala.core.reach import within_reach
@@ -32,12 +32,6 @@ class ContractWatch:
     own_expiring: list[ExpiringOwnPlayer]
     free_agents: list[Target]
     pre_contract_targets: list[Target]
-
-
-def benchmarks(snapshot: Snapshot, formation: Formation) -> dict[PositionGroup, Player | None]:
-    places = STARTERS[formation]
-    assigned = assign_starters(available_squad(snapshot), places)
-    return {group: starters[-1] if len(starters) == places[group] else None for group, starters in assigned.items()}
 
 
 def own_advice(player: Player, snapshot: Snapshot, bars: dict[PositionGroup, Player | None]) -> str:
@@ -87,7 +81,7 @@ def contract_watch(
     reachable_only: bool,
     limit: int,
 ) -> ContractWatch:
-    bars = benchmarks(snapshot, formation)
+    bars = weakest_starters(available_squad(snapshot), formation)
     free: list[Target] = []
     pre_contract: list[Target] = []
     loaned_in = [player for player in available_squad(snapshot) if player.on_loan]

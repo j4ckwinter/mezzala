@@ -75,6 +75,15 @@ def pick_lineup(squad: list[Player], formation: Formation) -> Lineup:
     return Lineup(formation, tuple(chosen))
 
 
+def weakest_starters(squad: list[Player], formation: Formation) -> dict[PositionGroup, Player | None]:
+    lineup = pick_lineup(squad, formation)
+    weakest: dict[PositionGroup, Player | None] = {}
+    for group, needed in STARTERS[formation].items():
+        starters = lineup.at(group)
+        weakest[group] = starters[-1] if len(starters) == needed else None
+    return weakest
+
+
 @dataclass(frozen=True)
 class StarterEntry:
     position: str
