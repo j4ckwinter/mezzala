@@ -25,6 +25,7 @@ from mezzala.tools.find_players import FoundPlayers, PlayerSearch, SearchScope, 
 from mezzala.tools.league_comparison import LeagueComparison, league_comparison
 from mezzala.tools.league_values import LeagueValues, league_values
 from mezzala.tools.next_job import NextJob, next_job
+from mezzala.tools.next_opponent import NextOpponent, next_opponent
 from mezzala.tools.positional_fit import PositionalFit, positional_fit
 from mezzala.tools.regen_intake import RegenIntake, regen_intake
 from mezzala.tools.relegated_clubs import RelegatedClubs, relegated_clubs
@@ -169,6 +170,12 @@ class SquadProfileReport:
 class PositionalFitReport:
     context: SaveContext
     result: PositionalFit
+
+
+@dataclass(frozen=True)
+class NextOpponentReport:
+    context: SaveContext
+    result: NextOpponent
 
 
 @dataclass(frozen=True)
@@ -466,6 +473,14 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         score there, and starters whose attributes suit another position they can play noticeably better."""
         current = read_current(career)
         return PositionalFitReport(save_context(current), positional_fit(current.snapshot, formation))
+
+    @server.tool(name="next_opponent")
+    def next_opponent_tool(formation: FormationChoice = DEFAULT_FORMATION) -> NextOpponentReport:
+        """The club's next first-team fixture and an analysis of the opponent: their likely formation and best
+        eleven, key players, how their outfield attributes compare with your eleven's, and their recent results.
+        Use it to suggest tactical adjustments."""
+        current = read_current(career)
+        return NextOpponentReport(save_context(current), next_opponent(current.snapshot, formation))
 
     @server.tool(name="compare_formations")
     def compare_formations_tool(formations: FormationChoices = None) -> FormationReport:

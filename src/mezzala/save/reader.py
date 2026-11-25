@@ -7,7 +7,7 @@ from pathlib import Path
 
 import fmsave
 
-from mezzala.core.players import Budget, Player, ReleaseClause, ReleaseScope, Snapshot, Vacancy
+from mezzala.core.players import Budget, Match, Player, ReleaseClause, ReleaseScope, Snapshot, Vacancy
 
 
 class UnreadableSave(RuntimeError):
@@ -62,6 +62,8 @@ def youth_contract(contract: fmsave.Contract | None) -> bool | None:
 
 LEAGUE_NATION_SHARE = 0.9
 VACANCY_ROLE_FIELD = "role"
+UPCOMING_OPPONENTS_KEPT = 3
+RECENT_RESULTS_KEPT = 5
 
 
 def first_team_fixtures(fixtures: Iterable[fmsave.Fixture]) -> Counter[tuple[int, int]]:
@@ -188,6 +190,36 @@ def vacancies(save: fmsave.Save, managed_club_uid: int) -> tuple[Vacancy, ...]:
     return tuple(found)
 
 
+def to_match(fixture: fmsave.Fixture) -> Match | None:
+    if fixture.date is None or fixture.home_club_uid is None or fixture.away_club_uid is None:
+        return None
+    return Match(
+        fixture.date, fixture.competition_id, fixture.home_club_uid, fixture.home_club_name or "unknown",
+        fixture.away_club_uid, fixture.away_club_name or "unknown", bool(fixture.played), fixture.home_goals,
+        fixture.away_goals,
+    )  # fmt: skip
+
+
+def involves(match: Match, club_uid: int) -> bool:
+    return club_uid in (match.home_club_uid, match.away_club_uid)
+
+
+def matches_kept(fixtures: Iterable[fmsave.Fixture], club_uid: int, today: date) -> tuple[Match, ...]:
+    first_team = [
+        match
+        for fixture in fixtures
+        if fixture.home_team_slot == 0 and fixture.away_team_slot == 0 and (match := to_match(fixture)) is not None
+    ]
+    ours = sorted((m for m in first_team if involves(m, club_uid)), key=lambda m: m.day)
+    upcoming = [m for m in ours if not m.played and m.day >= today][:UPCOMING_OPPONENTS_KEPT]
+    opponents = {m.away_club_uid if m.home_club_uid == club_uid else m.home_club_uid for m in upcoming}
+    recent: list[Match] = []
+    for opponent in opponents:
+        played = sorted((m for m in first_team if m.played and involves(m, opponent)), key=lambda m: m.day)
+        recent.extend(played[-RECENT_RESULTS_KEPT:])
+    return tuple(dict.fromkeys([*ours, *recent]))
+
+
 def read_snapshot(path: Path) -> Snapshot:
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", fmsave.FmsaveWarning)
@@ -215,4 +247,5 @@ def read_snapshot(path: Path) -> Snapshot:
                 budget(save, club.club_uid),
                 players,
                 vacancies(save, club.club_uid),
+                matches_kept(save.fixtures(), club.club_uid, game_date),
             )

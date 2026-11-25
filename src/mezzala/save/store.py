@@ -10,6 +10,7 @@ from mezzala.core.players import (
     ATTRIBUTE_NAMES,
     POSITION_CODES,
     Budget,
+    Match,
     Player,
     ReleaseClause,
     ReleaseScope,
@@ -30,6 +31,7 @@ CREATE TABLE IF NOT EXISTS snapshots (
     club_nation_id INTEGER,
     format INTEGER NOT NULL DEFAULT 1,
     vacancies TEXT,
+    matches TEXT,
     budget TEXT NOT NULL,
     players BLOB NOT NULL,
     UNIQUE (career, game_date)
@@ -49,6 +51,19 @@ def optional_date(text: str | None) -> date | None:
 
 def optional_text(day: date | None) -> str | None:
     return day.isoformat() if day else None
+
+
+def encode_match(match: Match) -> list[Any]:
+    return [
+        match.day.isoformat(), match.competition_id, match.home_club_uid, match.home_club_name, match.away_club_uid,
+        match.away_club_name, match.played, match.home_goals, match.away_goals,
+    ]  # fmt: skip
+
+
+def decode_match(stored: list[Any]) -> Match:
+    day, competition, home_uid, home_name, away_uid, away_name, played, home_goals, away_goals = stored
+    return Match(date.fromisoformat(day), competition, home_uid, home_name, away_uid, away_name, played, home_goals,
+                 away_goals)  # fmt: skip
 
 
 def encode_vacancy(vacancy: Vacancy) -> list[Any]:
@@ -82,8 +97,13 @@ def encode_player(player: Player) -> list[Any]:
 
 ORIGINAL_FIELDS = 19
 FACTS_ADDED_LATER: list[Any] = [None, None, None, None, None, [], None]
-CURRENT_FORMAT = 5
-COLUMNS_ADDED_LATER = {"club_nation_id": "INTEGER", "format": "INTEGER NOT NULL DEFAULT 1", "vacancies": "TEXT"}
+CURRENT_FORMAT = 6
+COLUMNS_ADDED_LATER = {
+    "club_nation_id": "INTEGER",
+    "format": "INTEGER NOT NULL DEFAULT 1",
+    "vacancies": "TEXT",
+    "matches": "TEXT",
+}
 
 
 def add_column(db: sqlite3.Connection, name: str, definition: str) -> None:
@@ -178,8 +198,8 @@ class SnapshotStore:
             )
             self._db.execute(
                 "INSERT INTO snapshots (career, game_date, file_mtime_ns, file_size, club_uid, club_name, "
-                "club_reputation, club_nation_id, format, budget, players, vacancies) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "club_reputation, club_nation_id, format, budget, players, vacancies, matches) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     career, snapshot.game_date.isoformat(), stamp.mtime_ns, stamp.size, snapshot.club_uid,
                     snapshot.club_name,
@@ -189,6 +209,7 @@ class SnapshotStore:
                     json.dumps([budget.transfer_remaining, budget.wage_budget_weekly, budget.wage_payroll_weekly]),
                     encode_players(snapshot.players),
                     json.dumps([encode_vacancy(vacancy) for vacancy in snapshot.vacancies]),
+                    json.dumps([encode_match(match) for match in snapshot.matches]),
                 ),
             )  # fmt: skip
 
@@ -206,13 +227,14 @@ class SnapshotStore:
 
     def load(self, career: str, game_date: date) -> Snapshot:
         row = self._db.execute(
-            "SELECT club_uid, club_name, club_reputation, club_nation_id, budget, players, vacancies FROM snapshots "
+            "SELECT club_uid, club_name, club_reputation, club_nation_id, budget, players, vacancies, matches "
+            "FROM snapshots "
             "WHERE career = ? AND game_date = ?",
             (career, game_date.isoformat()),
         ).fetchone()
         if row is None:
             raise KeyError(f"No snapshot of {career} on {game_date.isoformat()}")
-        club_uid, club_name, reputation, nation_id, budget, players, vacancies = row
+        club_uid, club_name, reputation, nation_id, budget, players, vacancies, matches = row
         return Snapshot(
             game_date,
             club_uid,
@@ -222,4 +244,5 @@ class SnapshotStore:
             Budget(*json.loads(budget)),
             decode_players(players),
             tuple(decode_vacancy(vacancy) for vacancy in json.loads(vacancies or "[]")),
+            tuple(decode_match(match) for match in json.loads(matches or "[]")),
         )

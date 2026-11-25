@@ -98,6 +98,19 @@ class Vacancy:
 
 
 @dataclass(frozen=True)
+class Match:
+    day: date
+    competition_id: int | None
+    home_club_uid: int
+    home_club_name: str
+    away_club_uid: int
+    away_club_name: str
+    played: bool
+    home_goals: int | None
+    away_goals: int | None
+
+
+@dataclass(frozen=True)
 class Snapshot:
     game_date: date
     club_uid: int
@@ -107,6 +120,7 @@ class Snapshot:
     budget: Budget
     players: tuple[Player, ...]
     vacancies: tuple[Vacancy, ...]
+    matches: tuple[Match, ...]
 
     def by_uid(self) -> dict[int, Player]:
         return {player.uid: player for player in self.players}
