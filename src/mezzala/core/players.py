@@ -66,12 +66,6 @@ class Player:
         return max(self.potential_ability - self.current_ability, 0)
 
     @property
-    def wage_paid_by_current_club(self) -> int | None:
-        if self.on_loan and self.loan_wage is not None:
-            return self.loan_wage
-        return self.wage
-
-    @property
     def is_free_agent(self) -> bool:
         return self.club_uid is None
 

@@ -1,6 +1,6 @@
 from datetime import date
 
-from factory import MY_NATION, eleven, mine, player, snapshot
+from factory import MY_NATION, OTHER_CLUB, eleven, mine, player, snapshot
 
 from mezzala.core.players import ReleaseClause, ReleaseScope
 
@@ -209,3 +209,10 @@ def test_low_valued_peers_still_count_when_judging_value(mezzala):
     ]
     found = mezzala(snapshot(squad)).result("find_players", sort_by="value for money", limit=30)["players"]
     assert {f["player"]["name"]: f["value_vs_similar_players"] for f in found}["Middling"] == "0.67x"
+
+
+def test_our_players_out_on_loan_cost_us_their_wage_less_the_loan_clubs_share(mezzala):
+    away = player("Away", ca=80, age=19, club=OTHER_CLUB, wage=700, on_loan=True, loan_parent_club_uid=1, loan_wage=175)
+    squad = [*peers(25, ca=80, age=19, wage=525), away]
+    found = mezzala(snapshot(squad)).result("find_players", scope="own")["players"][0]
+    assert found["wage_vs_similar_players"] == "1.00x"

@@ -27,6 +27,16 @@ def owned_players(snapshot: Snapshot) -> list[Player]:
     return [player for player in snapshot.players if belongs_to_club(player, snapshot.club_uid)]
 
 
+def wage_paid_by_club(player: Player, club_uid: int) -> int | None:
+    if not player.on_loan or player.loan_wage is None:
+        return player.wage
+    if plays_for_club(player, club_uid):
+        return player.loan_wage
+    if player.wage is None:
+        return None
+    return max(player.wage - player.loan_wage, 0)
+
+
 def depth_chart(squad: list[Player], group: PositionGroup) -> list[Player]:
     cover = [player for player in squad if covers(player, group)]
     return sorted(cover, key=lambda player: (player.current_ability, group_rating(player, group)), reverse=True)

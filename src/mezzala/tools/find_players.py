@@ -23,6 +23,7 @@ from mezzala.core.squad import (
     is_outside_club,
     leaves_within,
     plays_for_club,
+    wage_paid_by_club,
 )
 from mezzala.core.summary import PlayerSummary, summarize
 
@@ -142,7 +143,7 @@ def ending(player: Player, snapshot: Snapshot, months: int) -> date | None:
 def wage_for(player: Player, snapshot: Snapshot) -> int | None:
     if is_outside_club(player, snapshot.club_uid):
         return player.wage
-    return player.wage_paid_by_current_club
+    return wage_paid_by_club(player, snapshot.club_uid)
 
 
 def matches_market(player: Player, search: PlayerSearch, measures: Measures) -> bool:
