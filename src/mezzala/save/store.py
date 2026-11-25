@@ -178,7 +178,7 @@ FACTS_ADDED_LATER: list[Any] = [
     None,
     None,
 ]
-CURRENT_FORMAT = 11
+CURRENT_FORMAT = 12
 MATCH_FACTS_ADDED_LATER: list[Any] = [False, 0, 0]
 COLUMNS_ADDED_LATER = {
     "club_nation_id": "INTEGER",

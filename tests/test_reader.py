@@ -18,12 +18,15 @@ from fmsave import (
     Staff,
     StaffJob,
     SuspensionScope,
+    TacticPosition,
+    TacticSlot,
     Trait,
     TransferValueState,
 )
 from fmsave import Player as FmPlayer
 
 from mezzala.core.players import Injury, ReleaseClause, ReleaseScope
+from mezzala.save.own_club import slot_position
 from mezzala.save.player_records import CurrentInjury, injury_records, season_records
 from mezzala.save.reader import (
     ban_label,
@@ -280,3 +283,24 @@ def test_of_two_current_injuries_the_one_lasting_longer_is_kept():
 def test_a_players_nationalities_come_first_then_second_without_repeats():
     fake = cast(FmPlayer, SimpleNamespace(nation_id=1, second_nation_ids=(2, 1, 9)))
     assert nationalities(fake, {1: "Jamaica", 2: "England"}) == ("Jamaica", "England")
+
+
+def tactic_slot(in_possession: TacticPosition, out_of_possession: TacticPosition):
+    slot = SimpleNamespace(
+        in_possession_positions=[SimpleNamespace(label=in_possession)],
+        out_of_possession_positions=[SimpleNamespace(label=out_of_possession)],
+    )
+    return cast(TacticSlot, slot)
+
+
+def test_a_slot_reads_its_in_possession_position():
+    slot = tactic_slot(TacticPosition.ATTACKING_MIDFIELDER_LEFT, TacticPosition.MIDFIELDER_LEFT)
+    assert slot_position(slot) == "aml"
+
+
+def test_a_wing_back_slot_fmsave_cannot_name_reads_its_out_of_possession_position():
+    assert slot_position(tactic_slot(TacticPosition.UNKNOWN, TacticPosition.DEFENDER_LEFT)) == "dl"
+
+
+def test_a_slot_unknown_both_ways_reads_as_unknown():
+    assert slot_position(tactic_slot(TacticPosition.UNKNOWN, TacticPosition.UNKNOWN)) is None

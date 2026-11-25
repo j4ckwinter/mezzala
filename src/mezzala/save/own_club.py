@@ -38,10 +38,12 @@ def club_staff(save: fmsave.Save, club_uid: int) -> tuple[StaffMember, ...]:
     return tuple(member for member in members if member is not None)
 
 
+def first_known(positions: tuple[fmsave.CodedValue[fmsave.TacticPosition], ...]) -> str | None:
+    return next((code for p in positions if (code := TACTIC_POSITION_CODES.get(p.label)) is not None), None)
+
+
 def slot_position(slot: fmsave.TacticSlot) -> str | None:
-    positions = [TACTIC_POSITION_CODES.get(position.label) for position in slot.in_possession_positions]
-    known = [code for code in positions if code is not None]
-    return known[0] if known else None
+    return first_known(slot.in_possession_positions) or first_known(slot.out_of_possession_positions)
 
 
 def first_team_tactics(save: fmsave.Save, club_uid: int) -> tuple[Tactic, ...]:
