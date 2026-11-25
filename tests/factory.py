@@ -52,6 +52,7 @@ def player(
         "club_reputation": None if club is None else 5_000,
         "club_nation_id": None if club is None else MY_NATION,
         "league_id": None if club is None else MY_LEAGUE,
+        "club_country": None if club is None else "Scotland",
         "youth_contract": None if club is None else False,
         "release_clauses": (),
         "loan_wage": None,

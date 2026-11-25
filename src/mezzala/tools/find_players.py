@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from datetime import date
 from enum import StrEnum
 
+from mezzala.core.leagues import League, leagues
 from mezzala.core.metrics import (
     PeerMedians,
     above_league,
@@ -66,6 +67,9 @@ class PlayerSearch:
     youth_contract_only: bool
     nationality: str | None
     work_permit_free_only: bool
+    country: str | None
+    division_level: int | None
+    league: str | None
     reserves_only: bool
     bigger_clubs_only: bool
     within_reach: bool
@@ -77,6 +81,9 @@ class PlayerSearch:
 class FoundPlayer:
     player: PlayerSummary
     team: str
+    league: str | None
+    country: str | None
+    division_level: int | None
     value_vs_similar_players: str
     wage_vs_similar_players: str
     above_league_level: Measure | None
@@ -99,6 +106,10 @@ class Measures:
     values: PeerMedians
     wages: PeerMedians
     leagues: dict[int, float]
+    named_leagues: dict[int, League]
+
+    def league_of(self, player: Player) -> League | None:
+        return self.named_leagues.get(player.league_id) if player.league_id is not None else None
 
     def value_ratio(self, player: Player) -> float | None:
         return self.values.ratio_of(market_value(player), player)
@@ -171,11 +182,26 @@ def matches_market(player: Player, search: PlayerSearch, measures: Measures) -> 
         return False
     if search.youth_contract_only and player.youth_contract is not True:
         return False
+    if not in_league(player, search, measures):
+        return False
     if search.reserves_only and player.first_team is not False:
         return False
     if search.bigger_clubs_only and not at_least(player.club_reputation, snapshot.club_reputation + 1):
         return False
     return not (search.within_reach and search.scope is not SearchScope.OWN and not within_reach(player, snapshot))
+
+
+def same_words(text: str | None, wanted: str) -> bool:
+    return text is not None and text.casefold() == wanted.strip().casefold()
+
+
+def in_league(player: Player, search: PlayerSearch, measures: Measures) -> bool:
+    league = measures.league_of(player)
+    if search.country is not None and not same_words(player.club_country, search.country):
+        return False
+    if search.division_level is not None and (league is None or league.division_level != search.division_level):
+        return False
+    return search.league is None or (league is not None and search.league.casefold() in league.name.casefold())
 
 
 def group_for(player: Player, search: PlayerSearch) -> PositionGroup:
@@ -231,6 +257,9 @@ def found(player: Player, search: PlayerSearch, measures: Measures, view: View) 
     return FoundPlayer(
         player=summarize(player, view),
         team=team_label(player),
+        league=league.name if (league := measures.league_of(player)) else None,
+        country=player.club_country,
+        division_level=league.division_level if league else None,
         value_vs_similar_players=describe_ratio(measures.value_ratio(player)),
         wage_vs_similar_players=describe_ratio(measures.wage_ratio(player)),
         above_league_level=None if excess is None else measure_change(view, round(excess, 1)),
@@ -247,6 +276,7 @@ def find_players(snapshot: Snapshot, search: PlayerSearch, view: View) -> FoundP
         PeerMedians(snapshot.players, transfer_value),
         PeerMedians(snapshot.players, weekly_wage),
         league_levels(snapshot.players),
+        leagues(snapshot.players),
     )
     matched = [
         player

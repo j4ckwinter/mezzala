@@ -16,13 +16,16 @@ def league_of(name, league, value, count=60, ca=110, reputation=5_000):
 def test_leagues_whose_players_cost_less_than_similar_players_come_first(mezzala):
     squad = [*eleven(), *league_of("Bargain", CHEAP_LEAGUE, 500_000), *league_of("Pricey", DEAR_LEAGUE, 2_000_000)]
     rows = mezzala(snapshot(squad)).result("league_values")["leagues"]
-    assert [row["league"].split(" FC")[0] for row in rows[:2]] == ["Bargain", "Pricey"]
+    assert [row["league"].split("(")[1].split(" FC")[0] for row in rows[:2]] == ["Bargain", "Pricey"]
     assert rows[0]["value_vs_similar_players"] < rows[1]["value_vs_similar_players"]
 
 
 def test_a_cheap_league_is_judged_on_all_its_priced_players(mezzala):
     squad = [*eleven(), *league_of("Lower", CHEAP_LEAGUE, 30_000), *league_of("Upper", DEAR_LEAGUE, 2_000_000)]
-    rows = {row["league"].split(" FC")[0]: row for row in mezzala(snapshot(squad)).result("league_values")["leagues"]}
+    rows = {
+        row["league"].split("(")[1].split(" FC")[0]: row
+        for row in mezzala(snapshot(squad)).result("league_values")["leagues"]
+    }
     assert rows["Lower"]["priced_players"] == 60
 
 
