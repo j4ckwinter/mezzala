@@ -30,6 +30,7 @@ from mezzala.tools.sell_high import SellHigh, sell_high
 from mezzala.tools.shortlist import Shortlist, shortlist
 from mezzala.tools.squad_gaps import SquadGaps, squad_gaps
 from mezzala.tools.squad_list import SquadList, squad_list
+from mezzala.tools.squad_progress import SquadProgress, squad_progress
 from mezzala.tools.wage_review import WageReview, wage_review
 from mezzala.tools.watchlist import Watchlist, watched_record, watchlist
 from mezzala.tools.what_changed import WhatChanged, what_changed
@@ -124,6 +125,12 @@ class WatchlistReport:
 class DevelopmentCheckReport:
     context: SaveContext
     result: DevelopmentCheck
+
+
+@dataclass(frozen=True)
+class SquadProgressReport:
+    context: SaveContext
+    result: SquadProgress
 
 
 @dataclass(frozen=True)
@@ -368,6 +375,14 @@ def create_server(career: Career, watched: WatchlistStore) -> MCPServer:
         current = read_current(career)
         result = development_check(current.snapshot, career.baseline(current, since), scope, min_pa, limit)
         return DevelopmentCheckReport(save_context(current), result)
+
+    @server.tool(name="squad_progress")
+    def squad_progress_tool(formation: FormationChoice = DEFAULT_FORMATION) -> SquadProgressReport:
+        """How the squad has changed since the first snapshot of the save (usually when mezzala was first used):
+        best eleven, league rank, size, age, value and wage bill then and now, and the most improved players."""
+        current = read_current(career)
+        first = career.baseline(current, None)
+        return SquadProgressReport(save_context(current), squad_progress(current.snapshot, first, formation))
 
     @server.tool(name="compare_formations")
     def compare_formations_tool(formations: FormationChoices = None) -> FormationReport:
