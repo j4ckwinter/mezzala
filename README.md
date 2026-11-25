@@ -21,6 +21,9 @@ so i made an mcp server that reads my save and does the scouting for me. i ask c
 | `next_job` | open manager jobs, biggest club first, with each club's squad and money |
 | `league_values` | which leagues have the cheapest players for their level |
 | `relegated_clubs` | clubs that dropped a league since an earlier snapshot, and who's worth signing there |
+| `squad_profile` | your eleven's attribute strengths and weaknesses against the league, for tactics |
+| `positional_fit` | starters whose attributes suit another position better |
+| `next_opponent` | your next opponent: likely shape, best eleven, key players, how they compare, recent form |
 | `squad_gaps` | your eleven for a formation, plus where you're thin, ageing, losing players, weak, or have no young successor coming through |
 | `find_replacement` | who plays like a player you're losing, fits your budget, and would actually sign |
 | `risers` | who's improving fastest: transfer targets, your own players, or ones you sold too early |
@@ -82,7 +85,8 @@ open a new claude code session, load your save in fm, and ask away. save in fm w
 ## what it can't do
 
 - fees are fm's transfer values. asking prices aren't in the save.
-- it doesn't know your tactic. tell claude your formation (4-3-3, 4-2-3-1, 4-4-2, 4-4-2 diamond, 3-5-2 or 3-4-3) and it'll pass it along. the default is 4-3-3.
+- it can't read your tactic or roles, so tactical advice comes from your players' attributes.
+- it doesn't know your formation. tell claude your formation (4-3-3, 4-2-3-1, 4-4-2, 4-4-2 diamond, 3-5-2 or 3-4-3) and it'll pass it along. the default is 4-3-3.
 - `compare_formations` ranks shapes by how well your players fit them, not by how the match engine rates them. it treats wingers and wide midfielders as the same position, and full backs and wing backs too, so 4-1-4-1 and 5-3-2 would tie with 4-3-3 and 3-5-2.
 - it sees everything, including hidden ca and pa. no fog of war.
 - the save doesn't name leagues, and leagues that aren't loaded in your save don't count, so "above league level" only covers players in loaded leagues.

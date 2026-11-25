@@ -59,6 +59,8 @@ the players. compare_formations ranks formations by how well the squad fits them
 what_changed, development_check, squad_progress and the watchlist tools (watch_player, unwatch_player,
 watchlist) work from history and say so when there is only one snapshot. next_job, league_values and
 relegated_clubs cover managerial vacancies, the best-value leagues and clubs that dropped a league.
+squad_profile, positional_fit and next_opponent support tactics and match preparation; the save's own tactic
+cannot be read, so suggest tactics from the attributes they report.
 Positions are natural (FM rating {NATURAL_POSITION_RATING}+) or accomplished
 ({ACCOMPLISHED_POSITION_RATING}-{NATURAL_POSITION_RATING - 1}). Ask the manager which formation they
 play if it matters; tools that take one default to {DEFAULT_FORMATION.value}."""
