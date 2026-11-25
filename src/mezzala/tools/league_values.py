@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from statistics import median
 
 from mezzala.core.leagues import league_names
-from mezzala.core.metrics import PeerMedians, league_levels, market_value, transfer_value
+from mezzala.core.metrics import PeerMedians, league_levels, transfer_value
 from mezzala.core.money import format_money
 from mezzala.core.players import Snapshot
 
@@ -39,7 +39,7 @@ def league_values(snapshot: Snapshot, limit: int) -> LeagueValues:
     ratios: dict[int, list[float]] = {}
     values: dict[int, list[int]] = {}
     for player in snapshot.players:
-        price = market_value(player)
+        price = transfer_value(player)
         if player.league_id not in levels or not player.first_team or price is None:
             continue
         ratio = peers.ratio_of(price, player)
