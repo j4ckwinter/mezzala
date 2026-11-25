@@ -27,6 +27,7 @@ from mezzala.tools.league_comparison import LeagueComparison, league_comparison
 from mezzala.tools.league_values import LeagueValues, league_values
 from mezzala.tools.next_job import NextJob, next_job
 from mezzala.tools.next_opponent import NextOpponent, next_opponent
+from mezzala.tools.player_profile import PlayerProfiles, player_profiles
 from mezzala.tools.positional_fit import PositionalFit, positional_fit
 from mezzala.tools.regen_intake import RegenIntake, regen_intake
 from mezzala.tools.relegated_clubs import RelegatedClubs, relegated_clubs
@@ -61,6 +62,7 @@ the players. compare_formations ranks formations by how well the squad fits them
 what_changed, development_check, squad_progress and the watchlist tools (watch_player, unwatch_player,
 watchlist) work from history and say so when there is only one snapshot. next_job, league_values and
 relegated_clubs cover managerial vacancies, the best-value leagues and clubs that dropped a league.
+player_profile shows one player in full, or two side by side.
 squad_profile, positional_fit and next_opponent support tactics and match preparation; the save's own tactic
 cannot be read, so suggest tactics from the attributes they report.
 Positions are natural (FM rating {NATURAL_POSITION_RATING}+) or accomplished
@@ -229,6 +231,12 @@ class SellHighReport:
 class ContractWatchReport:
     context: SaveContext
     result: ContractWatch
+
+
+@dataclass(frozen=True)
+class PlayerProfileReport:
+    context: SaveContext
+    result: PlayerProfiles
 
 
 @dataclass(frozen=True)
@@ -611,5 +619,20 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
         baseline = career.previous(current) if since_last_save else career.baseline(current, since)
         result = regen_intake(current.snapshot, baseline, min_pa, unsigned_only, limit, view)
         return RegenIntakeReport(save_context(current), result)
+
+    @server.tool(name="player_profile")
+    def player_profile_tool(
+        player: str, club: str | None = None, compare_with: str | None = None, compare_club: str | None = None
+    ) -> PlayerProfileReport:
+        """One player's full profile, or two side by side with compare_with: attributes grouped as FM groups
+        them, hidden attributes and personality (left out under fog of war), feet, height, traits, the positions
+        he can play with a key-attribute score for each, condition, sharpness, injuries, bans, this season's
+        stats, and what has changed since the first snapshot. Pass club to tell apart players with the same name."""
+        current = read_current(career)
+        chosen = [target_player(current.snapshot, player, club)]
+        if compare_with is not None:
+            chosen.append(target_player(current.snapshot, compare_with, compare_club))
+        result = player_profiles(chosen, career.baseline(current, None), view)
+        return PlayerProfileReport(save_context(current), result)
 
     return server

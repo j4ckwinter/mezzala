@@ -101,3 +101,11 @@ def rating_text(view: View, ability: float) -> str:
             return f"{ability:g}"
         case View.SPOILER_FREE:
             return stars(ability)
+
+
+def shows_hidden_information(view: View) -> bool:
+    match view:
+        case View.FULL:
+            return True
+        case View.SPOILER_FREE:
+            return False

@@ -15,6 +15,7 @@ so i made an mcp server that reads my save and does the scouting for me. i ask c
 | --- | --- |
 | `find_players` | searches the whole save: wonderkids under a price, undervalued players, players too good for their league, reserves stuck at bigger clubs, low release clauses, free agents, the best players in the world |
 | `squad` | everyone available, loanees included, with natural and accomplished positions |
+| `player_profile` | one player in full, or two side by side: attributes, hidden attributes, personality, feet, traits, fitness, injuries, this season's stats and what's changed |
 | `compare_formations` | which formation your squad fits best, with the eleven for each |
 | `shortlist` | a realistic shortlist, one target per weak position, within your transfer budget and wage room |
 | `wage_review` | your wage bill, who's overpaid, and who could go without weakening the squad |

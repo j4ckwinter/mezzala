@@ -19,8 +19,22 @@ PHYSICAL_ATTRIBUTES = (
     "acceleration", "agility", "balance", "jumping_reach", "natural_fitness", "pace", "stamina", "strength",
 )  # fmt: skip
 
+HIDDEN_ATTRIBUTES = ("consistency", "important_matches", "injury_proneness", "versatility", "dirtiness")
 OUTFIELD_PROFILE = TECHNICAL_ATTRIBUTES + MENTAL_ATTRIBUTES + PHYSICAL_ATTRIBUTES
 GOALKEEPER_PROFILE = GOALKEEPING_ATTRIBUTES + MENTAL_ATTRIBUTES + PHYSICAL_ATTRIBUTES
+
+
+def personality(player: Player) -> dict[str, int]:
+    found = {
+        "professionalism": player.professionalism, "ambition": player.ambition, "pressure": player.pressure,
+        "temperament": player.temperament, "loyalty": player.loyalty, "controversy": player.controversy,
+        "adaptability": player.adaptability, "sportsmanship": player.sportsmanship,
+    }  # fmt: skip
+    return {name: value for name, value in found.items() if value is not None}
+
+
+def first_group(player: Player) -> tuple[str, tuple[str, ...]]:
+    return ("goalkeeping", GOALKEEPING_ATTRIBUTES) if is_goalkeeper(player) else ("technical", TECHNICAL_ATTRIBUTES)
 
 
 def visible_profile(player: Player) -> tuple[str, ...]:
