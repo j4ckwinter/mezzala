@@ -49,6 +49,10 @@ def optional_text(day: date | None) -> str | None:
     return day.isoformat() if day else None
 
 
+def encode_clause(clause: ReleaseClause) -> list[Any]:
+    return [clause.scope.value, clause.fee, optional_text(clause.expires)]
+
+
 def encode_player(player: Player) -> list[Any]:
     return [
         player.uid, player.name, player.age, optional_text(player.birth_date), player.club_uid, player.club_name,
@@ -57,14 +61,14 @@ def encode_player(player: Player) -> list[Any]:
         player.loan_parent_club_uid, optional_text(player.loan_end),
         [player.attributes[name] for name in ATTRIBUTE_NAMES], player.reputation, player.professionalism,
         player.ambition, player.first_team, player.club_reputation, player.club_nation_id, player.league_id,
-        player.youth_contract, [[clause.scope.value, clause.fee] for clause in player.release_clauses],
+        player.youth_contract, [encode_clause(clause) for clause in player.release_clauses],
         player.loan_wage,
     ]  # fmt: skip
 
 
 ORIGINAL_FIELDS = 19
 FACTS_ADDED_LATER: list[Any] = [None, None, None, None, None, [], None]
-CURRENT_FORMAT = 3
+CURRENT_FORMAT = 4
 COLUMNS_ADDED_LATER = {"club_nation_id": "INTEGER", "format": "INTEGER NOT NULL DEFAULT 1"}
 
 
@@ -74,6 +78,11 @@ def add_column(db: sqlite3.Connection, name: str, definition: str) -> None:
     except sqlite3.OperationalError as error:
         if "duplicate column" not in str(error):
             raise
+
+
+def decode_clause(stored: list[Any]) -> ReleaseClause:
+    scope, fee, *expiry = stored
+    return ReleaseClause(ReleaseScope(scope), fee, optional_date(expiry[0]) if expiry else None)
 
 
 def decode_player(row: list[Any]) -> Player:
@@ -106,7 +115,7 @@ def decode_player(row: list[Any]) -> Player:
         club_nation_id=club_nation_id,
         league_id=league_id,
         youth_contract=youth_contract,
-        release_clauses=tuple(ReleaseClause(ReleaseScope(scope), fee) for scope, fee in clauses),
+        release_clauses=tuple(decode_clause(clause) for clause in clauses),
         loan_wage=loan_wage,
     )
 

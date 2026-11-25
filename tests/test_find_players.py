@@ -62,7 +62,7 @@ def test_position_attributes_find_strong_attributes_behind_low_ability(mezzala):
 
 
 def clause(scope, fee):
-    return (ReleaseClause(scope, fee),)
+    return (ReleaseClause(scope, fee, None),)
 
 
 def test_only_release_clauses_that_apply_to_the_club_count(mezzala):
@@ -187,3 +187,10 @@ def test_a_nominal_value_is_not_treated_as_a_bargain(mezzala):
     squad = [*peers(25, ca=125, age=26, value=2_000_000), player("Token Value", ca=125, age=26, value=10_000)]
     found = mezzala(snapshot(squad)).result("find_players", sort_by="value for money", limit=30)["players"]
     assert {f["player"]["name"]: f["value_vs_similar_players"] for f in found}["Token Value"] == "unknown"
+
+
+def test_an_expired_domestic_release_clause_no_longer_counts(mezzala):
+    expired = (ReleaseClause(ReleaseScope.DOMESTIC, 200_000, date(2026, 6, 1)),)
+    live = (ReleaseClause(ReleaseScope.DOMESTIC, 300_000, date(2027, 6, 1)),)
+    squad = [player("Expired", release_clauses=expired), player("Live", release_clauses=live)]
+    assert names(mezzala(snapshot(squad)), max_release_clause=1_000_000) == ["Live"]

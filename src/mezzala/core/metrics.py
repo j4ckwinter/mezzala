@@ -1,4 +1,5 @@
 from collections.abc import Callable, Iterable
+from datetime import date
 from statistics import median
 
 from mezzala.core.players import Player, ReleaseScope
@@ -86,6 +87,10 @@ def clause_applies(scope: ReleaseScope, player: Player, buyer_nation_id: int | N
             )
 
 
-def release_clause_for(player: Player, buyer_nation_id: int | None) -> int | None:
-    fees = [c.fee for c in player.release_clauses if clause_applies(c.scope, player, buyer_nation_id)]
+def release_clause_for(player: Player, buyer_nation_id: int | None, today: date) -> int | None:
+    fees = [
+        clause.fee
+        for clause in player.release_clauses
+        if clause_applies(clause.scope, player, buyer_nation_id) and (clause.expires is None or clause.expires >= today)
+    ]
     return min(fees) if fees else None

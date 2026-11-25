@@ -1,3 +1,4 @@
+from datetime import date
 from types import SimpleNamespace
 from typing import cast
 
@@ -27,19 +28,19 @@ def test_a_real_value_is_kept():
     assert known_value(TransferValueState.OK, 450_000) == 450_000
 
 
-def clause(kind, value):
-    return SimpleNamespace(kind=SimpleNamespace(label=kind), value=value, parameter=None)
+def clause(kind, value, parameter=None):
+    return SimpleNamespace(kind=SimpleNamespace(label=kind), value=value, parameter=parameter)
 
 
 def test_release_clauses_keep_their_scope_and_ignore_other_clauses():
-    contract = SimpleNamespace(clauses=(
+    contract = SimpleNamespace(start=date(2025, 7, 1), clauses=(
         clause(ClauseKind.MINIMUM_FEE_RELEASE, 2_000_000),
         clause(ClauseKind.MINIMUM_FEE_RELEASE_FOREIGN, 500_000),
         clause(ClauseKind.APPEARANCE_FEE, 3_000),
     ))  # fmt: skip
     assert release_clauses(cast(Contract, contract)) == (
-        ReleaseClause(ReleaseScope.ANY, 2_000_000),
-        ReleaseClause(ReleaseScope.FOREIGN, 500_000),
+        ReleaseClause(ReleaseScope.ANY, 2_000_000, None),
+        ReleaseClause(ReleaseScope.FOREIGN, 500_000, None),
     )
 
 
@@ -96,3 +97,12 @@ def test_a_loan_player_records_what_his_current_club_pays():
 
 def test_a_permanent_player_has_no_loan_wage():
     assert loan_wage(loanee(on_loan=False)) is None
+
+
+def test_a_domestic_release_clause_expires_the_given_days_after_the_contract_starts():
+    contract = SimpleNamespace(
+        start=date(2025, 7, 1), clauses=(clause(ClauseKind.MINIMUM_FEE_RELEASE_DOMESTIC, 900_000, 365),)
+    )
+    assert release_clauses(cast(Contract, contract)) == (
+        ReleaseClause(ReleaseScope.DOMESTIC, 900_000, date(2026, 7, 1)),
+    )

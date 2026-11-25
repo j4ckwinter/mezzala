@@ -29,6 +29,7 @@ class ReleaseScope(StrEnum):
 class ReleaseClause:
     scope: ReleaseScope
     fee: int
+    expires: date | None
 
 
 @dataclass(frozen=True)

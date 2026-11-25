@@ -2,6 +2,7 @@ import dataclasses
 import warnings
 from collections import Counter
 from collections.abc import Iterable
+from datetime import date, timedelta
 from pathlib import Path
 
 import fmsave
@@ -30,6 +31,12 @@ RELEASE_SCOPES = {
 }
 
 
+def clause_expiry(scope: ReleaseScope, days: int | None, contract_start: date | None) -> date | None:
+    if scope is not ReleaseScope.DOMESTIC or days is None or contract_start is None:
+        return None
+    return contract_start + timedelta(days=days)
+
+
 def release_clauses(contract: fmsave.Contract | None) -> tuple[ReleaseClause, ...]:
     if contract is None:
         return ()
@@ -37,7 +44,7 @@ def release_clauses(contract: fmsave.Contract | None) -> tuple[ReleaseClause, ..
     for clause in contract.clauses:
         scope = RELEASE_SCOPES.get(clause.kind.label)
         if scope is not None and clause.value is not None:
-            found.append(ReleaseClause(scope, clause.value))
+            found.append(ReleaseClause(scope, clause.value, clause_expiry(scope, clause.parameter, contract.start)))
     return tuple(found)
 
 

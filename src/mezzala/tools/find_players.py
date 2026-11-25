@@ -97,7 +97,7 @@ class Measures:
         return self.wages.ratio_of(wage_for(player, self.snapshot), player)
 
     def release_clause(self, player: Player) -> int | None:
-        return release_clause_for(player, self.snapshot.club_nation_id)
+        return release_clause_for(player, self.snapshot.club_nation_id, self.snapshot.game_date)
 
 
 def in_scope(player: Player, snapshot: Snapshot, scope: SearchScope) -> bool:
