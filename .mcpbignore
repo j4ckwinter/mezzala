@@ -5,3 +5,4 @@ __pycache__/
 tests/
 dist/
 AGENTS.md
+docs/

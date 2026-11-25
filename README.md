@@ -1,7 +1,13 @@
+<div align="center">
+
 # mezzala
 
 i love football manager. i hate scrolling a 40,000-player search screen to find one decent centre back on a st mirren budget.
 so i made an mcp server that reads my save and does the scouting for me. i ask claude, it asks mezzala, mezzala reads the save.
+
+<img src="docs/demo.gif" alt="claude code asking mezzala for the best wonderkids under £5m, getting a top five table from a st mirren save, and a cheaper pick that fits the budget" width="820">
+
+</div>
 
 ## what it answers
 
