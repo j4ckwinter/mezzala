@@ -14,7 +14,7 @@ from mezzala.core.money import format_money, format_weekly_wage, stored_from_pou
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import ACCOMPLISHED_POSITION_RATING, NATURAL_POSITION_RATING, PositionGroup
 from mezzala.core.squad import belongs_to_club, owned_players, plays_for_club, squad_level
-from mezzala.core.view import View
+from mezzala.core.view import View, shows_hidden_information
 from mezzala.save.career import Career, Current
 from mezzala.save.reader import UnreadableSave
 from mezzala.save.watchlist import WatchlistStore
@@ -53,6 +53,9 @@ RISER_CA_BELOW_SQUAD_LEVEL = 20
 RISER_TARGET_MAX_AGE = 23
 RELEGATION_LOOKBACK_DAYS = 300
 PERFORMANCE_MIN_MINUTES = 450
+DEVELOPMENT_MIN_PA = 150
+REGEN_MIN_PA = 120
+RISER_MIN_CA_GAIN = 3
 
 INSTRUCTIONS = f"""\
 mezzala reads the manager's Football Manager 27 save and answers squad, formation and transfer questions about it.
@@ -315,6 +318,12 @@ def target_player(snapshot: Snapshot, name: str, club: str | None = None) -> Pla
         raise ToolError(str(error)) from error
 
 
+def refuse_hidden_filters(view: View, filters: dict[str, bool]) -> None:
+    used = [name for name, is_set in filters.items() if is_set]
+    if used and not shows_hidden_information(view):
+        raise ToolError(f"Fog of war is on, so {', '.join(used)} cannot be used: it filters on hidden ability.")
+
+
 def with_formation(current: Current, asked: Formation | None) -> tuple[Formation, SaveContext]:
     if asked is not None:
         return asked, save_context(current)
@@ -401,6 +410,9 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
         reputation makes a move realistic; set it false for questions like the best players in the world.
         scope "own" searches your club, "everyone" the whole save."""
         current = read_current(career)
+        refuse_hidden_filters(
+            view, {"min_ca": min_ca is not None, "max_ca": max_ca is not None, "min_pa": min_pa is not None}
+        )
         search = PlayerSearch(
             scope, position, min_age, max_age, min_ca, max_ca, min_pa, optional_stored(max_fee),
             optional_stored(max_wage), free_agents_only, contract_ending_within_months,
@@ -503,13 +515,14 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
     def development_check_tool(
         scope: CheckScopeChoice = CheckScope.OWN,
         since: date | None = None,
-        min_pa: int = 150,
+        min_pa: int = DEVELOPMENT_MIN_PA,
         limit: int = DEFAULT_LIMIT,
     ) -> DevelopmentCheckReport:
         """Against an earlier snapshot (since is an in-game date; defaults to the oldest): players aged 21 or under
         with potential of at least min_pa who are gaining less than half the CA projected for them, and players
         who have lost 3 or more CA. scope "own" is the club's players, "everyone" the whole save."""
         current = read_current(career)
+        refuse_hidden_filters(view, {"min_pa": min_pa != DEVELOPMENT_MIN_PA})
         result = development_check(current.snapshot, career.baseline(current, since), scope, min_pa, limit, view)
         return DevelopmentCheckReport(save_context(current), result)
 
@@ -620,7 +633,7 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
     def risers(
         scope: ScopeChoice = RiserScope.ELSEWHERE,
         since: date | None = None,
-        min_ca_gain: float = 3,
+        min_ca_gain: float = RISER_MIN_CA_GAIN,
         min_ca: int | None = None,
         max_age: int | None = None,
         max_fee: float | None = None,
@@ -636,6 +649,7 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
         free agents always qualify. For elsewhere, min_ca defaults to 20 below the level of the current
         first eleven and max_age to 23; for own and former there is no floor or age limit unless given."""
         current = read_current(career)
+        refuse_hidden_filters(view, {"min_ca": min_ca is not None, "min_ca_gain": min_ca_gain != RISER_MIN_CA_GAIN})
         floor, age_limit = riser_defaults(scope, current.snapshot, min_ca, max_age)
         fee_cap = optional_stored(max_fee) if max_fee is not None else current.snapshot.budget.transfer_remaining
         filters = RiserFilters(scope, min_ca_gain, floor, within_reach, age_limit, fee_cap, position)
@@ -670,7 +684,7 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
     def regen_intake_tool(
         since: date | None = None,
         since_last_save: bool = False,
-        min_pa: int = 120,
+        min_pa: int = REGEN_MIN_PA,
         unsigned_only: bool = False,
         limit: int = 20,
     ) -> RegenIntakeReport:
@@ -679,6 +693,7 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
         so far), the snapshot at or before since, or with since_last_save the previous snapshot. unsigned_only
         keeps regens on youth contracts or without a club, i.e. not yet on professional terms."""
         current = read_current(career)
+        refuse_hidden_filters(view, {"min_pa": min_pa != REGEN_MIN_PA})
         baseline = career.previous(current) if since_last_save else career.baseline(current, since)
         result = regen_intake(current.snapshot, baseline, min_pa, unsigned_only, limit, view)
         return RegenIntakeReport(save_context(current), result)

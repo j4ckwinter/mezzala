@@ -85,7 +85,7 @@ claude mcp add --scope user mezzala -- "$(uv tool dir --bin)/mezzala"
 
 on windows, the second line ends in `\mezzala.exe` instead of `/mezzala`. to stick to one career rather than the newest save, add `--save "/path/to/career.fm"` to the end. update with `uv tool upgrade mezzala`, then restart claude. remove it with `claude mcp remove --scope user mezzala` and `uv tool uninstall mezzala`.
 
-**fog of war:** by default mezzala sees everything, hidden ca and pa included. switch fog of war on and it shows ability as stars and keeps hidden attributes and personality numbers out of its answers. its picks still use the real numbers, like a scouting team that's never wrong. in the desktop app it's a setting on the extension (settings → extensions → mezzala). in claude code, add `--fog-of-war on` to the end of the `claude mcp add` line.
+**fog of war:** by default mezzala sees everything, hidden ca and pa included. switch fog of war on and it shows ability as stars and keeps hidden attributes and personality numbers out of its answers. its picks still use the real numbers, like a scouting team that's never wrong. searches that filter on exact ca or pa are switched off, since they'd give the numbers away. in the desktop app it's a setting on the extension (settings → extensions → mezzala). in claude code, add `--fog-of-war on` to the end of the `claude mcp add` line.
 
 **where it looks:** fm's usual save folders, `~/Library/Application Support/Sports Interactive/Football Manager 27/games` on a mac and `Documents\Sports Interactive\Football Manager 27\games` on windows (onedrive's too). snapshots live in `~/.mezzala`.
 

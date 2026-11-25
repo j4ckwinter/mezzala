@@ -111,3 +111,17 @@ def test_a_profile_under_fog_of_war_mentions_ability_only_when_the_stars_move(me
                         players=(*first.players[:-1], replace(grower, current_ability=152))))  # fmt: skip
     changes = app.result("player_profile", player="Grower")["profiles"][0]["changes_since_first_snapshot"]
     assert changes == ["3.5 stars -> 4 stars"]
+
+
+def test_fog_of_war_refuses_filters_that_would_reveal_hidden_ability(mezzala):
+    app = mezzala(distinctive_save(), view=View.SPOILER_FREE)
+    refused = [("find_players", {"min_pa": 187}), ("find_players", {"max_ca": 150}), ("find_players", {"min_ca": 151}),
+               ("development_check", {"min_pa": 160}), ("regen_intake", {"min_pa": 140}), ("risers", {"min_ca": 120}),
+               ("risers", {"min_ca_gain": 5})]  # fmt: skip
+    for tool, arguments in refused:
+        outcome = app.call(tool, **arguments)
+        assert outcome.is_error and "Fog of war is on" in outcome.text, (tool, arguments)
+
+
+def test_without_fog_of_war_the_ability_filters_work(mezzala):
+    assert mezzala(distinctive_save()).result("find_players", min_pa=187, within_reach=False)["matched"] == 2
