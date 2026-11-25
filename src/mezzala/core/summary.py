@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from mezzala.core.feet import preferred_foot, weak_foot
 from mezzala.core.money import format_money, format_weekly_wage
 from mezzala.core.nationality import nationality_label
 from mezzala.core.players import Player
@@ -14,6 +15,8 @@ class PlayerSummary:
     club: str
     nationality: str
     positions: str
+    preferred_foot: str | None
+    weak_foot: int | None
     current_ability: Rating
     potential_ability: Rating
     value: str
@@ -42,6 +45,8 @@ def summarize(player: Player, view: View) -> PlayerSummary:
         club=club_label(player),
         nationality=nationality_label(player),
         positions=natural_positions(player),
+        preferred_foot=foot.value if (foot := preferred_foot(player)) else None,
+        weak_foot=weak_foot(player),
         current_ability=rating(view, player.current_ability),
         potential_ability=rating(view, player.potential_ability),
         value=format_money(player.value),

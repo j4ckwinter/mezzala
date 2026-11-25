@@ -43,6 +43,7 @@ Most players install the Claude Desktop extension, `mezzala.mcpb`, from the late
 | Choosing a starting eleven and its cover (a second eleven) for a formation | `src/mezzala/core/lineup.py` |
 | Who is injured or banned on a given day | `src/mezzala/core/availability.py` |
 | Nationality, and who needs no UK work permit | `src/mezzala/core/nationality.py` |
+| A player's preferred foot and weak foot | `src/mezzala/core/feet.py` |
 | The assignment algorithm the eleven uses (Hungarian, minimum cost) | `src/mezzala/core/assignment.py` |
 | Which players a club can realistically sign | `src/mezzala/core/reach.py` |
 | Attribute profiles, how alike two players are, and the key attributes for each position | `src/mezzala/core/profile.py` |
