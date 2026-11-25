@@ -51,6 +51,7 @@ Most players install the Claude Desktop extension, `mezzala.mcpb`, from the late
 | Derived numbers: comparisons with similar players, league level, which release clause applies | `src/mezzala/core/metrics.py` |
 | Which league a club is in, and how a league is named | `src/mezzala/core/leagues.py` |
 | Money units and formatting | `src/mezzala/core/money.py` |
+| What wage a player would expect: his own, or the going rate at clubs like yours | `src/mezzala/core/wages.py` |
 | How a player is shown in answers | `src/mezzala/core/summary.py` |
 | How ability is shown: CA and PA as numbers, or as stars in spoiler-free mode | `src/mezzala/core/view.py` |
 | Finding a player by name | `src/mezzala/core/lookup.py` |
