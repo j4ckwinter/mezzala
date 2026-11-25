@@ -398,6 +398,7 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
         max_fee: float | None = None,
         max_wage: float | None = None,
         free_agents_only: bool = False,
+        clubs_only: bool = False,
         contract_ending_within_months: int | None = None,
         max_release_clause: float | None = None,
         youth_contract_only: bool = False,
@@ -422,7 +423,8 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
         Who: scope "elsewhere" (default) searches other clubs and free agents, "own" your club, "everyone" the
         whole save. position matches players natural or accomplished there (FM rating 15 or more); natural_only
         keeps naturals (18 or more). nationality matches a first or second nationality, such as "Republic of
-        Ireland"; work_permit_free keeps British and Irish players, who need no UK work permit.
+        Ireland"; work_permit_free keeps British and Irish players, who need no UK work permit. free_agents_only
+        and clubs_only keep or leave out players without a club.
 
         Where: country is where the club plays (Cardiff count as England); division_level is 1 for a country's
         top flight, estimated from first-team strength because the save names no leagues; league matches part
@@ -438,15 +440,33 @@ def create_server(career: Career, watched: WatchlistStore, view: View = View.FUL
             view, {"min_ca": min_ca is not None, "max_ca": max_ca is not None, "min_pa": min_pa is not None}
         )
         search = PlayerSearch(
-            scope=scope, position=position, natural_only=natural_only, min_age=min_age, max_age=max_age,
-            min_ca=min_ca, max_ca=max_ca,
-            min_pa=min_pa, max_fee=optional_stored(max_fee), max_wage=optional_stored(max_wage),
-            free_agents_only=free_agents_only, contract_ending_within_months=contract_ending_within_months,
-            max_release_clause=optional_stored(max_release_clause), youth_contract_only=youth_contract_only,
-            nationality=nationality, work_permit_free_only=work_permit_free, country=country,
-            division_level=division_level, league=league, fringe_only=fringe_only, reserves_only=reserves_only,
-            bigger_clubs_only=bigger_clubs_only, within_reach=within_reach, sort_by=sort_by, limit=limit,
-        )  # fmt: skip
+            scope=scope,
+            position=position,
+            natural_only=natural_only,
+            min_age=min_age,
+            max_age=max_age,
+            min_ca=min_ca,
+            max_ca=max_ca,
+            min_pa=min_pa,
+            max_fee=optional_stored(max_fee),
+            max_wage=optional_stored(max_wage),
+            free_agents_only=free_agents_only,
+            clubs_only=clubs_only,
+            contract_ending_within_months=contract_ending_within_months,
+            max_release_clause=optional_stored(max_release_clause),
+            youth_contract_only=youth_contract_only,
+            nationality=nationality,
+            work_permit_free_only=work_permit_free,
+            country=country,
+            division_level=division_level,
+            league=league,
+            fringe_only=fringe_only,
+            reserves_only=reserves_only,
+            bigger_clubs_only=bigger_clubs_only,
+            within_reach=within_reach,
+            sort_by=sort_by,
+            limit=limit,
+        )
         return FoundPlayersReport(save_context(current), find_players(current.snapshot, search, view))
 
     @server.tool(name="shortlist")

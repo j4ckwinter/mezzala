@@ -238,3 +238,9 @@ def test_position_includes_accomplished_players_unless_natural_only(mezzala):
     natural = app.result("find_players", position="right wing", natural_only=True)["players"]
     assert names == {"Central Mid", "Right Winger"}
     assert [found["player"]["name"] for found in natural] == ["Right Winger"]
+
+
+def test_clubs_only_leaves_out_free_agents(mezzala):
+    squad = [*eleven(), player("Signed"), player("Unattached", club=None, value=None)]
+    result = mezzala(snapshot(squad)).result("find_players", clubs_only=True)
+    assert [found["player"]["name"] for found in result["players"]] == ["Signed"]

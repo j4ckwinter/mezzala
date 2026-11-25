@@ -64,6 +64,7 @@ class PlayerSearch:
     max_fee: int | None
     max_wage: int | None
     free_agents_only: bool
+    clubs_only: bool
     contract_ending_within_months: int | None
     max_release_clause: int | None
     youth_contract_only: bool
@@ -175,6 +176,8 @@ def wage_for(player: Player, snapshot: Snapshot) -> int | None:
 def matches_market(player: Player, search: PlayerSearch, measures: Measures) -> bool:
     snapshot = measures.snapshot
     if search.free_agents_only and not player.is_free_agent:
+        return False
+    if search.clubs_only and player.is_free_agent:
         return False
     if search.max_fee is not None and not player.costs_no_fee and not at_most(player.value, search.max_fee):
         return False
