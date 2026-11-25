@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import StrEnum
 
-from mezzala.core.growth import DAYS_PER_SEASON, projected_growth
+from mezzala.core.growth import expected_gain_over
 from mezzala.core.players import Player, Snapshot, is_same_person
 from mezzala.core.squad import YOUNG_PLAYER_MAX_AGE, belongs_to_club, plays_for_club
 from mezzala.core.summary import PlayerSummary, summarize
@@ -39,8 +39,8 @@ def no_comparison(baseline: Snapshot | None, current: Snapshot) -> str | None:
     days = (current.game_date - baseline.game_date).days
     if days < MIN_DAYS_BETWEEN:
         return (
-            f"The earliest snapshot is only {days} days earlier; development needs at least {MIN_DAYS_BETWEEN} "
-            "days to judge."
+            f"The snapshot compared with ({baseline.game_date.isoformat()}) is only {days} days earlier; development "
+            f"needs at least {MIN_DAYS_BETWEEN} days to judge. Ask with an earlier since date."
         )
     return None
 
@@ -51,10 +51,6 @@ def in_scope(player: Player, club_uid: int, scope: CheckScope) -> bool:
             return plays_for_club(player, club_uid) or belongs_to_club(player, club_uid)
         case CheckScope.EVERYONE:
             return True
-
-
-def expected_gain(before: Player, days: int) -> float:
-    return projected_growth(before).ability_gain * days / DAYS_PER_SEASON
 
 
 def development_check(
@@ -73,7 +69,7 @@ def development_check(
             continue
         change = player.current_ability - before.current_ability
         if before.age <= YOUNG_PLAYER_MAX_AGE and before.potential_ability >= min_pa:
-            expected = expected_gain(before, days)
+            expected = expected_gain_over(before, days)
             if expected >= MIN_EXPECTED_GAIN and change < UNDERDEVELOPING_SHARE * expected:
                 detail = f"gained {change} CA in {days} days, expected about {expected:.0f}"
                 behind.append(

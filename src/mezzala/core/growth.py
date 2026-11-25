@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from enum import StrEnum
 
@@ -57,3 +57,16 @@ def observed_growth(before: Player, after: Player, before_date: date, after_date
         value_change,
         (after_date - before_date).days,
     )
+
+
+def expected_gain_over(player: Player, days: int) -> float:
+    gained = 0.0
+    remaining = days
+    current = player
+    while remaining > 0 and current.headroom > 0:
+        season_share = min(remaining, DAYS_PER_SEASON) / DAYS_PER_SEASON
+        step = projected_growth(current).ability_gain * season_share
+        gained += step
+        remaining -= DAYS_PER_SEASON
+        current = replace(current, age=current.age + 1, current_ability=current.current_ability + round(step))
+    return min(gained, player.headroom)
