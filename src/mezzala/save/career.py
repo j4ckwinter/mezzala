@@ -100,11 +100,11 @@ class Career:
         written: FileStamp | None = None
         try:
             stamp = self._stamp(path)
-            written = stamp
             if latest is not None and self._store.latest_stamp(career) == stamp:
                 snapshot = self._load(career, latest)
             else:
                 snapshot = self._refresh(path, career, stamp)
+            written = stamp
         except (fmsave.FmsaveError, UnreadableSave, OSError) as error:
             if latest is None:
                 raise

@@ -257,3 +257,11 @@ def test_the_instructions_warn_that_changes_in_fm_show_only_after_saving():
     from mezzala.server import INSTRUCTIONS
 
     assert "show until the manager saves again" in INSTRUCTIONS
+
+
+def test_the_write_time_is_unknown_when_a_newer_save_cannot_be_read(mezzala):
+    app = mezzala(snapshot(eleven()))
+    app.call("squad")
+    app.save.version += 1
+    app.save.failing = fmsave.CorruptSaveError("half written")
+    assert app.call("squad").data["context"]["save_written"] == "unknown"
