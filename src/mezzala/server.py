@@ -17,7 +17,7 @@ from mezzala.core.reach import REPUTATION_REACH
 from mezzala.core.rejections import without_rejected
 from mezzala.core.roles import Side, UnknownRole, find_role
 from mezzala.core.slots import BadSlot, parse_slot
-from mezzala.core.squad import belongs_to_club, is_outside_club, owned_players, plays_for_club, squad_level
+from mezzala.core.squad import belongs_to_club, is_outside_club, owned_players, plays_for_club
 from mezzala.core.view import View, shows_hidden_information
 from mezzala.save.career import Career, Current
 from mezzala.save.reader import UnreadableSave
@@ -42,7 +42,15 @@ from mezzala.tools.regen_intake import RegenIntake, regen_intake
 from mezzala.tools.rejections import NotRejected, RejectedList, find_rejected_entry, rejected_list, rejected_record
 from mezzala.tools.relegated_clubs import RelegatedClubs, relegated_clubs
 from mezzala.tools.replacement import Limits, Replacements, find_replacements
-from mezzala.tools.risers import RiserFilters, Risers, RiserScope, find_risers
+from mezzala.tools.risers import (
+    CA_BELOW_SQUAD_LEVEL,
+    TARGET_MAX_AGE,
+    RiserFilters,
+    Risers,
+    RiserScope,
+    find_risers,
+    riser_defaults,
+)
 from mezzala.tools.sell_high import SellHigh, sell_high
 from mezzala.tools.shortlist import Shortlist, shortlist
 from mezzala.tools.squad_gaps import SquadGaps, squad_gaps
@@ -57,8 +65,6 @@ from mezzala.tools.watchlist import NotWatched, Watchlist, find_watched_entry, w
 from mezzala.tools.what_changed import WhatChanged, what_changed
 
 DEFAULT_LIMIT = 10
-RISER_CA_BELOW_SQUAD_LEVEL = 20
-RISER_TARGET_MAX_AGE = 23
 RELEGATION_LOOKBACK_DAYS = 300
 PERFORMANCE_MIN_MINUTES = 450
 NANOSECONDS_PER_SECOND = 1_000_000_000
@@ -108,6 +114,15 @@ def instructions_for(view: View) -> str:
         case View.SPOILER_FREE:
             return INSTRUCTIONS + SPOILER_FREE_INSTRUCTIONS
 
+
+RISERS_DESCRIPTION = f"""\
+Players whose current ability is rising fastest.
+
+scope: elsewhere (transfer targets), own (your players) or former (players who have left you, to spot
+sales made too early). since is an in-game date; it defaults to the oldest snapshot. With one snapshot,
+gains are projected rather than observed. max_fee is in pounds and defaults to the remaining transfer budget;
+free agents always qualify. For elsewhere, min_ca defaults to {CA_BELOW_SQUAD_LEVEL} below the level of the current
+first eleven and max_age to {TARGET_MAX_AGE}; for own and former there is no floor or age limit unless given."""
 
 FIND_PLAYERS_DESCRIPTION = f"""\
 Search every player in the save with filters and a sort. Money is in pounds (max_wage weekly).
@@ -414,17 +429,6 @@ def with_formation(current: Current, asked: Formation | None) -> tuple[Shape, Sa
         f"used: {places_text(saved.shape)}."
     )
     return saved.shape, save_context(current, [own])
-
-
-def riser_defaults(
-    scope: RiserScope, snapshot: Snapshot, min_ca: int | None, max_age: int | None
-) -> tuple[float, int | None]:
-    match scope:
-        case RiserScope.ELSEWHERE:
-            floor = squad_level(snapshot) - RISER_CA_BELOW_SQUAD_LEVEL if min_ca is None else min_ca
-            return floor, RISER_TARGET_MAX_AGE if max_age is None else max_age
-        case RiserScope.OWN | RiserScope.FORMER:
-            return (0 if min_ca is None else min_ca), max_age
 
 
 def one_of(choices: type[StrEnum]) -> str:
@@ -757,7 +761,7 @@ def create_server(
         result = find_replacements(recruitable(current), target, limits, limit, view, position)
         return ReplacementReport(save_context(current), result)
 
-    @server.tool()
+    @server.tool(description=RISERS_DESCRIPTION)
     def risers(
         scope: ScopeChoice = RiserScope.ELSEWHERE,
         since: date | None = None,
@@ -769,13 +773,6 @@ def create_server(
         within_reach: bool = True,
         limit: int = DEFAULT_LIMIT,
     ) -> RisersReport:
-        """Players whose current ability is rising fastest.
-
-        scope: elsewhere (transfer targets), own (your players) or former (players who have left you, to spot
-        sales made too early). since is an in-game date; it defaults to the oldest snapshot. With one snapshot,
-        gains are projected rather than observed. max_fee is in pounds and defaults to the remaining transfer budget;
-        free agents always qualify. For elsewhere, min_ca defaults to 20 below the level of the current
-        first eleven and max_age to 23; for own and former there is no floor or age limit unless given."""
         current = read_current(career)
         refuse_hidden_filters(view, {"min_ca": min_ca is not None, "min_ca_gain": min_ca_gain != RISER_MIN_CA_GAIN})
         floor, age_limit = riser_defaults(scope, current.snapshot, min_ca, max_age)

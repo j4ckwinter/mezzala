@@ -6,7 +6,7 @@ from mezzala.core.money import format_money
 from mezzala.core.players import Player, Snapshot, is_same_person
 from mezzala.core.positions import PositionGroup, covers
 from mezzala.core.reach import within_reach
-from mezzala.core.squad import belongs_to_club, is_outside_club
+from mezzala.core.squad import belongs_to_club, is_outside_club, squad_level
 from mezzala.core.summary import PlayerSummary, summarize
 from mezzala.core.view import (
     Measure,
@@ -16,6 +16,9 @@ from mezzala.core.view import (
     rating,
     signed_amount_text,
 )
+
+CA_BELOW_SQUAD_LEVEL = 20
+TARGET_MAX_AGE = 23
 
 
 class RiserScope(StrEnum):
@@ -57,6 +60,17 @@ PROJECTED_EXPLANATION = (
     "Observed gains start once the save has a second snapshot."
 )
 OBSERVED_EXPLANATION = "Gains are measured between the two snapshots."
+
+
+def riser_defaults(
+    scope: RiserScope, snapshot: Snapshot, min_ca: int | None, max_age: int | None
+) -> tuple[float, int | None]:
+    match scope:
+        case RiserScope.ELSEWHERE:
+            floor = squad_level(snapshot) - CA_BELOW_SQUAD_LEVEL if min_ca is None else min_ca
+            return floor, TARGET_MAX_AGE if max_age is None else max_age
+        case RiserScope.OWN | RiserScope.FORMER:
+            return (0 if min_ca is None else min_ca), max_age
 
 
 def in_scope(player: Player, earlier: Player | None, club_uid: int, scope: RiserScope) -> bool:
