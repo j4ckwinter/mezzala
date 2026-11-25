@@ -39,7 +39,7 @@ Most players install the Claude Desktop extension, `mezzala.mcpb`, from the late
 | How the watchlist is stored | `src/mezzala/save/watchlist.py` |
 | How rejected players are stored | `src/mezzala/save/rejections.py` |
 | Position groups, and when a player is natural or accomplished in one | `src/mezzala/core/positions.py` |
-| Formations, how many starters each needs, the default formation, and which formation a saved tactic is | `src/mezzala/core/formations.py` |
+| Formations and shapes, how many starters each needs, the default formation, and the shape of a saved tactic | `src/mezzala/core/formations.py` |
 | Who belongs to the club, who plays for it, what it pays them, depth, leaving dates, squad level | `src/mezzala/core/squad.py` |
 | Choosing a starting eleven and its cover (a second eleven) for a formation | `src/mezzala/core/lineup.py` |
 | Who is injured or banned on a given day | `src/mezzala/core/availability.py` |
@@ -72,7 +72,7 @@ Most players install the Claude Desktop extension, `mezzala.mcpb`, from the late
 - `core/` holds the football rules every tool shares, `tools/` one module per tool, and `save/` everything that reads saves or stores snapshots. `core/` and `tools/` take snapshots and return results; only `save/` and `server.py` touch fmsave, files, SQLite or MCP, and `core/` never imports from `tools/` or `save/`.
 - Tests go through the MCP client (`tests/conftest.py`) with a fake save, so they pin behaviour, not internals.
 - Anything shown to the manager that is CA, PA, or derived from them (averages, levels, gains) goes through `core/view.py` with the server's `View`. Under fog of war (`View.SPOILER_FREE`) they become stars, and hidden attributes and personality numbers stay out of answers; personality may still be described in words. `tests/test_fog_of_war.py` calls every tool, so a new tool that needs arguments gets an entry in its `ARGUMENTS`.
-- Tools that take a formation accept none and resolve it with `with_formation` in `server.py`: the saved first-team tactic's shape, else `DEFAULT_FORMATION`, with a note in the answer when the tactic decided.
+- Tools that take a formation accept none and resolve it with `with_formation` in `server.py`: the saved first-team tactic's shape (a built-in formation when it matches one, else the tactic's own places), else `DEFAULT_FORMATION`, with a note in the answer when the tactic decided. Tools work from a `Shape`, never a `Formation` directly.
 
 ## Standards
 

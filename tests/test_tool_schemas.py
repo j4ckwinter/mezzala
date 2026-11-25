@@ -30,7 +30,7 @@ def test_position_and_scope_parameters_list_their_choices():
 
 def test_the_instructions_state_the_position_thresholds_and_default_formation():
     assert "natural (FM rating 18+) or accomplished\n(15-17)" in INSTRUCTIONS
-    assert "saved in the game, and to\n4-3-3 when no saved tactic can be read" in INSTRUCTIONS
+    assert "even one\nnone of the formations match, and to 4-3-3 when no saved tactic can be read" in INSTRUCTIONS
 
 
 def test_find_players_states_the_reach_rule_with_its_number():

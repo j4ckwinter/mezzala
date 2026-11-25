@@ -1,3 +1,4 @@
+from collections import Counter
 from dataclasses import replace
 
 from factory import eleven, mine, snapshot
@@ -5,6 +6,7 @@ from factory import eleven, mine, snapshot
 from mezzala.core.players import Tactic
 
 FOUR_FOUR_TWO = ("gk", "dl", "dc", "dc", "dr", "ml", "mc", "mc", "mr", "stc", "stc")
+THREE_FOUR_TWO_ONE = ("gk", "dr", "dc", "dc", "dl", "dc", "aml", "mc", "stc", "amr", "amc")
 WITH_WING_BACKS = ("gk", None, "dc", "dc", "dc", None, "mc", "mc", "dm", "stc", "stc")
 
 
@@ -30,9 +32,26 @@ def test_a_tactic_with_positions_fmsave_cannot_name_falls_back_to_the_default_an
     outcome = mezzala(squad_with(Tactic("Wing Backs", "positive", WITH_WING_BACKS))).call("squad_gaps")
     assert outcome.data["result"]["formation"] == "4-3-3"
     assert outcome.data["context"]["notes"] == [
-        "Your saved tactic 'Wing Backs' has a shape mezzala does not model, so 4-3-3 is used; say which formation "
+        "Your saved tactic 'Wing Backs' has positions mezzala cannot read, so 4-3-3 is used; say which formation "
         "you play for a closer answer."
     ]
+
+
+def test_a_tactic_matching_no_built_in_formation_is_used_in_its_own_shape_and_says_so(mezzala):
+    outcome = mezzala(squad_with(Tactic("Bakerball", "positive", THREE_FOUR_TWO_ONE))).call("squad_gaps")
+    assert outcome.data["result"]["formation"] == "Bakerball"
+    assert outcome.data["context"]["notes"] == [
+        "Your saved tactic 'Bakerball' matches none of the built-in formations, so its own shape is used: "
+        "1 goalkeeper, 3 centre back, 1 left back, 1 right back, 1 central midfield, 1 attacking midfield, "
+        "1 left wing, 1 right wing, 1 striker."
+    ]
+
+
+def test_every_place_in_a_tactics_own_shape_gets_a_starter_slot(mezzala):
+    eleven = mezzala(squad_with(Tactic("Bakerball", "positive", THREE_FOUR_TWO_ONE))).result("squad_gaps")["eleven"]
+    places = Counter(starter["position"] for starter in eleven)
+    assert places == {"goalkeeper": 1, "centre back": 3, "left back": 1, "right back": 1, "central midfield": 1,
+                      "attacking midfield": 1, "left wing": 1, "right wing": 1, "striker": 1}  # fmt: skip
 
 
 def test_a_four_two_three_one_with_two_central_midfielders_is_recognised(mezzala):

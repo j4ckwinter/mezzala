@@ -83,9 +83,30 @@ def shape_of(positions: Iterable[str | None]) -> Formation | None:
     )
 
 
-def saved_formation(tactics: Iterable[Tactic]) -> tuple[Formation, Tactic] | None:
-    for tactic in tactics:
-        formation = shape_of(tactic.positions)
-        if formation is not None:
-            return formation, tactic
-    return None
+def places_text(shape: Shape) -> str:
+    return ", ".join(f"{count} {group.value}" for group, count in shape.starters.items())
+
+
+@dataclass(frozen=True)
+class SavedShape:
+    shape: Shape
+    tactic: Tactic
+    built_in: bool
+
+
+def tactic_shape(tactic: Tactic) -> SavedShape | None:
+    groups = [GROUP_OF_POSITION.get(code) if code is not None else None for code in tactic.positions]
+    known = [group for group in groups if group is not None]
+    if len(known) < len(groups):
+        return None
+    formation = shape_of(tactic.positions)
+    if formation is not None:
+        return SavedShape(shape_for(formation), tactic, built_in=True)
+    counts = Counter(known)
+    return SavedShape(
+        Shape(tactic.name, {group: counts[group] for group in G if counts[group]}), tactic, built_in=False
+    )
+
+
+def saved_shape(tactics: Iterable[Tactic]) -> SavedShape | None:
+    return next((saved for tactic in tactics if (saved := tactic_shape(tactic)) is not None), None)

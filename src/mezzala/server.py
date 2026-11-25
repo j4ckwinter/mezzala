@@ -8,7 +8,7 @@ from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field
 
-from mezzala.core.formations import DEFAULT_FORMATION, Formation, Shape, saved_formation, shape_for
+from mezzala.core.formations import DEFAULT_FORMATION, Formation, Shape, places_text, saved_shape, shape_for
 from mezzala.core.lookup import AmbiguousPlayer, PlayerNotFound, find_player
 from mezzala.core.money import format_money, format_weekly_wage, stored_from_pounds
 from mezzala.core.players import Player, Snapshot
@@ -87,13 +87,13 @@ player_profile shows one player in full, or two side by side. training_plan sugg
 position, attribute focus, intensity, traits and mentors. dressing_room ranks captains and flags troublemakers.
 fitness lists injuries, bans, injury risks, condition and sharpness. staff_review rates the backroom staff.
 performance ranks season stats: who plays above or below their ability, finishing against xG, output per 90.
-tactic_fit fits the squad to a custom shape given slot by slot with roles, for tactics the six formations miss.
+tactic_fit fits the squad to a custom shape given slot by slot with roles, scoring players by role.
 squad_profile, positional_fit and next_opponent support tactics and match preparation; the save stores formations
 but not roles or instructions, so suggest tactics from the attributes they report.
 Positions are natural (FM rating {NATURAL_POSITION_RATING}+) or accomplished
 ({ACCOMPLISHED_POSITION_RATING}-{NATURAL_POSITION_RATING - 1}). Ask the manager which formation they
-play if it matters. Tools that take one default to the shape of the first-team tactic saved in the game, and to
-{DEFAULT_FORMATION.value} when no saved tactic can be read; the answer's notes say which."""
+play if it matters. Tools that take one default to the shape of the first-team tactic saved in the game, even one
+none of the formations match, and to {DEFAULT_FORMATION.value} when no saved tactic can be read; the notes say which."""
 
 SPOILER_FREE_INSTRUCTIONS = """
 Fog of war is on: the manager does not want to see what FM hides. Ability and potential come as star ratings
@@ -396,19 +396,24 @@ def refuse_hidden_filters(view: View, filters: dict[str, bool]) -> None:
 def with_formation(current: Current, asked: Formation | None) -> tuple[Shape, SaveContext]:
     if asked is not None:
         return shape_for(asked), save_context(current)
-    saved = saved_formation(current.snapshot.tactics)
+    saved = saved_shape(current.snapshot.tactics)
     if saved is None and current.snapshot.tactics:
-        unmatched = (
-            f"Your saved tactic '{current.snapshot.tactics[0].name}' has a shape mezzala does not model, so "
+        unreadable = (
+            f"Your saved tactic '{current.snapshot.tactics[0].name}' has positions mezzala cannot read, so "
             f"{DEFAULT_FORMATION.value} is used; say which formation you play for a closer answer."
         )
-        return shape_for(DEFAULT_FORMATION), save_context(current, [unmatched])
+        return shape_for(DEFAULT_FORMATION), save_context(current, [unreadable])
     if saved is None:
         return shape_for(DEFAULT_FORMATION), save_context(current)
-    formation, tactic = saved
-    return shape_for(formation), save_context(
-        current, [f"Formation {formation.value}, from your saved tactic '{tactic.name}'."]
+    if saved.built_in:
+        return saved.shape, save_context(
+            current, [f"Formation {saved.shape.name}, from your saved tactic '{saved.tactic.name}'."]
+        )
+    own = (
+        f"Your saved tactic '{saved.tactic.name}' matches none of the built-in formations, so its own shape is "
+        f"used: {places_text(saved.shape)}."
     )
+    return saved.shape, save_context(current, [own])
 
 
 def riser_defaults(
