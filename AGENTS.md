@@ -61,7 +61,7 @@ Most players install the Claude Desktop extension, `mezzala.mcpb`, from the late
 | How a player is shown in answers | `src/mezzala/core/summary.py` |
 | How ability is shown: CA and PA as numbers, or as stars in spoiler-free mode | `src/mezzala/core/view.py` |
 | Finding a player by name, and which of several players with the same name is the likeliest | `src/mezzala/core/lookup.py` |
-| Which players recruitment answers leave out because they were rejected | `src/mezzala/core/rejections.py` |
+| Which players recruitment answers leave out because they were rejected, and when one is worth another try | `src/mezzala/core/rejections.py` |
 | Each tool's rules | `src/mezzala/tools/`, one module per tool |
 | Registering each tool: its name, parameters and which tool function answers it | `src/mezzala/server/app.py` |
 | What Claude is told about mezzala, and tool descriptions built from constants | `src/mezzala/server/instructions.py` |

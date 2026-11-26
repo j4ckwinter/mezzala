@@ -92,7 +92,7 @@ from mezzala.tools.performance import PerformanceScope, PerformanceSearch, Perfo
 from mezzala.tools.player_profile import player_profiles
 from mezzala.tools.positional_fit import positional_fit
 from mezzala.tools.regen_intake import regen_intake
-from mezzala.tools.rejections import NotRejected, find_rejected_entry, rejected_list, rejected_record
+from mezzala.tools.rejections import NotRejected, RejectedList, find_rejected_entry, rejected_list, rejected_record
 from mezzala.tools.relegated_clubs import relegated_clubs
 from mezzala.tools.replacement import Limits, find_replacements
 from mezzala.tools.risers import RiserFilters, RiserScope, find_risers, riser_defaults
@@ -115,6 +115,12 @@ def create_server(
 ) -> MCPServer:
     def recruitable(current: Current) -> Snapshot:
         return without_rejected(current.snapshot, rejections.entries(current.career))
+
+    def rejected_now(current: Current) -> RejectedList:
+        entries = rejections.entries(current.career)
+        days = {entry.added_on for entry in entries if entry.added_on < current.snapshot.game_date}
+        then = {day: found for day in days if (found := career.baseline(current, day)) is not None}
+        return rejected_list(entries, current.snapshot, then)
 
     server = MCPServer("mezzala", instructions=instructions_for(view))
 
@@ -575,7 +581,7 @@ def create_server(
                 f"{target.name} plays for {current.snapshot.club_name}; only other clubs' players can be rejected."
             )
         rejections.add(current.career, rejected_record(target, current.snapshot, note))
-        return RejectedReport(save_context(current, found.notes), rejected_list(rejections.entries(current.career)))
+        return RejectedReport(save_context(current, found.notes), rejected_now(current))
 
     @server.tool(name="unreject_player")
     def unreject_player_tool(player: str, club: ClubChoice = None) -> RejectedReport:
@@ -586,13 +592,15 @@ def create_server(
         except NotRejected as error:
             raise ToolError(str(error)) from error
         rejections.remove(current.career, entry.uid)
-        return RejectedReport(save_context(current), rejected_list(rejections.entries(current.career)))
+        return RejectedReport(save_context(current), rejected_now(current))
 
     @server.tool(name="rejected_players")
     def rejected_players_tool() -> RejectedReport:
-        """The players marked as rejected, who recruitment answers leave out."""
+        """The players marked as rejected, who recruitment answers leave out, each with what has changed since he
+        said no that makes him worth another try: a free agent now, a move, a contract you can now agree a
+        pre-contract on, or your club's reputation risen."""
         current = read_current(career)
-        return RejectedReport(save_context(current), rejected_list(rejections.entries(current.career)))
+        return RejectedReport(save_context(current), rejected_now(current))
 
     @server.tool(name="tactic_fit")
     def tactic_fit_tool(

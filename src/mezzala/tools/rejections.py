@@ -1,7 +1,10 @@
+from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import date
 
 from mezzala.core.lookup import folded
 from mezzala.core.players import Player, RejectedPlayer, Snapshot
+from mezzala.core.rejections import reasons_to_try_again
 
 
 class NotRejected(LookupError):
@@ -13,6 +16,7 @@ class RejectedEntry:
     name: str
     note: str
     rejected_on: str
+    worth_another_try: list[str]
 
 
 @dataclass(frozen=True)
@@ -23,7 +27,8 @@ class RejectedList:
 
 EXPLANATION = (
     "Rejected players are left out of find_players, shortlist, find_replacement, contract_watch, risers, "
-    "performance and relegated_clubs until they are taken off this list."
+    "performance and relegated_clubs until they are taken off this list. worth_another_try says what has changed "
+    "since a player said no that makes him worth asking again (take him off with unreject_player)."
 )
 
 
@@ -52,7 +57,11 @@ def find_rejected_entry(
     raise NotRejected(f"No player called '{query}' is on the rejected list.")
 
 
-def rejected_list(entries: list[RejectedPlayer]) -> RejectedList:
-    return RejectedList(
-        EXPLANATION, [RejectedEntry(entry.name, entry.note, entry.added_on.isoformat()) for entry in entries]
-    )
+def entry_now(entry: RejectedPlayer, snapshot: Snapshot, then: Mapping[date, Snapshot]) -> RejectedEntry:
+    earlier = then.get(entry.added_on)
+    reasons = [] if earlier is None else reasons_to_try_again(entry, earlier, snapshot)
+    return RejectedEntry(entry.name, entry.note, entry.added_on.isoformat(), reasons)
+
+
+def rejected_list(entries: list[RejectedPlayer], snapshot: Snapshot, then: Mapping[date, Snapshot]) -> RejectedList:
+    return RejectedList(EXPLANATION, [entry_now(entry, snapshot, then) for entry in entries])

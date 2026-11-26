@@ -16,7 +16,9 @@ def names(app, tool="find_players", **arguments):
 def test_a_rejected_player_stops_coming_back_in_searches(mezzala):
     app = mezzala(save())
     result = app.result("reject_player", player="Refuser", note="refused to talk")
-    assert result["players"] == [{"name": "Refuser", "note": "refused to talk", "rejected_on": "2026-06-29"}]
+    assert result["players"] == [
+        {"name": "Refuser", "note": "refused to talk", "rejected_on": "2026-06-29", "worth_another_try": []}
+    ]
     assert names(app) == {"Willing"}
     candidates = app.result("find_replacement", player="Starter 6")["candidates"]
     assert "Refuser" not in {candidate["player"]["name"] for candidate in candidates}
@@ -91,3 +93,39 @@ def test_shortlist_and_contract_watch_leave_rejected_players_out(mezzala):
     striker = {pick["position"]: pick for pick in app.result("shortlist")["picks"]}["striker"]
     assert striker["target"] is None
     assert app.result("contract_watch")["free_agents"] == []
+
+
+def later(first, refuser, **changes):
+    moved = replace(refuser, **changes)
+    others = [p for p in first.players if p.uid != refuser.uid]
+    return replace(first, game_date=date(2027, 1, 1), players=(*others, moved))
+
+
+def test_a_rejected_player_whose_contract_is_nearly_up_and_whose_suitor_has_grown_is_worth_another_try(mezzala):
+    first = save()
+    app = mezzala(first)
+    app.call("reject_player", player="Refuser")
+    refuser = next(p for p in first.players if p.name == "Refuser")
+    app.play_to(replace(later(first, refuser, contract_end=date(2027, 5, 31)), club_reputation=5_300))
+    assert app.result("rejected_players")["players"][0]["worth_another_try"] == [
+        "his contract ends 2027-05-31, so you can agree a pre-contract now",
+        "your club's reputation has risen from 5000 to 5300 since he said no",
+    ]
+
+
+def test_a_rejected_player_released_by_his_club_is_worth_another_try(mezzala):
+    first = save()
+    app = mezzala(first)
+    app.call("reject_player", player="Refuser")
+    refuser = next(p for p in first.players if p.name == "Refuser")
+    app.play_to(later(first, refuser, club_uid=None, club_name=None, contract_end=None))
+    assert app.result("rejected_players")["players"][0]["worth_another_try"] == ["he is a free agent now"]
+
+
+def test_nothing_changed_means_nothing_to_try_again(mezzala):
+    first = save()
+    app = mezzala(first)
+    app.call("reject_player", player="Refuser")
+    refuser = next(p for p in first.players if p.name == "Refuser")
+    app.play_to(later(first, refuser))
+    assert app.result("rejected_players")["players"][0]["worth_another_try"] == []
