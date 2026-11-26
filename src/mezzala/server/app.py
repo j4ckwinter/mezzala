@@ -308,7 +308,7 @@ def create_server(
         narrows the search when players share a name. Watching a player again keeps his baseline and only
         updates the note (an empty note keeps the old one)."""
         current = read_current(career)
-        target = target_player(current.snapshot, player, club)
+        target = target_player(current.snapshot, player, club, guess=False)
         watched.add(current.career, watched_record(target.player, current.snapshot, note))
         return WatchlistReport(
             save_context(current, target.notes), watchlist(current.snapshot, watched.entries(current.career), view)
@@ -596,7 +596,7 @@ def create_server(
         """Mark a player as rejected, for example one who refused to talk, so find_players, shortlist,
         find_replacement, contract_watch, risers, performance and relegated_clubs stop suggesting him."""
         current = read_current(career)
-        found = target_player(current.snapshot, player, club)
+        found = target_player(current.snapshot, player, club, guess=False)
         target = found.player
         if not is_outside_club(target, current.snapshot.club_uid):
             raise ToolError(

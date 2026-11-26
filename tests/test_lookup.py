@@ -30,3 +30,10 @@ def test_namesakes_nothing_tells_apart_are_still_ambiguous(mezzala):
     twins = snapshot([*eleven(), player("João Silva", club=2), player("João Silva", club=3)])
     outcome = mezzala(twins).call("player_profile", player="João Silva")
     assert outcome.is_error and "matches several players" in outcome.text
+
+
+def test_rejecting_or_watching_a_namesake_needs_the_club(mezzala):
+    app = mezzala(namesakes())
+    assert app.call("reject_player", player="Matthew Anderson").is_error
+    assert app.call("watch_player", player="Matthew Anderson").is_error
+    assert not app.call("reject_player", player="Matthew Anderson", club="Kortrijk").is_error

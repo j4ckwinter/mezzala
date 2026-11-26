@@ -45,8 +45,8 @@ def test_a_zero_budget_warns_on_every_answer_that_the_board_may_have_set_one_sin
     notes = mezzala(broke).call("squad").data["context"]["notes"]
     assert notes == [
         "The transfer budget read £0. mezzala reads budgets from FM's monthly finance records, and this save's is "
-        "the one for April 2026, so budgets the board has set since then do not show yet. Check FM's finances "
-        "screen before relying on them."
+        "the one for April 2026, so if the board has set a budget since then, it does not show yet. Check FM's "
+        "finances screen before relying on it."
     ]
 
 

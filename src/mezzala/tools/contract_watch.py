@@ -5,7 +5,13 @@ from mezzala.core.lineup import Bar, describe_bar, level_in, weakest_starters
 from mezzala.core.players import Player, Snapshot
 from mezzala.core.positions import PositionGroup, covers
 from mezzala.core.reach import within_reach
-from mezzala.core.signing import Route, can_sign_on_pre_contract, pre_contract_status, signing_warnings
+from mezzala.core.signing import (
+    Route,
+    can_sign_on_pre_contract,
+    pre_contract_status,
+    signing_route,
+    signing_warnings,
+)
 from mezzala.core.squad import (
     available_squad,
     contract_ends_within,
@@ -135,7 +141,8 @@ def contract_watch(
             continue
         if contract_ends_within(player, snapshot.game_date, within_months) is not None:
             why = pre_contract_status(player, snapshot.game_date)
-            found = target(player, snapshot, bars, Route.PRE_CONTRACT, why, wages, view)
+            route = signing_route(player, snapshot.game_date)
+            found = target(player, snapshot, bars, route, why, wages, view)
             if found is not None:
                 pre_contract.append(
                     ((can_sign_on_pre_contract(player, snapshot.game_date), player.current_ability), found)

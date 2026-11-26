@@ -106,6 +106,6 @@ def budget_warnings(budget: Budget) -> list[str]:
     record = f"the one for {budget.month:%B %Y}" if budget.month else "the latest"
     return [
         f"The {' and '.join(zero)} read £0. mezzala reads budgets from FM's monthly finance records, and this save's "
-        f"is {record}, so budgets the board has set since then do not show yet. Check FM's finances screen "
-        "before relying on them."
+        f"is {record}, so if the board has set a budget since then, it does not show yet. Check FM's finances "
+        "screen before relying on it."
     ]

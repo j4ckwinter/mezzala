@@ -39,9 +39,9 @@ def read_current(career: Career) -> Current:
         raise ToolError(f"Could not read the save: {error}") from error
 
 
-def target_player(snapshot: Snapshot, name: str, club: str | None = None) -> FoundPlayer:
+def target_player(snapshot: Snapshot, name: str, club: str | None = None, guess: bool = True) -> FoundPlayer:
     try:
-        return find_player(snapshot, name, club)
+        return find_player(snapshot, name, club, guess)
     except (PlayerNotFound, AmbiguousPlayer) as error:
         raise ToolError(str(error)) from error
 

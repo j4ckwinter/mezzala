@@ -46,7 +46,7 @@ class Route(StrEnum):
 def pre_contract_warnings(player: Player, snapshot: Snapshot) -> list[str]:
     if player.on_loan:
         return [f"on loan at {player.club_name or 'another club'}: players on loan often refuse a pre-contract"]
-    if player.club_nation_id == snapshot.club_nation_id:
+    if player.club_nation_id is not None and player.club_nation_id == snapshot.club_nation_id:
         return [
             "at a club in your own country: such players often refuse a pre-contract, so expect to wait "
             "for his contract to end or to pay a fee"

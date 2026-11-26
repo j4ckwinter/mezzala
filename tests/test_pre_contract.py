@@ -67,3 +67,8 @@ def test_players_you_can_sign_on_a_pre_contract_now_come_first(mezzala):
     better = player("Later But Better", positions=("gk",), ca=130, club_nation_id=FOREIGN, contract_end=LATER)
     squad = [*eleven(), better, keeper("Soon", contract_end=SOON)]
     assert list(targets(mezzala(snapshot(squad)))) == ["Soon", "Later But Better"]
+
+
+def test_a_target_too_far_from_a_pre_contract_carries_no_pre_contract_warning(mezzala):
+    domestic = player("Domestic Later", positions=("gk",), ca=120, contract_end=LATER)
+    assert targets(mezzala(snapshot([*eleven(), domestic])))["Domestic Later"]["warnings"] == []

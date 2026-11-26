@@ -64,7 +64,7 @@ def likeliest(query: str, namesakes: list[Player]) -> FoundPlayer:
     return FoundPlayer(chosen, [note])
 
 
-def find_player(snapshot: Snapshot, query: str, club: str | None = None) -> FoundPlayer:
+def find_player(snapshot: Snapshot, query: str, club: str | None = None, guess: bool = True) -> FoundPlayer:
     wanted = folded(query.strip())
     matches = [player for player in snapshot.players if wanted in folded(player.name) and at_named_club(player, club)]
     exact = [player for player in matches if folded(player.name) == wanted]
@@ -76,7 +76,7 @@ def find_player(snapshot: Snapshot, query: str, club: str | None = None) -> Foun
     for shortlist in (at_club, exact, matches):
         if not shortlist:
             continue
-        if len({folded(player.name) for player in shortlist}) == 1:
+        if len(shortlist) == 1 or (guess and len({folded(player.name) for player in shortlist}) == 1):
             return likeliest(query, shortlist)
         names = tuple(describe(player) for player in shortlist[:MAX_LISTED_MATCHES])
         raise AmbiguousPlayer(query, names)

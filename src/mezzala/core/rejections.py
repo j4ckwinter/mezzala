@@ -36,7 +36,7 @@ def reasons_to_try_again(entry: RejectedPlayer, then: Snapshot, now: Snapshot) -
     reasons: list[str] = []
     if after.is_free_agent and not before.is_free_agent:
         reasons.append("he is a free agent now")
-    elif after.club_uid != before.club_uid and not before.is_free_agent:
+    elif after.club_uid != before.club_uid and not (before.is_free_agent or before.on_loan or after.on_loan):
         reasons.append(f"he has moved from {before.club_name or 'no club'} to {after.club_name or 'no club'}")
     if can_sign_on_pre_contract(after, now.game_date) and not can_sign_on_pre_contract(before, then.game_date):
         end = after.contract_end.isoformat() if after.contract_end else "soon"

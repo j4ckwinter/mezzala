@@ -148,3 +148,12 @@ def test_a_rejected_player_who_moves_between_clubs_is_worth_another_try(mezzala)
     refuser = next(p for p in first.players if p.name == "Refuser")
     app.play_to(later(first, refuser, club_uid=5, club_name="Club 5"))
     assert app.result("rejected_players")["players"][0]["worth_another_try"] == ["he has moved from Club 2 to Club 5"]
+
+
+def test_a_loan_move_is_not_a_reason_to_try_again(mezzala):
+    first = save()
+    app = mezzala(first)
+    app.call("reject_player", player="Refuser")
+    refuser = next(p for p in first.players if p.name == "Refuser")
+    app.play_to(later(first, refuser, club_uid=5, club_name="Club 5", on_loan=True, loan_parent_club_uid=2))
+    assert app.result("rejected_players")["players"][0]["worth_another_try"] == []
