@@ -129,3 +129,22 @@ def test_nothing_changed_means_nothing_to_try_again(mezzala):
     refuser = next(p for p in first.players if p.name == "Refuser")
     app.play_to(later(first, refuser))
     assert app.result("rejected_players")["players"][0]["worth_another_try"] == []
+
+
+def test_a_rejected_free_agent_who_signs_elsewhere_is_not_worth_another_try_for_that(mezzala):
+    free = player("Free Refuser", positions=("mc",), ca=110, club=None, club_name=None, contract_end=None)
+    first = save(free)
+    app = mezzala(first)
+    app.call("reject_player", player="Free Refuser")
+    app.play_to(later(first, free, club_uid=5, club_name="Club 5", contract_end=date(2029, 6, 30)))
+    entry = next(e for e in app.result("rejected_players")["players"] if e["name"] == "Free Refuser")
+    assert entry["worth_another_try"] == []
+
+
+def test_a_rejected_player_who_moves_between_clubs_is_worth_another_try(mezzala):
+    first = save()
+    app = mezzala(first)
+    app.call("reject_player", player="Refuser")
+    refuser = next(p for p in first.players if p.name == "Refuser")
+    app.play_to(later(first, refuser, club_uid=5, club_name="Club 5"))
+    assert app.result("rejected_players")["players"][0]["worth_another_try"] == ["he has moved from Club 2 to Club 5"]
