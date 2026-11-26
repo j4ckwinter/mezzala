@@ -40,7 +40,10 @@ def test_wages_must_fit_the_wage_room(mezzala):
     squad += [player("Expensive Wages", positions=("stc",), ca=130, value=100_000, wage=20_000),
               player("Modest Wages", positions=("stc",), ca=110, value=100_000, wage=3_000)]  # fmt: skip
     striker = picks(mezzala(snapshot(squad)), weekly_wage_budget=5_000)["striker"]
-    assert (striker["target"]["name"], striker["weekly_wage"]) == ("Modest Wages", "£3,000 p/w")
+    assert (striker["target"]["name"], striker["weekly_wage"]) == (
+        "Modest Wages",
+        "about £2,000 p/w (the top of the going rate at clubs like yours in your country; he earns £3,000 p/w now)",
+    )
 
 
 def test_a_target_is_expected_to_want_the_going_rate_at_clubs_like_yours(mezzala):

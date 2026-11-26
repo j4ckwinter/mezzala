@@ -217,9 +217,9 @@ def create_server(
         within reach who beats the current starter, spending down the transfer budget and weekly wage room as it
         goes, with two alternatives each. Budgets are in pounds and default to the club's remaining transfer
         budget and wage room. A target is expected to want at least the going rate for his ability at clubs of
-        similar reputation (in your country first). Targets are young enough not to be ageing for at least two
-        seasons, and among targets within a few CA of the best the one using the smallest share of the tighter
-        budget wins."""
+        similar reputation (in your country first), and no more than the top of their range. Targets are young
+        enough not to be ageing for at least two seasons, and among targets within a few CA of the best the one
+        using the smallest share of the tighter budget wins."""
         current = read_current(career)
         shape, context = with_formation(current, formation)
         budget = current.snapshot.budget

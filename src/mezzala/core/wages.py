@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import StrEnum
-from statistics import median
+from statistics import median, quantiles
 
 from mezzala.core.metrics import PeerMedians, weekly_wage
 from mezzala.core.money import format_weekly_wage
@@ -10,6 +10,7 @@ from mezzala.core.reach import REPUTATION_REACH
 GOING_RATE_ABILITY_BAND = 5
 WIDER_GOING_RATE_ABILITY_BAND = 10
 MIN_GOING_RATE_PLAYERS = 5
+QUARTILES = 4
 
 
 class WageSource(StrEnum):
@@ -23,6 +24,14 @@ class WageSource(StrEnum):
 class WageEstimate:
     amount: int
     source: WageSource
+    earns_now: int | None = None
+
+
+@dataclass(frozen=True)
+class GoingRate:
+    typical: int
+    top: int
+    source: WageSource
 
 
 @dataclass(frozen=True)
@@ -31,7 +40,7 @@ class WageGuide:
     similar_clubs: list[tuple[int, int]]
     peers: PeerMedians
 
-    def going_rate(self, player: Player) -> WageEstimate | None:
+    def going_rate(self, player: Player) -> GoingRate | None:
         searches = (
             (self.domestic, GOING_RATE_ABILITY_BAND, WageSource.DOMESTIC),
             (self.domestic, WIDER_GOING_RATE_ABILITY_BAND, WageSource.DOMESTIC),
@@ -40,15 +49,21 @@ class WageGuide:
         for wages, band, source in searches:
             nearby = [wage for ability, wage in wages if abs(ability - player.current_ability) <= band]
             if len(nearby) >= MIN_GOING_RATE_PLAYERS:
-                return WageEstimate(round(median(nearby)), source)
+                return GoingRate(
+                    round(median(nearby)), round(quantiles(nearby, n=QUARTILES, method="inclusive")[-1]), source
+                )
         estimate = self.peers.of(player)
-        return None if estimate is None else WageEstimate(round(estimate), WageSource.WORLDWIDE)
+        return None if estimate is None else GoingRate(round(estimate), round(estimate), WageSource.WORLDWIDE)
 
     def expected(self, player: Player) -> WageEstimate | None:
         rate = self.going_rate(player)
-        if player.wage and (rate is None or player.wage >= rate.amount):
+        if rate is None:
+            return WageEstimate(player.wage, WageSource.CURRENT) if player.wage else None
+        if not player.wage or player.wage < rate.typical:
+            return WageEstimate(rate.typical, rate.source)
+        if player.wage <= rate.top or rate.source is WageSource.WORLDWIDE:
             return WageEstimate(player.wage, WageSource.CURRENT)
-        return rate
+        return WageEstimate(rate.top, rate.source, player.wage)
 
 
 def at_similar_club(player: Player, snapshot: Snapshot) -> bool:
@@ -73,6 +88,11 @@ def describe_wage(estimate: WageEstimate | None) -> str:
         return "unknown"
     if estimate.source is WageSource.CURRENT:
         return format_weekly_wage(estimate.amount)
+    if estimate.earns_now is not None:
+        return (
+            f"about {format_weekly_wage(estimate.amount)} (the top of {estimate.source.value}; "
+            f"he earns {format_weekly_wage(estimate.earns_now)} now)"
+        )
     return f"about {format_weekly_wage(estimate.amount)} ({estimate.source.value})"
 
 

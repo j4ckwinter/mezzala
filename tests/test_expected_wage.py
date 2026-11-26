@@ -9,12 +9,32 @@ def save():
     return snapshot([*eleven(), free, paid])
 
 
-def test_find_players_gives_free_agents_the_going_rate_and_others_their_wage(mezzala):
+def test_find_players_gives_free_agents_the_going_rate(mezzala):
     found = {
         f["player"]["name"]: f for f in mezzala(save()).result("find_players", position="central midfield")["players"]
     }
     assert found["Free Agent"]["expected_wage"] == GOING_RATE
-    assert found["Well Paid"]["expected_wage"] == "£9,000 p/w"
+
+
+def paid_at_clubs_like_yours(other):
+    mids = [mine(f"Mid {wage}", positions=("mc",), wage=wage) for wage in (1_000, 2_000, 3_000, 4_000, 5_000)]
+    return snapshot([*eleven(ca=60), *mids, other])
+
+
+def expected_wage(app, name):
+    return {f["player"]["name"]: f for f in app.result("find_players")["players"]}[name]["expected_wage"]
+
+
+def test_a_player_paid_more_than_clubs_like_yours_pay_is_expected_to_ask_for_the_top_of_their_range(mezzala):
+    app = mezzala(paid_at_clubs_like_yours(player("Well Paid", positions=("mc",), wage=20_000, club_reputation=9_000)))
+    assert expected_wage(app, "Well Paid") == (
+        "about £4,000 p/w (the top of the going rate at clubs like yours in your country; he earns £20,000 p/w now)"
+    )
+
+
+def test_a_player_paid_within_the_range_at_clubs_like_yours_is_expected_to_want_his_wage(mezzala):
+    app = mezzala(paid_at_clubs_like_yours(player("Fairly Paid", positions=("mc",), wage=3_500, club_reputation=9_000)))
+    assert expected_wage(app, "Fairly Paid") == "£3,500 p/w"
 
 
 def test_contract_watch_free_agents_carry_the_estimate_too(mezzala):
