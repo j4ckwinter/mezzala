@@ -37,15 +37,36 @@ def pre_contract_status(player: Player, today: date) -> str:
     )
 
 
-def signing_warnings(player: Player, snapshot: Snapshot) -> list[str]:
-    warnings: list[str] = []
+class Route(StrEnum):
+    FREE_AGENT = "free agent"
+    PRE_CONTRACT = "pre-contract"
+    TRANSFER = "transfer"
+
+
+def pre_contract_warnings(player: Player, snapshot: Snapshot) -> list[str]:
     if player.on_loan:
-        warnings.append(f"on loan at {player.club_name or 'another club'}: players on loan often refuse a pre-contract")
-    elif not player.is_free_agent and player.club_nation_id == snapshot.club_nation_id:
-        warnings.append(
+        return [f"on loan at {player.club_name or 'another club'}: players on loan often refuse a pre-contract"]
+    if player.club_nation_id == snapshot.club_nation_id:
+        return [
             "at a club in your own country: such players often refuse a pre-contract, so expect to wait "
             "for his contract to end or to pay a fee"
-        )
+        ]
+    return []
+
+
+def route_warnings(player: Player, snapshot: Snapshot, route: Route) -> list[str]:
+    match route:
+        case Route.FREE_AGENT:
+            return []
+        case Route.PRE_CONTRACT:
+            return pre_contract_warnings(player, snapshot)
+        case Route.TRANSFER:
+            on_loan = f"on loan at {player.club_name or 'another club'}, so his parent club decides on a sale"
+            return [on_loan] if player.on_loan else []
+
+
+def signing_warnings(player: Player, snapshot: Snapshot, route: Route) -> list[str]:
+    warnings = route_warnings(player, snapshot, route)
     offer = player.renewal_offer
     if offer is not None:
         until = f" until {offer.ends.isoformat()}" if offer.ends else ""
@@ -57,12 +78,6 @@ def signing_warnings(player: Player, snapshot: Snapshot) -> list[str]:
         if move.club_uid != snapshot.club_uid
     )
     return warnings
-
-
-class Route(StrEnum):
-    FREE_AGENT = "free agent"
-    PRE_CONTRACT = "pre-contract"
-    TRANSFER = "transfer"
 
 
 def signing_route(player: Player, today: date) -> Route:

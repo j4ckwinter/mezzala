@@ -72,7 +72,7 @@ def option(candidate: Candidate, snapshot: Snapshot, wages: WageGuide, view: Vie
         how_to_sign(candidate, snapshot),
         format_money(candidate.fee),
         describe_wage(wages.expected(player)),
-        signing_warnings(player, snapshot),
+        signing_warnings(player, snapshot, candidate.route),
     )
 
 

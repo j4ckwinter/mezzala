@@ -64,3 +64,13 @@ def test_the_pick_spends_the_budget_for_later_positions(mezzala):
     chosen = {plan["position"]: plan["pick"]["player"]["name"] for plan in result["positions"] if plan["pick"]}
     assert chosen == {"goalkeeper": "Keeper", "striker": "Cheap Striker"}
     assert result["total_fees"] == "£950k"
+
+
+def test_a_transfer_carries_no_pre_contract_warning(mezzala):
+    squad = [*without("stc"), mine("Weak Striker", positions=("stc",), ca=70)]
+    squad.append(player("Domestic Striker", positions=("stc",), ca=120, value=300_000))
+    squad.append(player("Loaned Striker", positions=("stc",), ca=119, value=300_000, on_loan=True,
+                        loan_parent_club_uid=7))  # fmt: skip
+    options = {o["player"]["name"]: o for o in plan_for(mezzala(snapshot(squad)), "striker")["options"]}
+    assert options["Domestic Striker"]["warnings"] == []
+    assert options["Loaned Striker"]["warnings"] == ["on loan at Club 2, so his parent club decides on a sale"]

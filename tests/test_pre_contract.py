@@ -61,3 +61,9 @@ def test_find_players_can_keep_only_players_you_can_sign_on_a_pre_contract_now(m
     squad = [*eleven(), keeper("Soon", contract_end=SOON), keeper("Later", contract_end=LATER)]
     found = mezzala(snapshot(squad)).result("find_players", pre_contract_only=True)["players"]
     assert [f["player"]["name"] for f in found] == ["Soon"]
+
+
+def test_players_you_can_sign_on_a_pre_contract_now_come_first(mezzala):
+    better = player("Later But Better", positions=("gk",), ca=130, club_nation_id=FOREIGN, contract_end=LATER)
+    squad = [*eleven(), better, keeper("Soon", contract_end=SOON)]
+    assert list(targets(mezzala(snapshot(squad)))) == ["Soon", "Later But Better"]
