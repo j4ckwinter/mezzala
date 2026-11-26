@@ -49,7 +49,7 @@ Most players install the Claude Desktop extension, `mezzala.mcpb`, from the late
 | FM roles: their key and preferable attributes, which foot suits them, and a player's role score | `src/mezzala/core/roles.py` |
 | FM slot codes (DCL, WBR, AMC...): the position and side each stands for | `src/mezzala/core/slots.py` |
 | The assignment algorithm the eleven uses (Hungarian, minimum cost) | `src/mezzala/core/assignment.py` |
-| When a pre-contract can be agreed, and the warnings that make a signing less likely | `src/mezzala/core/signing.py` |
+| How a player can be signed (free agent, pre-contract or transfer) and its fee, when a pre-contract can be agreed, and the warnings that make a signing less likely | `src/mezzala/core/signing.py` |
 | Which players a club can realistically sign | `src/mezzala/core/reach.py` |
 | Attribute profiles, how alike two players are, and the key attributes for each position | `src/mezzala/core/profile.py` |
 | Projected and observed growth | `src/mezzala/core/growth.py` |

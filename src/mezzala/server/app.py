@@ -56,6 +56,7 @@ from mezzala.server.reports import (
     PerformanceReport,
     PlayerProfileReport,
     PositionalFitReport,
+    RecruitmentPlanReport,
     RegenIntakeReport,
     RejectedReport,
     RelegatedClubsReport,
@@ -91,6 +92,7 @@ from mezzala.tools.next_opponent import next_opponent
 from mezzala.tools.performance import PerformanceScope, PerformanceSearch, PerformanceSort, performance
 from mezzala.tools.player_profile import player_profiles
 from mezzala.tools.positional_fit import positional_fit
+from mezzala.tools.recruitment_plan import recruitment_plan
 from mezzala.tools.regen_intake import regen_intake
 from mezzala.tools.rejections import NotRejected, RejectedList, find_rejected_entry, rejected_list, rejected_record
 from mezzala.tools.relegated_clubs import relegated_clubs
@@ -243,6 +245,26 @@ def create_server(
         answer names the month they are from."""
         current = read_current(career)
         return BudgetReport(save_context(current), budget_picture(current.snapshot))
+
+    @server.tool(name="recruitment_plan")
+    def recruitment_plan_tool(
+        formation: FormationChoice = None,
+        transfer_budget: float | None = None,
+        weekly_wage_budget: float | None = None,
+    ) -> RecruitmentPlanReport:
+        """One recruitment plan across every way to sign a player: for each position squad_gaps flags, worst
+        first, a single list ranked by how well each option beats the current starter and then by the share of the
+        tighter budget he uses, mixing free agents, pre-contracts (contract ending within six months, so no fee)
+        and transfers at FM's value. Each option says how to sign him, his fee and expected wage, and why he might
+        refuse. The plan picks one per position, spending down the budgets as it goes. Budgets are in pounds and
+        default to the remaining transfer budget and current wage room; the budget tool shows the room once the
+        season's contracts end."""
+        current = read_current(career)
+        shape, context = with_formation(current, formation)
+        budget = current.snapshot.budget
+        fees = optional_stored(transfer_budget) if transfer_budget is not None else budget.transfer_remaining
+        wages = optional_stored(weekly_wage_budget) if weekly_wage_budget is not None else budget.wage_headroom_weekly
+        return RecruitmentPlanReport(context, recruitment_plan(recruitable(current), shape, fees, wages, view))
 
     @server.tool(name="wage_review")
     def wage_review_tool(formation: FormationChoice = None) -> WageReviewReport:

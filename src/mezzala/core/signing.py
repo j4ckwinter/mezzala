@@ -1,5 +1,6 @@
 import calendar
 from datetime import date
+from enum import StrEnum
 
 from mezzala.core.players import Player, Snapshot
 
@@ -56,3 +57,25 @@ def signing_warnings(player: Player, snapshot: Snapshot) -> list[str]:
         if move.club_uid != snapshot.club_uid
     )
     return warnings
+
+
+class Route(StrEnum):
+    FREE_AGENT = "free agent"
+    PRE_CONTRACT = "pre-contract"
+    TRANSFER = "transfer"
+
+
+def signing_route(player: Player, today: date) -> Route:
+    if player.is_free_agent:
+        return Route.FREE_AGENT
+    if can_sign_on_pre_contract(player, today):
+        return Route.PRE_CONTRACT
+    return Route.TRANSFER
+
+
+def route_fee(player: Player, route: Route) -> int | None:
+    match route:
+        case Route.FREE_AGENT | Route.PRE_CONTRACT:
+            return 0
+        case Route.TRANSFER:
+            return player.value

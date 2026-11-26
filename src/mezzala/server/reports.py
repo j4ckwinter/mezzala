@@ -20,6 +20,7 @@ from mezzala.tools.next_opponent import NextOpponent
 from mezzala.tools.performance import Performance
 from mezzala.tools.player_profile import PlayerProfiles
 from mezzala.tools.positional_fit import PositionalFit
+from mezzala.tools.recruitment_plan import RecruitmentPlan
 from mezzala.tools.regen_intake import RegenIntake
 from mezzala.tools.rejections import RejectedList
 from mezzala.tools.relegated_clubs import RelegatedClubs
@@ -84,6 +85,12 @@ class FoundPlayersReport:
 class ShortlistReport:
     context: SaveContext
     result: Shortlist
+
+
+@dataclass(frozen=True)
+class RecruitmentPlanReport:
+    context: SaveContext
+    result: RecruitmentPlan
 
 
 @dataclass(frozen=True)
