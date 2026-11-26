@@ -1,10 +1,12 @@
 import calendar
 from collections import Counter
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 
 from mezzala.core.players import Budget, Player, Snapshot
 from mezzala.core.squad import belongs_to_club, everyone_paid, leaving_date, owned_players, wage_paid_by_club
+
+CLOSE_SEASON = timedelta(days=92)
 
 
 @dataclass(frozen=True)
@@ -40,7 +42,7 @@ def season_end(snapshot: Snapshot) -> date | None:
     if not ends:
         return None
     month, day = ends.most_common(1)[0][0]
-    return on_or_after(snapshot.game_date, month, day)
+    return on_or_after(snapshot.game_date - CLOSE_SEASON, month, day)
 
 
 def leaving_reason(player: Player, snapshot: Snapshot, by: date) -> str | None:

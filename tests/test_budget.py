@@ -62,3 +62,8 @@ def test_the_finance_month_survives_a_restart(mezzala):
     app.call("snapshot")
     stored = SnapshotStore(app.database).load(str(Path("career.fm").resolve()), first.game_date)
     assert stored.budget == first.budget
+
+
+def test_in_the_close_season_the_outlook_is_still_this_summer(mezzala):
+    june = replace(season_with_moves(), game_date=date(2026, 7, 20))
+    assert mezzala(june).result("budget")["after"] == "2026-06-30"
