@@ -60,7 +60,7 @@ Most players install the Claude Desktop extension, `mezzala.mcpb`, from the late
 | What wage a player would ask of you: the going rate for his ability at clubs like yours, his own wage when it sits within their range, and the top of that range when he earns more | `src/mezzala/core/wages.py` |
 | How a player is shown in answers | `src/mezzala/core/summary.py` |
 | How ability is shown: CA and PA as numbers, or as stars in spoiler-free mode | `src/mezzala/core/view.py` |
-| Finding a player by name | `src/mezzala/core/lookup.py` |
+| Finding a player by name, and which of several players with the same name is the likeliest | `src/mezzala/core/lookup.py` |
 | Which players recruitment answers leave out because they were rejected | `src/mezzala/core/rejections.py` |
 | Each tool's rules | `src/mezzala/tools/`, one module per tool |
 | Registering each tool: its name, parameters and which tool function answers it | `src/mezzala/server/app.py` |

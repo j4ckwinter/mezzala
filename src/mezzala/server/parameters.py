@@ -6,9 +6,9 @@ from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field
 
 from mezzala.core.formations import DEFAULT_FORMATION, Formation, Shape, places_text, saved_shape, shape_for
-from mezzala.core.lookup import AmbiguousPlayer, PlayerNotFound, find_player
+from mezzala.core.lookup import AmbiguousPlayer, FoundPlayer, PlayerNotFound, find_player
 from mezzala.core.money import stored_from_pounds
-from mezzala.core.players import Player, Snapshot
+from mezzala.core.players import Snapshot
 from mezzala.core.positions import PositionGroup
 from mezzala.core.roles import Side
 from mezzala.core.view import View, shows_hidden_information
@@ -39,7 +39,7 @@ def read_current(career: Career) -> Current:
         raise ToolError(f"Could not read the save: {error}") from error
 
 
-def target_player(snapshot: Snapshot, name: str, club: str | None = None) -> Player:
+def target_player(snapshot: Snapshot, name: str, club: str | None = None) -> FoundPlayer:
     try:
         return find_player(snapshot, name, club)
     except (PlayerNotFound, AmbiguousPlayer) as error:

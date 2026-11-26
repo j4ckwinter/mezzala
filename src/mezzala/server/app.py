@@ -281,9 +281,9 @@ def create_server(
         updates the note (an empty note keeps the old one)."""
         current = read_current(career)
         target = target_player(current.snapshot, player, club)
-        watched.add(current.career, watched_record(target, current.snapshot, note))
+        watched.add(current.career, watched_record(target.player, current.snapshot, note))
         return WatchlistReport(
-            save_context(current), watchlist(current.snapshot, watched.entries(current.career), view)
+            save_context(current, target.notes), watchlist(current.snapshot, watched.entries(current.career), view)
         )
 
     @server.tool(name="unwatch_player")
@@ -424,8 +424,8 @@ def create_server(
         target = target_player(snapshot, player, club)
         fee_cap = optional_stored(max_fee) if max_fee is not None else snapshot.budget.transfer_remaining
         limits = Limits(fee_cap, max_age, optional_stored(max_wage), within_reach)
-        result = find_replacements(recruitable(current), target, limits, limit, view, position)
-        return ReplacementReport(save_context(current), result)
+        result = find_replacements(recruitable(current), target.player, limits, limit, view, position)
+        return ReplacementReport(save_context(current, target.notes), result)
 
     @server.tool(description=RISERS_DESCRIPTION)
     def risers(
@@ -503,8 +503,9 @@ def create_server(
         chosen = [target_player(current.snapshot, player, club)]
         if compare_with is not None:
             chosen.append(target_player(current.snapshot, compare_with, compare_club))
-        result = player_profiles(chosen, career.baseline(current, None), view)
-        return PlayerProfileReport(save_context(current), result)
+        result = player_profiles([found.player for found in chosen], career.baseline(current, None), view)
+        notes = [note for found in chosen for note in found.notes]
+        return PlayerProfileReport(save_context(current, notes), result)
 
     @server.tool(name="training_plan")
     def training_plan_tool(player: str, club: ClubChoice = None, position: PositionChoice = None) -> TrainingPlanReport:
@@ -512,14 +513,16 @@ def create_server(
         position is given), the key attributes to set as his additional focus, whether to lower his intensity,
         traits to learn or unlearn, his mentoring group and senior players who would make good mentors."""
         current = read_current(career)
-        target = target_player(current.snapshot, player, club)
+        found = target_player(current.snapshot, player, club)
+        target = found.player
         if not (
             plays_for_club(target, current.snapshot.club_uid) or belongs_to_club(target, current.snapshot.club_uid)
         ):
             raise ToolError(
                 f"{target.name} is not at {current.snapshot.club_name}; training plans are for your players."
             )
-        return TrainingPlanReport(save_context(current), training_plan(target, current.snapshot, position, view))
+        plan = training_plan(target, current.snapshot, position, view)
+        return TrainingPlanReport(save_context(current, found.notes), plan)
 
     @server.tool(name="dressing_room")
     def dressing_room_tool() -> DressingRoomReport:
@@ -565,13 +568,14 @@ def create_server(
         """Mark a player as rejected, for example one who refused to talk, so find_players, shortlist,
         find_replacement, contract_watch, risers, performance and relegated_clubs stop suggesting him."""
         current = read_current(career)
-        target = target_player(current.snapshot, player, club)
+        found = target_player(current.snapshot, player, club)
+        target = found.player
         if not is_outside_club(target, current.snapshot.club_uid):
             raise ToolError(
                 f"{target.name} plays for {current.snapshot.club_name}; only other clubs' players can be rejected."
             )
         rejections.add(current.career, rejected_record(target, current.snapshot, note))
-        return RejectedReport(save_context(current), rejected_list(rejections.entries(current.career)))
+        return RejectedReport(save_context(current, found.notes), rejected_list(rejections.entries(current.career)))
 
     @server.tool(name="unreject_player")
     def unreject_player_tool(player: str, club: ClubChoice = None) -> RejectedReport:
