@@ -217,7 +217,7 @@ def test_loan_wages_and_clause_expiry_survive_a_restart(mezzala):
 
 
 def test_the_new_player_and_club_facts_survive_a_restart(mezzala):
-    from mezzala.core.players import Injury, MentoringGroup, SeasonStats, StaffMember, Tactic
+    from mezzala.core.players import Injury, MentoringGroup, PendingDeal, SeasonStats, StaffMember, Tactic
     from mezzala.save.store import SnapshotStore
 
     season = SeasonStats(900, 10, 2, 6.9, 3, 2, 2.5, 1.5, 20, 12, 40, 8, 15, 9, 30, 1)
@@ -227,6 +227,8 @@ def test_the_new_player_and_club_facts_survive_a_restart(mezzala):
         banned_from=("Scottish Cup",), injury="Twisted Ankle", injured_until=date(2026, 7, 10),
         injuries=(Injury(date(2026, 4, 25), "major", "in training"),), season=season,
         nationalities=("Scotland", "Ghana"), club_country="Scotland", squad_status="fringe player",
+        renewal_offer=PendingDeal(1, "Paisley", date(2026, 6, 20), date(2029, 5, 31), 2_400),
+        moves_lined_up=(PendingDeal(7, "Rival FC", date(2026, 7, 1), None, None),),
     )  # fmt: skip
     first = replace(
         snapshot([starter, *eleven()[1:]]),

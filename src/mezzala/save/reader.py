@@ -8,7 +8,7 @@ from pathlib import Path
 import fmsave
 
 from mezzala.core.players import Budget, Match, Player, ReleaseClause, ReleaseScope, Snapshot, Vacancy
-from mezzala.save.contracts import contract_end, contract_wage
+from mezzala.save.contracts import contract_end, contract_wage, moves_lined_up, renewal_offer
 from mezzala.save.labels import coded_label, label
 from mezzala.save.nations import nation_name
 from mezzala.save.own_club import club_staff, first_team_tactics, mentoring_groups
@@ -200,6 +200,8 @@ def to_player(
         nationalities=nationalities(player, nations),
         club_country=nations.get(player.club_nation_id) if player.club_nation_id is not None else None,
         squad_status=coded_label(contract.squad_status) if contract else None,
+        renewal_offer=renewal_offer(contract, today) if contract else None,
+        moves_lined_up=moves_lined_up(contract, today) if contract else (),
     )
 
 

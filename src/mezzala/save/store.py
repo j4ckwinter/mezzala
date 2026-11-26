@@ -13,6 +13,7 @@ from mezzala.core.players import (
     Injury,
     Match,
     MentoringGroup,
+    PendingDeal,
     Player,
     ReleaseClause,
     ReleaseScope,
@@ -92,6 +93,15 @@ def encode_clause(clause: ReleaseClause) -> list[Any]:
     return [clause.scope.value, clause.fee, optional_text(clause.expires)]
 
 
+def encode_deal(deal: PendingDeal) -> list[Any]:
+    return [deal.club_uid, deal.club_name, optional_text(deal.starts), optional_text(deal.ends), deal.wage]
+
+
+def decode_deal(stored: list[Any]) -> PendingDeal:
+    club_uid, club_name, starts, ends, wage = stored
+    return PendingDeal(club_uid, club_name, optional_date(starts), optional_date(ends), wage)
+
+
 def encode_injury(injury: Injury) -> list[Any]:
     return [injury.day.isoformat(), injury.severity, injury.cause]
 
@@ -153,6 +163,8 @@ def encode_player(player: Player) -> list[Any]:
         list(player.traits), player.condition, player.match_sharpness, list(player.banned_from), player.injury,
         optional_text(player.injured_until), [encode_injury(injury) for injury in player.injuries],
         encode_season(player.season), list(player.nationalities), player.club_country, player.squad_status,
+        encode_deal(player.renewal_offer) if player.renewal_offer else None,
+        [encode_deal(deal) for deal in player.moves_lined_up],
     ]  # fmt: skip
 
 
@@ -177,8 +189,10 @@ FACTS_ADDED_LATER: list[Any] = [
     [],
     None,
     None,
+    None,
+    [],
 ]
-CURRENT_FORMAT = 13
+CURRENT_FORMAT = 14
 MATCH_FACTS_ADDED_LATER: list[Any] = [False, 0, 0]
 COLUMNS_ADDED_LATER = {
     "club_nation_id": "INTEGER",
@@ -211,7 +225,7 @@ def decode_player(row: list[Any]) -> Player:
      club_reputation, club_nation_id, league_id, youth_contract, clauses, loan_wage, adaptability, loyalty,
      pressure, sportsmanship, temperament, controversy, left_foot, right_foot, height_cm, traits, condition,
      match_sharpness, banned_from, injury, injured_until, injuries, season, nationalities,
-     club_country, squad_status) = row  # fmt: skip
+     club_country, squad_status, renewal_offer, moves_lined_up) = row  # fmt: skip
     return Player(
         uid=uid,
         name=name,
@@ -259,6 +273,8 @@ def decode_player(row: list[Any]) -> Player:
         nationalities=tuple(nationalities),
         club_country=club_country,
         squad_status=squad_status,
+        renewal_offer=decode_deal(renewal_offer) if renewal_offer else None,
+        moves_lined_up=tuple(decode_deal(deal) for deal in moves_lined_up),
     )
 
 

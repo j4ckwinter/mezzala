@@ -29,7 +29,7 @@ Most players install the Claude Desktop extension, `mezzala.mcpb`, from the late
 | What a player and a snapshot hold | `src/mezzala/core/players.py` |
 | Turning an fmsave record into a player, and what counts as unreadable | `src/mezzala/save/reader.py` |
 | Reading the managed club's staff, first-team tactics and mentoring groups | `src/mezzala/save/own_club.py` |
-| Which contract record is the signed contract: when a club's newer record overlaps a running one at the same club, the newer is an open offer, because a signed renewal replaces the old record | `src/mezzala/save/contracts.py` |
+| Which contract record is the signed contract: when a club's newer record overlaps a running one at the same club, the newer is an open offer, because a signed renewal replaces the old record; and which later records at other clubs are moves lined up | `src/mezzala/save/contracts.py` |
 | Reading each player's injury history, current injury and season stats | `src/mezzala/save/player_records.py` |
 | Turning fmsave enum names into plain words | `src/mezzala/save/labels.py` |
 | Nation names for FM's nation database ids. The save stores none, so `src/mezzala/data/nations.csv` names each id from the clubs the save lists for that nation | `src/mezzala/save/nations.py` |

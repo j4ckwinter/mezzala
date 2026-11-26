@@ -33,6 +33,15 @@ class ReleaseClause:
 
 
 @dataclass(frozen=True)
+class PendingDeal:
+    club_uid: int | None
+    club_name: str | None
+    starts: date | None
+    ends: date | None
+    wage: int | None
+
+
+@dataclass(frozen=True)
 class Injury:
     day: date
     severity: str | None
@@ -107,6 +116,8 @@ class Player:
     nationalities: tuple[str, ...] = ()
     club_country: str | None = None
     squad_status: str | None = None
+    renewal_offer: PendingDeal | None = None
+    moves_lined_up: tuple[PendingDeal, ...] = ()
 
     @property
     def headroom(self) -> int:
