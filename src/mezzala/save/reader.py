@@ -8,6 +8,7 @@ from pathlib import Path
 import fmsave
 
 from mezzala.core.players import Budget, Match, Player, ReleaseClause, ReleaseScope, Snapshot, Vacancy
+from mezzala.save.contracts import contract_end, contract_wage
 from mezzala.save.labels import coded_label, label
 from mezzala.save.nations import nation_name
 from mezzala.save.own_club import club_staff, first_team_tactics, mentoring_groups
@@ -146,7 +147,7 @@ def nationalities(player: fmsave.Player, nations: dict[int, str]) -> tuple[str, 
 
 
 def to_player(
-    player: fmsave.Player, leagues: dict[int, int], records: PlayerRecords, nations: dict[int, str]
+    player: fmsave.Player, leagues: dict[int, int], records: PlayerRecords, nations: dict[int, str], today: date
 ) -> Player | None:
     contract = player.contract
     personality = player.personality
@@ -163,8 +164,8 @@ def to_player(
         current_ability=player.ability.current,
         potential_ability=player.ability.potential,
         value=known_value(player.transfer_value_state, player.transfer_value),
-        wage=contract.wage if contract else None,
-        contract_end=contract.end if contract else None,
+        wage=contract_wage(contract, today) if contract else None,
+        contract_end=contract_end(contract, today) if contract else None,
         on_loan=bool(player.on_loan),
         loan_parent_club_uid=player.loan_parent_club_uid,
         loan_end=player.loan_end,
@@ -316,7 +317,7 @@ def read_snapshot(path: Path) -> Snapshot:
             leagues = first_team_leagues(save.fixtures(), {c.uid: c.nation_id for c in save.clubs()})
             records = player_records(save, game_date)
             nations = {nation.nation_id: nation_name(nation.database_id) for nation in save.nations()}
-            converted = (to_player(player, leagues, records, nations) for player in save.players())
+            converted = (to_player(player, leagues, records, nations, game_date) for player in save.players())
             players = tuple(player for player in converted if player is not None)
             managed = save.clubs().by_uid(club.club_uid)
             reputation = managed.reputation
