@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from mezzala.core.budget import budget_warnings
 from mezzala.core.money import format_money, format_weekly_wage
 from mezzala.save.career import Current
 from mezzala.save.store import FileStamp
+from mezzala.tools.budget import BudgetPicture
 from mezzala.tools.compare_formations import FormationComparison
 from mezzala.tools.contract_watch import ContractWatch
 from mezzala.tools.development_check import DevelopmentCheck
@@ -58,6 +60,12 @@ class SnapshotReport:
     context: SaveContext
     players: int
     snapshot_dates: list[str]
+
+
+@dataclass(frozen=True)
+class BudgetReport:
+    context: SaveContext
+    result: BudgetPicture
 
 
 @dataclass(frozen=True)
@@ -263,5 +271,5 @@ def save_context(current: Current, notes: list[str] | None = None) -> SaveContex
         transfer_budget=format_money(snapshot.budget.transfer_remaining),
         wage_headroom=format_weekly_wage(snapshot.budget.wage_headroom_weekly),
         snapshots=current.snapshot_count,
-        notes=[*current.notes, *(notes or [])],
+        notes=[*current.notes, *budget_warnings(snapshot.budget), *(notes or [])],
     )

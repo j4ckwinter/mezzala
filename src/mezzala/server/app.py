@@ -41,6 +41,7 @@ from mezzala.server.parameters import (
     with_formation,
 )
 from mezzala.server.reports import (
+    BudgetReport,
     ContractWatchReport,
     DevelopmentCheckReport,
     DevelopmentPlanReport,
@@ -75,6 +76,7 @@ from mezzala.server.reports import (
     WhatChangedReport,
     save_context,
 )
+from mezzala.tools.budget import budget_picture
 from mezzala.tools.compare_formations import compare_formations
 from mezzala.tools.contract_watch import contract_watch
 from mezzala.tools.development_check import CheckScope, development_check
@@ -226,6 +228,15 @@ def create_server(
         fees = optional_stored(transfer_budget) if transfer_budget is not None else budget.transfer_remaining
         wages = optional_stored(weekly_wage_budget) if weekly_wage_budget is not None else budget.wage_headroom_weekly
         return ShortlistReport(context, shortlist(recruitable(current), shape, fees, wages, view))
+
+    @server.tool(name="budget")
+    def budget_tool() -> BudgetReport:
+        """The club's money: transfer budget left, weekly wage budget, wage bill and room, and the same after the
+        season's contracts end (the commonest end date among your contracts): who leaves, who has a move lined up
+        to join, and the wage bill and room that leaves. Budgets come from FM's monthly finance records, so the
+        answer names the month they are from."""
+        current = read_current(career)
+        return BudgetReport(save_context(current), budget_picture(current.snapshot))
 
     @server.tool(name="wage_review")
     def wage_review_tool(formation: FormationChoice = None) -> WageReviewReport:

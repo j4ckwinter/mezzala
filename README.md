@@ -19,6 +19,7 @@ so i made an mcp server that reads my save and does the scouting for me. i ask c
 | `compare_formations` | which formation your squad fits best, with the eleven for each |
 | `tactic_fit` | your squad in any shape you describe slot by slot with roles (`AML: inside forward`, `WBR: wing-back`), the best player for each slot by role, and the weakest slots |
 | `shortlist` | a realistic shortlist, one target per weak position, within your transfer budget and wage room |
+| `budget` | transfer budget, wage budget, bill and room, and what's left once this season's leavers go and your lined-up signings arrive |
 | `wage_review` | your wage bill, who's overpaid, and who could go without weakening the squad |
 | `development_plan` | which youngsters are ready, who to loan out, and who to focus on |
 | `training_plan` | one of your players' position to train for, additional focus, intensity, traits to learn or unlearn, and who should mentor him |

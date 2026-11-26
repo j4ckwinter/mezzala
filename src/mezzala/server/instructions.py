@@ -14,7 +14,8 @@ and stores a new snapshot when it has changed, so growth compares real snapshots
 Money is in pounds. Fees are FM's transfer values, because asking prices are not stored in the save.
 Current and potential ability (CA, PA) are FM's hidden 1-200 numbers.
 find_players searches every player in the save with filters and sorts, and answers most recruitment
-questions. shortlist builds a transfer shortlist within the budgets. wage_review, development_plan and
+questions. shortlist builds a transfer shortlist within the budgets; budget shows them, and the wage room once
+the season's contracts end. wage_review, development_plan and
 league_comparison cover wages, young players and how the squad compares with its league. squad lists
 the players. compare_formations ranks formations by how well the squad fits them and shows each eleven.
 what_changed, development_check, squad_progress and the watchlist tools (watch_player, unwatch_player,

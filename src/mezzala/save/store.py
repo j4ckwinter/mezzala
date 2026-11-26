@@ -102,6 +102,20 @@ def decode_deal(stored: list[Any]) -> PendingDeal:
     return PendingDeal(club_uid, club_name, optional_date(starts), optional_date(ends), wage)
 
 
+def encode_budget(budget: Budget) -> list[Any]:
+    return [
+        budget.transfer_remaining,
+        budget.wage_budget_weekly,
+        budget.wage_payroll_weekly,
+        optional_text(budget.month),
+    ]
+
+
+def decode_budget(stored: list[Any]) -> Budget:
+    transfer, wage_budget, payroll, *later = stored
+    return Budget(transfer, wage_budget, payroll, optional_date(later[0]) if later else None)
+
+
 def encode_injury(injury: Injury) -> list[Any]:
     return [injury.day.isoformat(), injury.severity, injury.cause]
 
@@ -192,7 +206,7 @@ FACTS_ADDED_LATER: list[Any] = [
     None,
     [],
 ]
-CURRENT_FORMAT = 14
+CURRENT_FORMAT = 15
 MATCH_FACTS_ADDED_LATER: list[Any] = [False, 0, 0]
 COLUMNS_ADDED_LATER = {
     "club_nation_id": "INTEGER",
@@ -315,7 +329,6 @@ class SnapshotStore:
         return date.fromisoformat(row[0]) if row else None
 
     def put(self, career: str, snapshot: Snapshot, stamp: FileStamp) -> None:
-        budget = snapshot.budget
         with self._db:
             self._db.execute(
                 "DELETE FROM snapshots WHERE career = ? AND game_date = ?", (career, snapshot.game_date.isoformat())
@@ -330,7 +343,7 @@ class SnapshotStore:
                     snapshot.club_reputation,
                     snapshot.club_nation_id,
                     CURRENT_FORMAT,
-                    json.dumps([budget.transfer_remaining, budget.wage_budget_weekly, budget.wage_payroll_weekly]),
+                    json.dumps(encode_budget(snapshot.budget)),
                     encode_players(snapshot.players),
                     json.dumps([encode_vacancy(vacancy) for vacancy in snapshot.vacancies]),
                     json.dumps([encode_match(match) for match in snapshot.matches]),
@@ -369,7 +382,7 @@ class SnapshotStore:
             club_name,
             reputation,
             nation_id,
-            Budget(*json.loads(budget)),
+            decode_budget(json.loads(budget)),
             decode_players(players),
             tuple(decode_vacancy(vacancy) for vacancy in json.loads(vacancies or "[]")),
             tuple(decode_match(match) for match in json.loads(matches or "[]")),

@@ -137,6 +137,7 @@ class Budget:
     transfer_remaining: int | None
     wage_budget_weekly: int | None
     wage_payroll_weekly: int | None
+    month: date | None = None
 
     @property
     def wage_headroom_weekly(self) -> int | None:

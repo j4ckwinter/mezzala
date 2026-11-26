@@ -210,7 +210,7 @@ def budget(save: fmsave.Save, club_uid: int) -> Budget:
     if not months:
         return Budget(None, None, None)
     latest = months[-1]
-    return Budget(latest.transfer_budget_remaining, latest.wage_budget_weekly, latest.wage_payroll_weekly)
+    return Budget(latest.transfer_budget_remaining, latest.wage_budget_weekly, latest.wage_payroll_weekly, latest.month)
 
 
 def latest_finances(save: fmsave.Save) -> dict[int, fmsave.FinanceMonth]:
