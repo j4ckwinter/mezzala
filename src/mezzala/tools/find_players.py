@@ -20,6 +20,7 @@ from mezzala.core.positions import Fit, PositionGroup, covers, fit, primary_grou
 from mezzala.core.profile import position_score
 from mezzala.core.reach import within_reach
 from mezzala.core.roles import Role, Side, role_score
+from mezzala.core.signing import can_sign_on_pre_contract
 from mezzala.core.squad import (
     belongs_to_club,
     contract_ends_within,
@@ -69,6 +70,7 @@ class PlayerSearch:
     free_agents_only: bool
     clubs_only: bool
     contract_ending_within_months: int | None
+    pre_contract_only: bool
     max_release_clause: int | None
     youth_contract_only: bool
     nationality: str | None
@@ -211,6 +213,8 @@ def matches_market(player: Player, search: PlayerSearch, measures: Measures) -> 
     if search.contract_ending_within_months is not None and (
         player.is_free_agent or ending(player, snapshot, search.contract_ending_within_months) is None
     ):
+        return False
+    if search.pre_contract_only and not can_sign_on_pre_contract(player, snapshot.game_date):
         return False
     if search.max_release_clause is not None and not at_most(
         measures.release_clause(player), search.max_release_clause

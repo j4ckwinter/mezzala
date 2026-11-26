@@ -42,7 +42,7 @@ so i made an mcp server that reads my save and does the scouting for me. i ask c
 | `find_replacement` | who plays like a player you're losing, fits your budget, and would actually sign |
 | `risers` | who's improving fastest: transfer targets, your own players, or ones you sold too early |
 | `sell_high` | which of your players to cash in on before their value drops |
-| `contract_watch` | your contracts and loans running out, plus free agents and pre-contract targets who'd start for you |
+| `contract_watch` | your contracts and loans running out, plus free agents and pre-contract targets who'd start for you, with who you can sign now and who's likely to say no |
 | `regen_intake` | new regens since an earlier snapshot, best potential first, and which clubs produce them |
 | `snapshot` | reads the save now and lists the dates it has history for |
 

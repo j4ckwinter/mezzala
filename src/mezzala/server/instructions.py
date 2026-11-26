@@ -1,6 +1,7 @@
 from mezzala.core.formations import DEFAULT_FORMATION
 from mezzala.core.positions import ACCOMPLISHED_POSITION_RATING, NATURAL_POSITION_RATING
 from mezzala.core.reach import REPUTATION_REACH
+from mezzala.core.signing import PRE_CONTRACT_MONTHS
 from mezzala.core.view import View
 from mezzala.tools.risers import CA_BELOW_SQUAD_LEVEL, TARGET_MAX_AGE
 
@@ -77,7 +78,9 @@ bigger_clubs_only keeps clubs with a higher reputation than yours. within_reach 
 reputation is at most your club's plus {REPUTATION_REACH} (results show both), so a move is realistic
 on paper, though a player may still refuse; set it false for questions like the best players in the world.
 
-Availability: the save does not record transfer or loan listing; fringe_only keeps players whose
+Availability: pre_contract_only keeps players whose contract ends within {PRE_CONTRACT_MONTHS} months, so you can
+agree a pre-contract now; players on loan or at clubs in your own country often refuse one. The save does not
+record transfer or loan listing; fringe_only keeps players whose
 contract squad status says their club does not count on them (surplus to requirements, fringe player or
 emergency backup), the likeliest to be listed or loaned.
 

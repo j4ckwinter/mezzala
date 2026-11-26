@@ -146,6 +146,7 @@ def create_server(
         free_agents_only: bool = False,
         clubs_only: bool = False,
         contract_ending_within_months: int | None = None,
+        pre_contract_only: bool = False,
         max_release_clause: float | None = None,
         youth_contract_only: bool = False,
         nationality: str | None = None,
@@ -186,6 +187,7 @@ def create_server(
             free_agents_only=free_agents_only,
             clubs_only=clubs_only,
             contract_ending_within_months=contract_ending_within_months,
+            pre_contract_only=pre_contract_only,
             max_release_clause=optional_stored(max_release_clause),
             youth_contract_only=youth_contract_only,
             nationality=nationality,
@@ -452,7 +454,9 @@ def create_server(
         limit: int = DEFAULT_LIMIT,
     ) -> ContractWatchReport:
         """Your contracts and loans ending soon, plus free agents and players elsewhere with expiring contracts
-        who would beat your current starter somewhere in the formation."""
+        who would beat your current starter somewhere in the formation. Each target says whether you can agree a
+        pre-contract now (his contract ends within six months) or from when, and warns when he is on loan, at a
+        club in your own country, has an open renewal offer, or has a move lined up elsewhere."""
         current = read_current(career)
         shape, context = with_formation(current, formation)
         result = contract_watch(recruitable(current), shape, within_months, max_age, within_reach, limit, view)
